@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run db:query:*)",
+      "Bash(chmod:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Read(//mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

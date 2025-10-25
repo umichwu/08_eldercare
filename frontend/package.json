@@ -1,0 +1,12 @@
+{
+  "name": "eldercare-frontend",
+  "version": "1.0.0",
+  "description": "ElderCare Companion System - Frontend",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "dev": "python3 -m http.server 8080"
+  },
+  "keywords": ["eldercare", "chat", "accessibility"],
+  "author": "",
+  "license": "MIT"
+}

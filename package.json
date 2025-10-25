@@ -1,0 +1,35 @@
+{
+  "name": "eldercare-companion-system",
+  "version": "2.0.0",
+  "description": "ElderCare Companion System - 長輩陪伴智能系統 (PWA)",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "live-server frontend/public --port=8080 --host=localhost --open=/login.html",
+    "start": "npm run dev",
+    "backend": "cd backend && npm start",
+    "build": "cp -r frontend/public ./public",
+    "build:frontend": "echo 'Frontend is static, no build needed'",
+    "test": "echo 'Running tests...' && npm run test:backend",
+    "test:backend": "cd backend && npm test"
+  },
+  "keywords": [
+    "eldercare",
+    "ai",
+    "chat",
+    "pwa",
+    "supabase",
+    "openai"
+  ],
+  "author": "Gilbert",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "live-server": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

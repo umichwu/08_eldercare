@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+dist/
+build/
+public/
+
+# Debug
+debug/
+
+# Backups
+backups/
+
+# Temporary files
+tmp/
+temp/
+
+# Database - 舊版本 schema（不要上傳）
+database/supabase_complete_schema_with_auth.sql
+
+# Documentation (可選，若想上傳文檔則移除以下行)
+*.md
+!README.md
+!database/README.md

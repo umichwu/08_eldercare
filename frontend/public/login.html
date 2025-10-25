@@ -463,7 +463,7 @@
                 const { data, error } = await supabaseClient.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: 'http://localhost:8080/onboarding.html'
+                        redirectTo: window.location.origin + '/onboarding.html'
                     }
                 });
 

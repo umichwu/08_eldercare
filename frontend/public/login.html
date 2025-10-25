@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入 - ElderCare 長輩陪伴智能系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .form-container {
+            margin-top: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .forgot-password {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .forgot-password:hover {
+            color: #5568d3;
+            text-decoration: underline;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            margin-bottom: 16px;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: #e5e7eb;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 16px;
+            position: relative;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .oauth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-google {
+            background: white;
+            color: #333;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-google:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .btn-facebook {
+            background: #1877f2;
+            color: white;
+        }
+
+        .btn-facebook:hover {
+            background: #0c63d4;
+        }
+
+        .btn-line {
+            background: #00b900;
+            color: white;
+        }
+
+        .btn-line:hover {
+            background: #009900;
+        }
+
+        .oauth-icon {
+            font-size: 20px;
+        }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .signup-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .logo h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Logo -->
+        <div class="logo">
+            <div class="logo-icon">🏥</div>
+            <h1>ElderCare</h1>
+            <p>長輩陪伴智能系統</p>
+        </div>
+
+        <!-- 錯誤訊息 -->
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- 登入表單 -->
+        <div class="form-container">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">📧 Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="your@email.com"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">🔒 密碼</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="請輸入密碼"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember" id="remember">
+                        <span>記住我</span>
+                    </label>
+                    <a href="#" class="forgot-password">忘記密碼？</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="loginBtn">
+                    <span id="loginText">登入</span>
+                    <div class="loading" id="loginLoading">
+                        <div class="spinner"></div>
+                        <span>登入中...</span>
+                    </div>
+                </button>
+            </form>
+
+            <!-- 分隔線 -->
+            <div class="divider">
+                <span>或使用以下方式登入</span>
+            </div>
+
+            <!-- OAuth 登入按鈕 -->
+            <div class="oauth-buttons">
+                <button class="btn btn-google" id="googleLoginBtn">
+                    <span class="oauth-icon">🔵</span>
+                    <span>使用 Google 登入</span>
+                </button>
+
+                <button class="btn btn-facebook" id="facebookLoginBtn">
+                    <span class="oauth-icon">📘</span>
+                    <span>使用 Facebook 登入</span>
+                </button>
+
+                <button class="btn btn-line" id="lineLoginBtn">
+                    <span class="oauth-icon">💚</span>
+                    <span>使用 Line 登入</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 註冊連結 -->
+        <div class="signup-link">
+            還沒有帳號？ <a href="register.html">立即註冊</a>
+        </div>
+    </div>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // 初始化 Supabase
+        const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 檢查是否已登入
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                // 已登入，檢查是否完成 onboarding
+                const { data: profile } = await supabaseClient
+                    .from('user_profiles')
+                    .select('onboarding_completed')
+                    .eq('auth_user_id', session.user.id)
+                    .single();
+
+                if (profile && profile.onboarding_completed) {
+                    window.location.href = 'index.html';
+                } else {
+                    window.location.href = 'onboarding.html';
+                }
+            }
+        }
+
+        // 頁面載入時檢查
+        checkAuth();
+
+        // 顯示錯誤訊息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // 顯示/隱藏載入狀態
+        function setLoading(isLoading) {
+            const loginBtn = document.getElementById('loginBtn');
+            const loginText = document.getElementById('loginText');
+            const loginLoading = document.getElementById('loginLoading');
+
+            if (isLoading) {
+                loginBtn.disabled = true;
+                loginText.style.display = 'none';
+                loginLoading.style.display = 'flex';
+            } else {
+                loginBtn.disabled = false;
+                loginText.style.display = 'block';
+                loginLoading.style.display = 'none';
+            }
+        }
+
+        // Email 登入
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            setLoading(true);
+
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) throw error;
+
+                // 登入成功
+                console.log('登入成功:', data);
+
+                // 檢查是否完成 onboarding
+                const { data: profile } = await supabaseClient
+                    .from('user_profiles')
+                    .select('onboarding_completed')
+                    .eq('auth_user_id', data.user.id)
+                    .single();
+
+                if (profile && profile.onboarding_completed) {
+                    window.location.href = 'index.html';
+                } else {
+                    window.location.href = 'onboarding.html';
+                }
+
+            } catch (error) {
+                console.error('登入錯誤:', error);
+                showError(error.message || '登入失敗，請檢查您的帳號密碼');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Google OAuth 登入
+        document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: 'http://localhost:8080/onboarding.html'
+                    }
+                });
+
+                if (error) throw error;
+
+            } catch (error) {
+                console.error('Google 登入錯誤:', error);
+                showError('Google 登入失敗: ' + error.message);
+            }
+        });
+
+        // Facebook OAuth 登入
+        document.getElementById('facebookLoginBtn').addEventListener('click', async () => {
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithOAuth({
+                    provider: 'facebook',
+                    options: {
+                        redirectTo: window.location.origin + '/onboarding.html'
+                    }
+                });
+
+                if (error) throw error;
+
+            } catch (error) {
+                console.error('Facebook 登入錯誤:', error);
+                showError('Facebook 登入尚未設定');
+            }
+        });
+
+        // Line OAuth 登入
+        document.getElementById('lineLoginBtn').addEventListener('click', () => {
+            showError('Line 登入功能即將推出');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定您的角色 - ElderCare</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .onboarding-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 600px;
+            padding: 50px 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .logo p {
+            font-size: 18px;
+            color: #666;
+        }
+
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .welcome-message h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .welcome-message p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .role-selection {
+            margin: 40px 0;
+        }
+
+        .role-card {
+            border: 3px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .role-card:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .role-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .role-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .role-card h3 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .role-card p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .role-features {
+            margin-top: 16px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .role-features li {
+            margin-bottom: 8px;
+            color: #555;
+            list-style-position: inside;
+        }
+
+        .additional-info {
+            margin-top: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 30px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 640px) {
+            .onboarding-container {
+                padding: 40px 24px;
+            }
+
+            .role-card {
+                padding: 20px;
+            }
+
+            .role-icon {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="onboarding-container">
+        <!-- Logo -->
+        <div class="logo">
+            <div class="logo-icon">🏥</div>
+            <h1>ElderCare</h1>
+            <p>長輩陪伴智能系統</p>
+        </div>
+
+        <!-- 歡迎訊息 -->
+        <div class="welcome-message">
+            <h2>歡迎！請選擇您的角色</h2>
+            <p>選擇最符合您使用需求的角色</p>
+        </div>
+
+        <!-- 錯誤訊息 -->
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- 角色選擇 -->
+        <div class="role-selection">
+            <div class="role-card" data-role="elder" id="roleElder">
+                <div class="role-icon">👴</div>
+                <h3>我是長輩</h3>
+                <p>使用 AI 陪伴聊天功能，享受智能關懷服務</p>
+                <ul class="role-features">
+                    <li>與 AI 助手聊天對話</li>
+                    <li>健康管理與提醒</li>
+                    <li>用藥記錄與提醒</li>
+                    <li>語音互動功能</li>
+                </ul>
+            </div>
+
+            <div class="role-card" data-role="family" id="roleFamily">
+                <div class="role-icon">👨‍👩‍👧</div>
+                <h3>我是家屬</h3>
+                <p>關注長輩狀況，隨時了解長輩的健康與生活</p>
+                <ul class="role-features">
+                    <li>查看長輩對話總結</li>
+                    <li>接收健康警示通知</li>
+                    <li>與 AI 討論長輩照護</li>
+                    <li>查看用藥與就醫記錄</li>
+                </ul>
+            </div>
+
+            <div class="role-card" data-role="both" id="roleBoth">
+                <div class="role-icon">👥</div>
+                <h3>兩者都是</h3>
+                <p>既是長輩也關心其他家人，享有完整功能</p>
+                <ul class="role-features">
+                    <li>所有長輩功能</li>
+                    <li>所有家屬功能</li>
+                    <li>角色自由切換</li>
+                    <li>完整權限管理</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 額外資訊 -->
+        <form id="onboardingForm" style="display: none;">
+            <div class="additional-info">
+                <div class="form-group">
+                    <label for="displayName">👤 顯示名稱</label>
+                    <input
+                        type="text"
+                        id="displayName"
+                        name="displayName"
+                        placeholder="請輸入您的名稱"
+                        required
+                    >
+                </div>
+
+                <div class="form-group" id="phoneGroup">
+                    <label for="phone">📞 手機號碼（選填）</label>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        placeholder="0912345678"
+                    >
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <span id="submitText">開始使用</span>
+                <div class="loading" id="submitLoading">
+                    <div class="spinner"></div>
+                    <span>設定中...</span>
+                </div>
+            </button>
+        </form>
+    </div>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // 初始化 Supabase
+        const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let selectedRole = null;
+        let currentUser = null;
+
+        // 檢查登入狀態
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentUser = session.user;
+
+            // 檢查是否已完成 onboarding
+            const { data: profile } = await supabaseClient
+                .from('user_profiles')
+                .select('*')
+                .eq('auth_user_id', currentUser.id)
+                .single();
+
+            if (profile && profile.onboarding_completed) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // 如果有從 metadata 取得資料，預填
+            if (currentUser.user_metadata) {
+                if (currentUser.user_metadata.display_name) {
+                    document.getElementById('displayName').value = currentUser.user_metadata.display_name;
+                } else if (currentUser.user_metadata.full_name) {
+                    document.getElementById('displayName').value = currentUser.user_metadata.full_name;
+                }
+
+                if (currentUser.user_metadata.role) {
+                    selectRole(currentUser.user_metadata.role);
+                }
+            }
+        }
+
+        checkAuth();
+
+        // 角色選擇互動
+        document.querySelectorAll('.role-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const role = this.dataset.role;
+                selectRole(role);
+            });
+        });
+
+        function selectRole(role) {
+            selectedRole = role;
+
+            // 移除所有選中狀態
+            document.querySelectorAll('.role-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // 加入選中狀態
+            const selectedCard = document.querySelector(`[data-role="${role}"]`);
+            selectedCard.classList.add('selected');
+
+            // 顯示表單
+            document.getElementById('onboardingForm').style.display = 'block';
+        }
+
+        // 顯示錯誤訊息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // 顯示/隱藏載入狀態
+        function setLoading(isLoading) {
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitLoading = document.getElementById('submitLoading');
+
+            if (isLoading) {
+                submitBtn.disabled = true;
+                submitText.style.display = 'none';
+                submitLoading.style.display = 'flex';
+            } else {
+                submitBtn.disabled = false;
+                submitText.style.display = 'block';
+                submitLoading.style.display = 'none';
+            }
+        }
+
+        // 表單提交
+        document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedRole) {
+                showError('請選擇您的角色');
+                return;
+            }
+
+            const displayName = document.getElementById('displayName').value;
+            const phone = document.getElementById('phone').value;
+
+            setLoading(true);
+
+            try {
+                // 更新 user_profiles
+                const { error: profileError } = await supabaseClient
+                    .from('user_profiles')
+                    .update({
+                        display_name: displayName,
+                        phone: phone || null,
+                        role: selectedRole,
+                        onboarding_completed: true
+                    })
+                    .eq('auth_user_id', currentUser.id);
+
+                if (profileError) throw profileError;
+
+                // 根據角色建立對應的記錄
+                if (selectedRole === 'elder' || selectedRole === 'both') {
+                    // 建立長輩記錄
+                    const { data: elderData, error: elderError } = await supabaseClient
+                        .from('elders')
+                        .insert({
+                            user_profile_id: (await supabaseClient
+                                .from('user_profiles')
+                                .select('id')
+                                .eq('auth_user_id', currentUser.id)
+                                .single()).data.id,
+                            auth_user_id: currentUser.id,
+                            name: displayName,
+                            email: currentUser.email,
+                            phone: phone || null
+                        })
+                        .select()
+                        .single();
+
+                    if (elderError) {
+                        console.error('建立長輩記錄失敗:', elderError);
+                    } else {
+                        // 更新 user_profiles 的 elder_id
+                        await supabaseClient
+                            .from('user_profiles')
+                            .update({ elder_id: elderData.id })
+                            .eq('auth_user_id', currentUser.id);
+                    }
+                }
+
+                if (selectedRole === 'family' || selectedRole === 'both') {
+                    // 建立家屬記錄
+                    const { data: familyData, error: familyError } = await supabaseClient
+                        .from('family_members')
+                        .insert({
+                            user_profile_id: (await supabaseClient
+                                .from('user_profiles')
+                                .select('id')
+                                .eq('auth_user_id', currentUser.id)
+                                .single()).data.id,
+                            auth_user_id: currentUser.id,
+                            name: displayName,
+                            email: currentUser.email,
+                            phone: phone || null
+                        })
+                        .select()
+                        .single();
+
+                    if (familyError) {
+                        console.error('建立家屬記錄失敗:', familyError);
+                    } else {
+                        // 更新 user_profiles 的 family_member_id
+                        await supabaseClient
+                            .from('user_profiles')
+                            .update({ family_member_id: familyData.id })
+                            .eq('auth_user_id', currentUser.id);
+                    }
+                }
+
+                // 設定完成，導向主頁面
+                window.location.href = 'index.html';
+
+            } catch (error) {
+                console.error('設定失敗:', error);
+                showError(error.message || '設定失敗，請稍後再試');
+            } finally {
+                setLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>

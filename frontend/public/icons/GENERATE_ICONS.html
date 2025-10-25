@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Icon Generator - ElderCare</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        #preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .icon-preview {
+            text-align: center;
+        }
+        .icon-preview img {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .icon-preview p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #downloads {
+            margin-top: 20px;
+        }
+        .download-link {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 16px;
+            background: #4caf50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .download-link:hover {
+            background: #45a049;
+        }
+        canvas {
+            display: none;
+        }
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 ElderCare PWA Icon Generator</h1>
+        <p>自動生成所有需要的 PWA Icon 尺寸</p>
+
+        <div class="status" id="status">
+            準備生成 Icons...
+        </div>
+
+        <button id="generateBtn" onclick="generateAllIcons()">
+            🎨 開始生成 Icons
+        </button>
+
+        <button id="downloadAllBtn" onclick="downloadAll()" style="display: none;">
+            📦 下載全部 (ZIP)
+        </button>
+
+        <div class="instructions">
+            <h3>📝 使用說明：</h3>
+            <ol>
+                <li>點擊「開始生成 Icons」按鈕</li>
+                <li>等待所有尺寸生成完成</li>
+                <li>點擊個別下載連結，或使用「下載全部」</li>
+                <li>將下載的 PNG 檔案放到 <code>frontend/public/icons/</code> 資料夾</li>
+            </ol>
+        </div>
+
+        <div id="preview"></div>
+        <div id="downloads"></div>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const preview = document.getElementById('preview');
+        const downloads = document.getElementById('downloads');
+        const status = document.getElementById('status');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+
+        let generatedBlobs = [];
+
+        function drawIcon(size) {
+            canvas.width = size;
+            canvas.height = size;
+
+            // 清除畫布
+            ctx.clearRect(0, 0, size, size);
+
+            // 繪製圓角矩形背景
+            const radius = size * 0.15625; // 80/512
+            ctx.fillStyle = '#667eea';
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.arcTo(size, 0, size, size, radius);
+            ctx.arcTo(size, size, 0, size, radius);
+            ctx.arcTo(0, size, 0, 0, radius);
+            ctx.arcTo(0, 0, size, 0, radius);
+            ctx.closePath();
+            ctx.fill();
+
+            // 繪製白色十字
+            ctx.fillStyle = '#ffffff';
+            const crossWidth = size * 0.15625; // 80/512
+            const crossHeight = size * 0.53125; // 272/512
+            const crossX = (size - crossWidth) / 2;
+            const crossY = size * 0.234375; // 120/512
+
+            // 垂直線
+            roundRect(ctx, crossX, crossY, crossWidth, crossHeight, size * 0.0195);
+            ctx.fill();
+
+            // 水平線
+            roundRect(ctx, crossY, crossX, crossHeight, crossWidth, size * 0.0195);
+            ctx.fill();
+
+            // 繪製粉紅色愛心
+            const heartY = size * 0.664; // 340/512
+            const heartSize = size * 0.109375; // 56/512
+            const heartX = size * 0.390625; // 200/512
+
+            ctx.fillStyle = '#ff6b9d';
+            ctx.globalAlpha = 0.9;
+
+            // 左圓
+            ctx.beginPath();
+            ctx.arc(heartX, heartY, heartSize * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 右圓
+            ctx.beginPath();
+            ctx.arc(heartX + heartSize * 0.5, heartY, heartSize * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 下方三角
+            ctx.beginPath();
+            ctx.moveTo(heartX - heartSize * 0.5, heartY);
+            ctx.quadraticCurveTo(
+                heartX - heartSize * 0.5,
+                heartY + heartSize,
+                heartX + heartSize * 0.25,
+                heartY + heartSize * 1.3
+            );
+            ctx.quadraticCurveTo(
+                heartX + heartSize,
+                heartY + heartSize,
+                heartX + heartSize,
+                heartY
+            );
+            ctx.fill();
+
+            // 繪製微笑曲線
+            ctx.globalAlpha = 0.7;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = size * 0.0234375; // 12/512
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            const smileY = size * 0.859375; // 440/512
+            const smileX1 = size * 0.3515625; // 180/512
+            const smileX2 = size * 0.6484375; // 332/512
+            ctx.moveTo(smileX1, smileY);
+            ctx.quadraticCurveTo(
+                size * 0.5,
+                smileY + size * 0.0585938,
+                smileX2,
+                smileY
+            );
+            ctx.stroke();
+
+            ctx.globalAlpha = 1;
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + width, y, x + width, y + height, radius);
+            ctx.arcTo(x + width, y + height, x, y + height, radius);
+            ctx.arcTo(x, y + height, x, y, radius);
+            ctx.arcTo(x, y, x + width, y, radius);
+            ctx.closePath();
+        }
+
+        async function generateAllIcons() {
+            generateBtn.disabled = true;
+            status.className = 'status';
+            status.textContent = '正在生成 Icons...';
+            preview.innerHTML = '';
+            downloads.innerHTML = '';
+            generatedBlobs = [];
+
+            for (let i = 0; i < sizes.length; i++) {
+                const size = sizes[i];
+                await generateIcon(size, i);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            status.className = 'status success';
+            status.textContent = `✅ 成功生成 ${sizes.length} 個 Icons！`;
+            downloadAllBtn.style.display = 'inline-block';
+            generateBtn.disabled = false;
+        }
+
+        function generateIcon(size, index) {
+            return new Promise((resolve) => {
+                drawIcon(size);
+
+                canvas.toBlob(blob => {
+                    generatedBlobs.push({ size, blob });
+
+                    // 創建預覽
+                    const url = URL.createObjectURL(blob);
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'icon-preview';
+
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.width = Math.min(size, 128);
+                    img.height = Math.min(size, 128);
+
+                    const label = document.createElement('p');
+                    label.textContent = `${size}x${size}`;
+
+                    previewDiv.appendChild(img);
+                    previewDiv.appendChild(label);
+                    preview.appendChild(previewDiv);
+
+                    // 創建下載連結
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `icon-${size}x${size}.png`;
+                    a.className = 'download-link';
+                    a.textContent = `📥 ${size}x${size}.png`;
+                    downloads.appendChild(a);
+
+                    resolve();
+                });
+            });
+        }
+
+        async function downloadAll() {
+            status.textContent = '正在打包所有 Icons...';
+
+            // 創建下載提示
+            const message = document.createElement('div');
+            message.style.cssText = 'margin: 20px 0; padding: 15px; background: #fff3cd; border-radius: 5px;';
+            message.innerHTML = `
+                <strong>💡 提示：</strong><br>
+                瀏覽器會連續下載 ${sizes.length} 個檔案。<br>
+                如果出現「此網站正在嘗試下載多個檔案」的提示，請選擇「允許」。
+            `;
+            downloads.insertBefore(message, downloads.firstChild);
+
+            // 依序下載所有檔案
+            for (let i = 0; i < generatedBlobs.length; i++) {
+                const { size, blob } = generatedBlobs[i];
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `icon-${size}x${size}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // 小延遲避免瀏覽器阻擋
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            status.className = 'status success';
+            status.textContent = `✅ 已開始下載 ${sizes.length} 個檔案！`;
+        }
+
+        // 頁面載入時自動生成預覽
+        window.addEventListener('load', () => {
+            console.log('ElderCare Icon Generator Ready');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI驅動的長輩陪伴聊天系統">
+    <meta name="theme-color" content="#667eea">
+    <title>長輩陪伴助手 - ElderCare Companion</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- 主容器 -->
+    <div id="app">
+        <!-- 頭部區域 -->
+        <header class="app-header">
+            <h1 class="app-title" data-i18n="app.title">🏥 長輩陪伴助手</h1>
+            <div class="header-controls">
+                <!-- 使用者資訊 -->
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <img id="userAvatar" class="user-avatar" src="" alt="頭像">
+                    <span id="userName" class="user-name"></span>
+                </div>
+
+                <button id="voiceToggle" class="icon-btn" data-i18n-title="header.voiceToggle" title="語音開關">
+                    🔊
+                </button>
+                <button id="settingsBtn" class="icon-btn" data-i18n-title="header.settings" title="設定">
+                    ⚙️
+                </button>
+                <button id="logoutBtn" class="icon-btn" data-i18n-title="header.logout" title="登出" style="display: none;">
+                    🚪
+                </button>
+            </div>
+        </header>
+
+        <!-- 主要內容區 -->
+        <main class="app-main">
+            <!-- 左側：對話列表 -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2 data-i18n="sidebar.title">對話記錄</h2>
+                    <button id="newChatBtn" class="btn btn-primary" data-i18n="sidebar.newChat">
+                        ➕ 新對話
+                    </button>
+                </div>
+                <div id="conversationList" class="conversation-list">
+                    <!-- 動態載入對話列表 -->
+                </div>
+            </aside>
+
+            <!-- 中間：聊天區域 -->
+            <section class="chat-container">
+                <!-- 歡迎畫面 -->
+                <div id="welcomeScreen" class="welcome-screen">
+                    <div class="welcome-content">
+                        <h2 class="welcome-title" data-i18n="welcome.title">您好！我是您的陪伴助手 😊</h2>
+                        <p class="welcome-subtitle" data-i18n="welcome.subtitle">有什麼我可以幫您的嗎？</p>
+                        <div class="quick-actions">
+                            <button class="quick-btn" data-message="今天天氣如何？" data-i18n="quickAction.weather">
+                                ☀️ 天氣查詢
+                            </button>
+                            <button class="quick-btn" data-message="提醒我吃藥" data-i18n="quickAction.medication">
+                                💊 用藥提醒
+                            </button>
+                            <button class="quick-btn" data-message="講個笑話給我聽" data-i18n="quickAction.joke">
+                                😄 聽笑話
+                            </button>
+                            <button class="quick-btn" data-message="我覺得有點不舒服" data-i18n="quickAction.health">
+                                🏥 健康諮詢
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 聊天訊息區 -->
+                <div id="chatMessages" class="chat-messages" style="display: none;">
+                    <!-- 動態載入訊息 -->
+                </div>
+
+                <!-- 輸入區域 -->
+                <div class="input-container">
+                    <!-- 快捷功能按鈕 -->
+                    <div class="quick-shortcuts">
+                        <button class="shortcut-btn" data-message="quickMessage.weather" data-i18n="quickAction.weather">
+                            ☀️ 天氣
+                        </button>
+                        <button class="shortcut-btn" data-message="quickMessage.medication" data-i18n="quickAction.medication">
+                            💊 用藥
+                        </button>
+                        <button class="shortcut-btn" data-message="quickMessage.joke" data-i18n="quickAction.joke">
+                            😄 笑話
+                        </button>
+                        <button class="shortcut-btn" data-message="quickMessage.health" data-i18n="quickAction.health">
+                            🏥 健康
+                        </button>
+                    </div>
+
+                    <!-- SOS 緊急按鈕 -->
+                    <button id="sosBtn" class="sos-btn" data-i18n="input.sos">
+                        🆘 緊急求助
+                    </button>
+
+                    <!-- 訊息輸入框 -->
+                    <div class="input-wrapper">
+                        <textarea
+                            id="messageInput"
+                            class="message-input"
+                            placeholder="請輸入訊息..."
+                            rows="2"
+                        ></textarea>
+                        <div class="input-controls">
+                            <button id="voiceInputBtn" class="btn btn-voice" data-i18n="input.voiceInput">
+                                🎤 語音輸入
+                            </button>
+                            <button id="sendBtn" class="btn btn-send" data-i18n="input.send">
+                                ➤ 傳送
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右側：總結和資訊 -->
+            <aside class="info-panel">
+                <div class="panel-section">
+                    <h3 data-i18n="panel.summary">💡 對話摘要</h3>
+                    <div id="summaryContent" class="summary-content">
+                        <p class="empty-state" data-i18n="panel.emptySummary">尚無對話摘要</p>
+                    </div>
+                    <button id="generateSummaryBtn" class="btn btn-secondary" style="display: none;" data-i18n="panel.generateSummary">
+                        產生摘要
+                    </button>
+                </div>
+
+                <div class="panel-section">
+                    <h3 data-i18n="panel.statistics">📊 統計資訊</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label" data-i18n="panel.totalMessages">訊息數量</span>
+                            <span id="messageCount" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label" data-i18n="panel.untilSummary">距離總結</span>
+                            <span id="summaryProgress" class="stat-value">0/20</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- 載入指示器 -->
+        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">處理中，請稍候...</p>
+        </div>
+
+        <!-- SOS 確認對話框 -->
+        <div id="sosModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 class="modal-title">🆘 緊急求助</h2>
+                <p class="modal-text">確定要發送緊急通知給家人嗎？</p>
+                <div class="modal-actions">
+                    <button id="sosConfirmBtn" class="btn btn-danger">
+                        確認發送
+                    </button>
+                    <button id="sosCancelBtn" class="btn btn-secondary">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // ===================================
+        // PWA Service Worker Registration
+        // ===================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered successfully:', registration.scope);
+
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            console.log('🔄 New Service Worker found, installing...');
+
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        // New service worker available, but don't auto-reload
+                                        console.log('✨ New version available! Reload to update.');
+                                        // Optional: Show a subtle notification to user
+                                        // For now, just log it to avoid infinite reload
+                                    } else {
+                                        // First time install
+                                        console.log('✅ Service Worker installed for the first time');
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
+                    });
+            });
+
+            // Handle service worker updates - removed auto-reload to prevent infinite loop
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    console.log('🔄 Service Worker controller changed');
+                    // Don't auto-reload, let user decide
+                    // window.location.reload();
+                }
+            });
+        }
+
+        // ===================================
+        // PWA Install Prompt
+        // ===================================
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show install button (you can add this to UI later)
+            console.log('💡 PWA installation available');
+        });
+
+        // ===================================
+        // Authentication Check
+        // ===================================
+        const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Global user info
+        let currentUser = null;
+        let userProfile = null;
+
+        // Check authentication on page load
+        async function checkAuth() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+                if (error) {
+                    console.error('❌ Auth check error:', error);
+                    redirectToLogin();
+                    return false;
+                }
+
+                if (!session) {
+                    console.log('⚠️ No active session, redirecting to login...');
+                    redirectToLogin();
+                    return false;
+                }
+
+                currentUser = session.user;
+                console.log('✅ User authenticated:', currentUser.email);
+
+                // Load user profile
+                await loadUserProfile();
+
+                // Display user info
+                displayUserInfo();
+
+                return true;
+            } catch (error) {
+                console.error('❌ Auth check failed:', error);
+                redirectToLogin();
+                return false;
+            }
+        }
+
+        // Load user profile from database
+        async function loadUserProfile() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('auth_user_id', currentUser.id)
+                    .single();
+
+                if (error) {
+                    console.error('❌ Failed to load user profile:', error);
+
+                    // Check if onboarding not completed
+                    if (error.code === 'PGRST116') {
+                        console.log('⚠️ User profile not found, redirecting to onboarding...');
+                        window.location.href = '/onboarding.html';
+                        return;
+                    }
+                    return;
+                }
+
+                userProfile = data;
+                console.log('✅ User profile loaded:', userProfile);
+
+                // Check if onboarding completed
+                if (!userProfile.onboarding_completed) {
+                    console.log('⚠️ Onboarding not completed, redirecting...');
+                    window.location.href = '/onboarding.html';
+                    return;
+                }
+
+            } catch (error) {
+                console.error('❌ Error loading profile:', error);
+            }
+        }
+
+        // Display user information
+        function displayUserInfo() {
+            const userInfoDiv = document.getElementById('userInfo');
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (userProfile) {
+                // Show user info
+                userName.textContent = userProfile.display_name || currentUser.email;
+
+                // Set avatar
+                if (userProfile.avatar_url) {
+                    userAvatar.src = userProfile.avatar_url;
+                } else {
+                    // Use default avatar based on user's initial
+                    const initial = (userProfile.display_name || currentUser.email).charAt(0).toUpperCase();
+                    userAvatar.src = `https://ui-avatars.com/api/?name=${initial}&background=667eea&color=fff&size=40`;
+                }
+
+                userInfoDiv.style.display = 'flex';
+                logoutBtn.style.display = 'block';
+            }
+        }
+
+        // Logout function
+        async function handleLogout() {
+            if (confirm('確定要登出嗎？')) {
+                try {
+                    const { error } = await supabaseClient.auth.signOut();
+
+                    if (error) {
+                        console.error('❌ Logout error:', error);
+                        alert('登出時發生錯誤');
+                        return;
+                    }
+
+                    console.log('✅ Logged out successfully');
+                    redirectToLogin();
+                } catch (error) {
+                    console.error('❌ Logout failed:', error);
+                    alert('登出失敗');
+                }
+            }
+        }
+
+        // Redirect to login page
+        function redirectToLogin() {
+            window.location.href = '/login.html';
+        }
+
+        // Listen for auth state changes
+        // 暫時禁用以避免觸發重載
+        /*
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('🔄 Auth state changed:', event);
+
+            if (event === 'SIGNED_OUT') {
+                redirectToLogin();
+            } else if (event === 'SIGNED_IN') {
+                window.location.reload();
+            }
+        });
+        */
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Initializing ElderCare Companion...');
+
+            // Check authentication first
+            const isAuthenticated = await checkAuth();
+
+            if (!isAuthenticated) {
+                return; // Stop here if not authenticated
+            }
+
+            // Setup logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+            }
+
+            // Now load the main app
+            console.log('✅ Authentication verified, loading main app...');
+
+            // Wait for app.js to load, then initialize with user data
+            if (typeof window.initElderCareApp === 'function') {
+                await window.initElderCareApp(currentUser, userProfile);
+            } else {
+                console.log('⏳ Waiting for app.js to load...');
+                // Retry after a short delay
+                setTimeout(async () => {
+                    if (typeof window.initElderCareApp === 'function') {
+                        await window.initElderCareApp(currentUser, userProfile);
+                    } else {
+                        console.error('❌ Failed to load app.js');
+                    }
+                }, 100);
+            }
+        });
+    </script>
+
+    <!-- i18n & Settings -->
+    <script src="i18n.js"></script>
+    <script src="settings.js"></script>
+
+    <!-- Main App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

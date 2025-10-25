@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElderCare Icon Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .size-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .size-buttons button {
+            background: #48bb78;
+        }
+        .size-buttons button:hover {
+            background: #38a169;
+        }
+        .info {
+            background: #e6f7ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 ElderCare PWA Icon Generator</h1>
+
+        <div class="info">
+            <strong>使用說明：</strong><br>
+            1. 預覽圖示設計<br>
+            2. 點選下方按鈕下載所需尺寸<br>
+            3. 將下載的圖示放到 icons/ 目錄中
+        </div>
+
+        <h3>圖示預覽 (512x512)</h3>
+        <canvas id="iconCanvas" width="512" height="512"></canvas>
+
+        <h3>下載圖示</h3>
+        <div class="size-buttons">
+            <button onclick="downloadIcon(72)">72x72</button>
+            <button onclick="downloadIcon(96)">96x96</button>
+            <button onclick="downloadIcon(128)">128x128</button>
+            <button onclick="downloadIcon(144)">144x144</button>
+            <button onclick="downloadIcon(152)">152x152</button>
+            <button onclick="downloadIcon(192)">192x192</button>
+            <button onclick="downloadIcon(384)">384x384</button>
+            <button onclick="downloadIcon(512)">512x512</button>
+        </div>
+
+        <button onclick="downloadAllSizes()" style="width: 100%; margin-top: 20px; background: #f56565;">
+            📦 下載所有尺寸
+        </button>
+    </div>
+
+    <script>
+        // Draw the icon
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            canvas.width = size;
+            canvas.height = size;
+
+            // Background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Add rounded corners
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, size * 0.15);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+
+            // Draw heart + medical cross symbol
+            ctx.save();
+            ctx.translate(size / 2, size / 2);
+
+            // Heart
+            const heartSize = size * 0.35;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+
+            const topCurveHeight = heartSize * 0.3;
+            ctx.moveTo(0, topCurveHeight);
+
+            // Left side of heart
+            ctx.bezierCurveTo(
+                -heartSize / 2, -topCurveHeight,
+                -heartSize, topCurveHeight,
+                0, heartSize
+            );
+
+            // Right side of heart
+            ctx.bezierCurveTo(
+                heartSize, topCurveHeight,
+                heartSize / 2, -topCurveHeight,
+                0, topCurveHeight
+            );
+
+            ctx.fill();
+
+            // Medical cross
+            const crossSize = heartSize * 0.5;
+            const crossWidth = crossSize * 0.3;
+
+            ctx.fillStyle = '#667eea';
+            // Vertical bar
+            ctx.fillRect(-crossWidth / 2, -crossSize / 2, crossWidth, crossSize);
+            // Horizontal bar
+            ctx.fillRect(-crossSize / 2, -crossWidth / 2, crossSize, crossWidth);
+
+            ctx.restore();
+        }
+
+        // Initialize
+        const mainCanvas = document.getElementById('iconCanvas');
+        drawIcon(mainCanvas, 512);
+
+        // Download function
+        function downloadIcon(size) {
+            const canvas = document.createElement('canvas');
+            drawIcon(canvas, size);
+
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `icon-${size}x${size}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        // Download all sizes
+        async function downloadAllSizes() {
+            const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+
+            for (const size of sizes) {
+                await new Promise(resolve => {
+                    downloadIcon(size);
+                    setTimeout(resolve, 300);
+                });
+            }
+
+            alert('✅ 所有圖示已下載完成！\n請將它們放到 frontend/public/icons/ 目錄中。');
+        }
+    </script>
+</body>
+</html>

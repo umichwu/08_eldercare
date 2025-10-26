@@ -172,24 +172,37 @@ button:disabled {
   min-height: 0; /* 重要：允許 flex 子元素縮小 */
 }
 
-/* 側邊欄 Scroll Bar 樣式 */
+/* 側邊欄 Scroll Bar 樣式 - 增強可見度 */
 .conversation-list::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
 }
 
 .conversation-list::-webkit-scrollbar-track {
-  background: #E0E0E0;
+  background: #E8E8E8;
   border-radius: 10px;
+  border: 1px solid #D0D0D0;
 }
 
 .conversation-list::-webkit-scrollbar-thumb {
-  background: #BDBDBD;
+  background: linear-gradient(180deg, #A0A0A0 0%, #888888 100%);
   border-radius: 10px;
-  border: 2px solid #E0E0E0;
+  border: 2px solid #E8E8E8;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .conversation-list::-webkit-scrollbar-thumb:hover {
-  background: #9E9E9E;
+  background: linear-gradient(180deg, #7A7A7A 0%, #606060 100%);
+  cursor: pointer;
+}
+
+.conversation-list::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #606060 0%, #4A4A4A 100%);
+}
+
+/* Firefox */
+.conversation-list {
+  scrollbar-width: auto;
+  scrollbar-color: #888888 #E8E8E8;
 }
 
 .conversation-item {
@@ -297,24 +310,37 @@ button:disabled {
   min-height: 0; /* 重要：允許 flex 子元素縮小 */
 }
 
-/* 自訂 Scroll Bar 樣式 */
+/* 自訂 Scroll Bar 樣式 - 增強可見度 */
 .chat-messages::-webkit-scrollbar {
-  width: 12px;
+  width: 14px; /* 加寬讓長輩更容易點擊 */
 }
 
 .chat-messages::-webkit-scrollbar-track {
-  background: #F5F5F5;
+  background: #E8E8E8;
   border-radius: 10px;
+  border: 1px solid #D0D0D0; /* 增加邊框讓軌道更明顯 */
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: #BDBDBD;
+  background: linear-gradient(180deg, #A0A0A0 0%, #888888 100%); /* 漸層讓滑塊更立體 */
   border-radius: 10px;
-  border: 2px solid #F5F5F5;
+  border: 2px solid #E8E8E8;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 增加陰影 */
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #9E9E9E;
+  background: linear-gradient(180deg, #7A7A7A 0%, #606060 100%); /* hover 時更深 */
+  cursor: pointer;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #606060 0%, #4A4A4A 100%); /* 點擊時最深 */
+}
+
+/* Firefox 的 Scroll Bar 樣式 */
+.chat-messages {
+  scrollbar-width: auto; /* auto 或 thin */
+  scrollbar-color: #888888 #E8E8E8; /* 滑塊顏色 軌道顏色 */
 }
 
 .message {
@@ -528,24 +554,37 @@ button:disabled {
   min-height: 0; /* 重要：允許 flex 子元素縮小 */
 }
 
-/* 右側面板 Scroll Bar 樣式 */
+/* 右側面板 Scroll Bar 樣式 - 增強可見度 */
 .info-panel::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
 }
 
 .info-panel::-webkit-scrollbar-track {
-  background: #E0E0E0;
+  background: #E8E8E8;
   border-radius: 10px;
+  border: 1px solid #D0D0D0;
 }
 
 .info-panel::-webkit-scrollbar-thumb {
-  background: #BDBDBD;
+  background: linear-gradient(180deg, #A0A0A0 0%, #888888 100%);
   border-radius: 10px;
-  border: 2px solid #E0E0E0;
+  border: 2px solid #E8E8E8;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .info-panel::-webkit-scrollbar-thumb:hover {
-  background: #9E9E9E;
+  background: linear-gradient(180deg, #7A7A7A 0%, #606060 100%);
+  cursor: pointer;
+}
+
+.info-panel::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #606060 0%, #4A4A4A 100%);
+}
+
+/* Firefox */
+.info-panel {
+  scrollbar-width: auto;
+  scrollbar-color: #888888 #E8E8E8;
 }
 
 .panel-section {

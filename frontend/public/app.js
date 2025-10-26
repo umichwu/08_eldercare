@@ -552,8 +552,22 @@ function renderMessages() {
     )
     .join('');
 
-  // 捲動到最新訊息
-  container.scrollTop = container.scrollHeight;
+  // 捲動到最新訊息（使用 setTimeout 確保 DOM 已更新）
+  setTimeout(() => {
+    scrollToBottom();
+  }, 100);
+}
+
+// 平滑捲動到底部
+function scrollToBottom() {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+
+  // 使用平滑捲動
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  });
 }
 
 function updateStats() {

@@ -337,40 +337,73 @@
 
         // 檢查登入狀態
         async function checkAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            currentUser = session.user;
-
-            // 檢查是否已完成 onboarding
-            const { data: profile } = await supabaseClient
-                .from('user_profiles')
-                .select('*')
-                .eq('auth_user_id', currentUser.id)
-                .single();
-
-            if (profile && profile.onboarding_completed) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            // 如果有從 metadata 取得資料，預填
-            if (currentUser.user_metadata) {
-                if (currentUser.user_metadata.display_name) {
-                    document.getElementById('displayName').value = currentUser.user_metadata.display_name;
-                } else if (currentUser.user_metadata.full_name) {
-                    document.getElementById('displayName').value = currentUser.user_metadata.full_name;
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
                 }
 
-                if (currentUser.user_metadata.role) {
-                    selectRole(currentUser.user_metadata.role);
+                currentUser = session.user;
+                console.log('✅ 使用者已登入:', currentUser.email);
+
+                // 檢查是否已完成 onboarding
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('auth_user_id', currentUser.id)
+                    .single();
+
+                // 如果找不到 profile，可能是觸發器還沒執行，手動創建
+                if (profileError && profileError.code === 'PGRST116') {
+                    console.log('⚠️ 找不到使用者資料，嘗試創建...');
+                    const displayName = currentUser.user_metadata?.full_name ||
+                                       currentUser.user_metadata?.name ||
+                                       currentUser.email.split('@')[0];
+
+                    const { error: insertError } = await supabaseClient
+                        .from('user_profiles')
+                        .insert({
+                            auth_user_id: currentUser.id,
+                            email: currentUser.email,
+                            display_name: displayName,
+                            oauth_provider: currentUser.app_metadata?.provider || 'google',
+                            role: 'family',
+                            onboarding_completed: false
+                        });
+
+                    if (insertError) {
+                        console.error('❌ 無法創建使用者資料:', insertError);
+                        throw new Error('無法創建使用者資料，請聯繫管理員');
+                    }
+                    console.log('✅ 使用者資料已創建');
+                } else if (profile && profile.onboarding_completed) {
+                    window.location.href = 'index.html';
+                    return;
                 }
+
+                // 如果有從 metadata 取得資料，預填
+                if (currentUser.user_metadata) {
+                    if (currentUser.user_metadata.display_name) {
+                        document.getElementById('displayName').value = currentUser.user_metadata.display_name;
+                    } else if (currentUser.user_metadata.full_name) {
+                        document.getElementById('displayName').value = currentUser.user_metadata.full_name;
+                    }
+
+                    if (currentUser.user_metadata.role) {
+                        selectRole(currentUser.user_metadata.role);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 檢查登入狀態失敗:', error);
+                showError('無法載入使用者資料，請重新登入');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             }
         }
 
+        // 等待認證檢查完成後才允許操作
         checkAuth();
 
         // 角色選擇互動
@@ -428,6 +461,12 @@
         document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            // 檢查是否已登入
+            if (!currentUser) {
+                showError('使用者資料載入中，請稍候再試');
+                return;
+            }
+
             if (!selectedRole) {
                 showError('請選擇您的角色');
                 return;
@@ -439,8 +478,13 @@
             setLoading(true);
 
             try {
+                console.log('📝 開始設定使用者資料...');
+                console.log('   使用者ID:', currentUser.id);
+                console.log('   角色:', selectedRole);
+                console.log('   顯示名稱:', displayName);
+
                 // 更新 user_profiles
-                const { error: profileError } = await supabaseClient
+                const { data: updateData, error: profileError } = await supabaseClient
                     .from('user_profiles')
                     .update({
                         display_name: displayName,
@@ -448,9 +492,19 @@
                         role: selectedRole,
                         onboarding_completed: true
                     })
-                    .eq('auth_user_id', currentUser.id);
+                    .eq('auth_user_id', currentUser.id)
+                    .select();
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('❌ 更新使用者資料失敗:', profileError);
+                    throw profileError;
+                }
+
+                if (!updateData || updateData.length === 0) {
+                    throw new Error('找不到使用者資料，無法更新');
+                }
+
+                console.log('✅ 使用者資料已更新');
 
                 // 根據角色建立對應的記錄
                 if (selectedRole === 'elder' || selectedRole === 'both') {

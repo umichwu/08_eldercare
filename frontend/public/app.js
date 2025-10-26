@@ -105,13 +105,30 @@ function setupEventListeners() {
   }
 
   // 傳送訊息
-  document.getElementById('sendBtn').addEventListener('click', sendMessage);
-  document.getElementById('messageInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const sendBtn = document.getElementById('sendBtn');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', () => {
+      console.log('🔵 傳送按鈕被點擊');
       sendMessage();
-    }
-  });
+    });
+    console.log('✅ 傳送按鈕已綁定');
+  } else {
+    console.error('❌ 找不到傳送按鈕');
+  }
+
+  const messageInput = document.getElementById('messageInput');
+  if (messageInput) {
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        console.log('⌨️ Enter 鍵被按下');
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    console.log('✅ 訊息輸入框已綁定');
+  } else {
+    console.error('❌ 找不到訊息輸入框');
+  }
 
   // 語音輸入按鈕
   document.getElementById('voiceInputBtn').addEventListener('click', startVoiceInput);
@@ -278,12 +295,22 @@ async function selectConversation(conversationId) {
 // ===================================
 
 async function sendMessage() {
+  console.log('📤 sendMessage() 被呼叫');
+
   const input = document.getElementById('messageInput');
   const content = input.value.trim();
 
-  if (!content) return;
+  console.log('📝 訊息內容:', content);
+  console.log('👤 當前使用者 ID:', currentUserId);
+  console.log('💬 當前對話:', currentConversation);
+
+  if (!content) {
+    console.warn('⚠️ 訊息內容為空，取消發送');
+    return;
+  }
 
   if (!currentConversation) {
+    console.log('🆕 沒有對話，創建新對話...');
     await createNewConversation();
   }
 
@@ -302,6 +329,10 @@ async function sendMessage() {
     messages.push(userMessage);
     renderMessages();
 
+    console.log('🌐 準備發送 API 請求...');
+    console.log('📍 URL:', `/conversations/${currentConversation.id}/messages`);
+    console.log('📦 資料:', { userId: currentUserId, content });
+
     // 發送到後端
     const response = await apiCall(
       `/conversations/${currentConversation.id}/messages`,
@@ -311,6 +342,8 @@ async function sendMessage() {
         content
       }
     );
+
+    console.log('✅ API 回應成功:', response);
 
     // 更新訊息列表
     messages[messages.length - 1] = response.userMessage;
@@ -327,9 +360,11 @@ async function sendMessage() {
     // 重新載入總結狀態
     await loadLatestSummary();
   } catch (error) {
-    console.error('傳送訊息失敗:', error);
+    console.error('❌ 傳送訊息失敗:', error);
+    console.error('錯誤詳情:', error.message);
+    console.error('錯誤堆疊:', error.stack);
     hideLoading();
-    alert('傳送失敗，請重試');
+    alert('傳送失敗，請重試: ' + error.message);
   }
 }
 

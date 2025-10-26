@@ -303,7 +303,7 @@ button:disabled {
 /* 聊天訊息區 */
 .chat-messages {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll; /* 改為 scroll 讓捲軸永遠顯示（即使沒有超出內容） */
   overflow-x: hidden;
   padding: var(--spacing-lg);
   background: linear-gradient(to bottom, #FAFAFA 0%, #FFFFFF 100%);

@@ -92,7 +92,7 @@ git push -u origin main
 | **Branch** | `main` | 要部署的分支 |
 | **Root Directory** | `backend` | **重要！** 設定為 backend 資料夾 |
 | **Runtime** | `Node` | 自動偵測 |
-| **Build Command** | `npm install` | 安裝依賴 |
+| **Build Command** | `npm install` 或留空 | 安裝依賴（Render 會自動執行）|
 | **Start Command** | `node server.js` | 啟動指令 |
 | **Instance Type** | `Free` | 免費方案 |
 
@@ -182,9 +182,19 @@ https://your-backend-url.onrender.com/api/health
 1. 在 Render Dashboard，點擊你的 service
 2. 點擊左側 **"Logs"** 標籤
 3. 查看錯誤訊息：
+   - `Missing script: "build"` → Build Command 設定錯誤，改為留空或 `npm install`
    - `Missing environment variables` → 檢查環境變數設定
    - `Module not found` → 檢查 Root Directory 是否設為 `backend`
    - `Port already in use` → 通常是暫時性問題，等待重啟
+   - `Error: Cannot find module` → 依賴沒安裝，檢查 Build Command
+
+**常見解決方案：**
+- 如果看到 `Missing script: "build"` 錯誤，在 Render 設定中：
+  1. 點擊 **"Settings"**
+  2. 找到 **"Build Command"**
+  3. 改為留空或 `npm install`
+  4. 點擊 **"Save Changes"**
+  5. 手動重新部署：**"Manual Deploy"** → **"Deploy latest commit"**
 
 #### 2.7 重要提醒：Render 免費層限制
 

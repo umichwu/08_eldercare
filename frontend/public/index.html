@@ -86,8 +86,9 @@
                 </div>
 
                 <!-- 聊天訊息區 -->
-                <div id="chatMessages" class="chat-messages" style="display: none;">
+                <div id="chatMessages" class="chat-messages">
                     <!-- 動態載入訊息 -->
+                    <p class="empty-state" id="emptyStateMessage">等待載入對話...</p>
                 </div>
 
                 <!-- 輸入區域 -->
@@ -293,10 +294,12 @@
         // Check authentication on page load
         async function checkAuth() {
             try {
+                console.log('🔍 開始檢查認證...');
                 const { data: { session }, error } = await supabaseClient.auth.getSession();
 
                 if (error) {
                     console.error('❌ Auth check error:', error);
+                    alert('認證檢查失敗：' + error.message);
                     redirectToLogin();
                     return false;
                 }
@@ -309,16 +312,26 @@
 
                 currentUser = session.user;
                 console.log('✅ User authenticated:', currentUser.email);
+                console.log('👤 User ID:', currentUser.id);
 
                 // Load user profile
-                await loadUserProfile();
+                console.log('📥 載入使用者資料...');
+                const profileLoaded = await loadUserProfile();
+
+                if (!profileLoaded) {
+                    console.error('❌ 無法載入使用者資料');
+                    alert('無法載入使用者資料，請重新登入');
+                    return false;
+                }
 
                 // Display user info
                 displayUserInfo();
 
+                console.log('✅ 認證檢查完成');
                 return true;
             } catch (error) {
                 console.error('❌ Auth check failed:', error);
+                alert('系統錯誤：' + error.message);
                 redirectToLogin();
                 return false;
             }
@@ -327,6 +340,9 @@
         // Load user profile from database
         async function loadUserProfile() {
             try {
+                console.log('🔍 查詢 user_profiles 表格...');
+                console.log('   auth_user_id:', currentUser.id);
+
                 const { data, error } = await supabaseClient
                     .from('user_profiles')
                     .select('*')
@@ -335,28 +351,47 @@
 
                 if (error) {
                     console.error('❌ Failed to load user profile:', error);
+                    console.error('   錯誤代碼:', error.code);
+                    console.error('   錯誤訊息:', error.message);
 
                     // Check if onboarding not completed
                     if (error.code === 'PGRST116') {
                         console.log('⚠️ User profile not found, redirecting to onboarding...');
+                        alert('找不到使用者資料，將轉到設定頁面');
                         window.location.href = '/onboarding.html';
-                        return;
+                        return false;
                     }
-                    return;
+
+                    alert('載入使用者資料失敗：' + error.message);
+                    return false;
+                }
+
+                if (!data) {
+                    console.error('❌ User profile data is null');
+                    alert('使用者資料為空，請重新註冊');
+                    return false;
                 }
 
                 userProfile = data;
                 console.log('✅ User profile loaded:', userProfile);
+                console.log('   ID:', userProfile.id);
+                console.log('   Name:', userProfile.display_name);
+                console.log('   Onboarding completed:', userProfile.onboarding_completed);
 
                 // Check if onboarding completed
                 if (!userProfile.onboarding_completed) {
                     console.log('⚠️ Onboarding not completed, redirecting...');
+                    alert('請先完成初始設定');
                     window.location.href = '/onboarding.html';
-                    return;
+                    return false;
                 }
+
+                return true;
 
             } catch (error) {
                 console.error('❌ Error loading profile:', error);
+                alert('載入使用者資料時發生錯誤：' + error.message);
+                return false;
             }
         }
 

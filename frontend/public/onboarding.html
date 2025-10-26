@@ -354,9 +354,12 @@
                     .eq('auth_user_id', currentUser.id)
                     .single();
 
-                // 如果找不到 profile，可能是觸發器還沒執行，手動創建
+                // 如果找不到 profile，可能是觸發器還沒執行，嘗試手動創建
                 if (profileError && profileError.code === 'PGRST116') {
                     console.log('⚠️ 找不到使用者資料，嘗試創建...');
+                    console.log('   User ID:', currentUser.id);
+                    console.log('   Email:', currentUser.email);
+
                     const displayName = currentUser.user_metadata?.full_name ||
                                        currentUser.user_metadata?.name ||
                                        currentUser.email.split('@')[0];
@@ -374,9 +377,20 @@
 
                     if (insertError) {
                         console.error('❌ 無法創建使用者資料:', insertError);
-                        throw new Error('無法創建使用者資料，請聯繫管理員');
+                        console.error('   錯誤詳情:', JSON.stringify(insertError, null, 2));
+
+                        // 顯示錯誤但不重定向，讓使用者可以看到錯誤訊息
+                        showError('資料庫設定問題：' + (insertError.message || '無法創建使用者資料'));
+
+                        // 即使無法創建，也允許使用者繼續（資料會在提交時創建）
+                        console.log('⚠️ 繼續執行，將在提交時重試創建');
+                    } else {
+                        console.log('✅ 使用者資料已創建');
                     }
-                    console.log('✅ 使用者資料已創建');
+                } else if (profileError) {
+                    // 其他錯誤（非找不到記錄）
+                    console.error('❌ 查詢使用者資料時發生錯誤:', profileError);
+                    showError('資料庫查詢錯誤：' + (profileError.message || '未知錯誤'));
                 } else if (profile && profile.onboarding_completed) {
                     window.location.href = 'index.html';
                     return;
@@ -396,10 +410,19 @@
                 }
             } catch (error) {
                 console.error('❌ 檢查登入狀態失敗:', error);
-                showError('無法載入使用者資料，請重新登入');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                console.error('   錯誤堆疊:', error.stack);
+
+                // 不自動重定向，讓使用者看到錯誤訊息並決定下一步
+                showError('系統錯誤：' + (error.message || '無法載入使用者資料'));
+
+                // 只在真的沒有 session 時才重定向
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    console.log('⚠️ 沒有登入 session，3秒後重定向到登入頁面');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                }
             }
         }
 
@@ -483,28 +506,31 @@
                 console.log('   角色:', selectedRole);
                 console.log('   顯示名稱:', displayName);
 
-                // 更新 user_profiles
-                const { data: updateData, error: profileError } = await supabaseClient
+                // 使用 upsert 而不是 update，以處理記錄不存在的情況
+                const { data: profileData, error: profileError } = await supabaseClient
                     .from('user_profiles')
-                    .update({
+                    .upsert({
+                        auth_user_id: currentUser.id,
+                        email: currentUser.email,
                         display_name: displayName,
                         phone: phone || null,
                         role: selectedRole,
-                        onboarding_completed: true
+                        oauth_provider: currentUser.app_metadata?.provider || 'google',
+                        onboarding_completed: true,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'auth_user_id'
                     })
-                    .eq('auth_user_id', currentUser.id)
-                    .select();
+                    .select()
+                    .single();
 
                 if (profileError) {
-                    console.error('❌ 更新使用者資料失敗:', profileError);
-                    throw profileError;
+                    console.error('❌ 儲存使用者資料失敗:', profileError);
+                    console.error('   錯誤詳情:', JSON.stringify(profileError, null, 2));
+                    throw new Error('儲存失敗：' + (profileError.message || '未知錯誤'));
                 }
 
-                if (!updateData || updateData.length === 0) {
-                    throw new Error('找不到使用者資料，無法更新');
-                }
-
-                console.log('✅ 使用者資料已更新');
+                console.log('✅ 使用者資料已儲存:', profileData);
 
                 // 根據角色建立對應的記錄
                 if (selectedRole === 'elder' || selectedRole === 'both') {

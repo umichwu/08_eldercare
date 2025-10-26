@@ -223,6 +223,9 @@
         // ===================================
         // PWA Service Worker Registration
         // ===================================
+        // 暫時禁用 Service Worker 以診斷問題
+        console.log('⚠️ Service Worker 已暫時禁用，用於診斷問題');
+        /*
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
@@ -265,6 +268,7 @@
                 }
             });
         }
+        */
 
         // ===================================
         // PWA Install Prompt

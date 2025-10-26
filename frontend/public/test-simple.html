@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簡化測試 - 不載入 Service Worker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 簡化測試頁面</h1>
+        <p style="color: #666;">這個頁面不會載入 Service Worker，用來隔離問題</p>
+
+        <div id="results"></div>
+
+        <h2>測試步驟</h2>
+        <button onclick="testSupabase()">1. 測試 Supabase 載入</button>
+        <button onclick="testScripts()">2. 測試 JS 檔案載入</button>
+        <button onclick="clearResults()">清除結果</button>
+
+        <h2>詳細 Console 輸出</h2>
+        <pre id="console-output"></pre>
+    </div>
+
+    <script>
+        // 不註冊 Service Worker！
+        console.log('✅ 這個頁面不會載入 Service Worker');
+
+        const resultsDiv = document.getElementById('results');
+        const consoleOutput = document.getElementById('console-output');
+        let logs = [];
+
+        // 捕捉 console
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = function(...args) {
+            logs.push('[LOG] ' + args.join(' '));
+            originalLog.apply(console, args);
+            updateConsole();
+        };
+
+        console.error = function(...args) {
+            logs.push('[ERROR] ' + args.join(' '));
+            originalError.apply(console, args);
+            updateConsole();
+        };
+
+        console.warn = function(...args) {
+            logs.push('[WARN] ' + args.join(' '));
+            originalWarn.apply(console, args);
+            updateConsole();
+        };
+
+        function updateConsole() {
+            consoleOutput.textContent = logs.join('\n');
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function addStatus(type, title, message) {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${title}</strong><br>${message}`;
+            resultsDiv.appendChild(div);
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+            logs = [];
+            updateConsole();
+        }
+
+        // 全域錯誤處理
+        window.addEventListener('error', (event) => {
+            console.error('❌ 全域錯誤:', event.message);
+            console.error('   檔案:', event.filename);
+            console.error('   行號:', event.lineno, ':', event.colno);
+            addStatus('error', '錯誤偵測',
+                `${event.message}<br>檔案: ${event.filename}<br>行號: ${event.lineno}:${event.colno}`);
+        });
+
+        function testSupabase() {
+            console.log('🔍 測試 Supabase CDN...');
+            if (typeof window.supabase !== 'undefined') {
+                console.log('✅ Supabase 已載入');
+                addStatus('success', 'Supabase CDN', '✅ Supabase 已成功載入');
+
+                // 測試創建 client
+                try {
+                    const testClient = window.supabase.createClient(
+                        'https://test.supabase.co',
+                        'test-key'
+                    );
+                    console.log('✅ Supabase createClient 函數正常');
+                    addStatus('success', 'Supabase 功能', '✅ createClient 函數正常運作');
+                } catch (err) {
+                    console.error('❌ Supabase createClient 錯誤:', err);
+                    addStatus('error', 'Supabase 功能', '❌ createClient 錯誤: ' + err.message);
+                }
+            } else {
+                console.error('❌ Supabase 未載入');
+                addStatus('error', 'Supabase CDN', '❌ Supabase 未載入');
+            }
+        }
+
+        function testScripts() {
+            console.log('🔍 測試 JS 檔案載入...');
+
+            // 測試各個檔案
+            const tests = [
+                { name: 'i18n.js', check: () => typeof window.i18n !== 'undefined' },
+                { name: 'settings.js', check: () => typeof SettingsManager !== 'undefined' },
+                { name: 'app.js', check: () => typeof window.initElderCareApp === 'function' }
+            ];
+
+            tests.forEach(test => {
+                try {
+                    if (test.check()) {
+                        console.log(`✅ ${test.name} 已載入`);
+                        addStatus('success', test.name, '✅ 已成功載入');
+                    } else {
+                        console.error(`❌ ${test.name} 未載入`);
+                        addStatus('error', test.name, '❌ 未載入或未定義全域變數');
+                    }
+                } catch (err) {
+                    console.error(`❌ ${test.name} 檢查錯誤:`, err);
+                    addStatus('error', test.name, '❌ 檢查時發生錯誤: ' + err.message);
+                }
+            });
+        }
+
+        console.log('✅ 測試頁面已載入');
+        console.log('💡 請按上方按鈕進行測試');
+    </script>
+
+    <!-- 載入 Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 載入其他 JS 檔案 -->
+    <script src="i18n.js"></script>
+    <script src="settings.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+        // 自動執行測試
+        setTimeout(() => {
+            console.log('🚀 自動執行測試...');
+            testSupabase();
+            setTimeout(() => {
+                testScripts();
+            }, 500);
+        }, 1000);
+    </script>
+</body>
+</html>

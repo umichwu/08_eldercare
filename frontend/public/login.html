@@ -460,10 +460,18 @@
         // Google OAuth 登入
         document.getElementById('googleLoginBtn').addEventListener('click', async () => {
             try {
+                // 根據環境決定 redirect URL
+                const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+                const redirectUrl = isProduction
+                    ? 'https://08-eldercare.vercel.app/onboarding.html'
+                    : 'http://localhost:8080/onboarding.html';
+
+                console.log('Google OAuth Redirect URL:', redirectUrl);
+
                 const { data, error } = await supabaseClient.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: window.location.origin + '/onboarding.html'
+                        redirectTo: redirectUrl
                     }
                 });
 
@@ -478,10 +486,16 @@
         // Facebook OAuth 登入
         document.getElementById('facebookLoginBtn').addEventListener('click', async () => {
             try {
+                // 根據環境決定 redirect URL
+                const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+                const redirectUrl = isProduction
+                    ? 'https://08-eldercare.vercel.app/onboarding.html'
+                    : 'http://localhost:8080/onboarding.html';
+
                 const { data, error } = await supabaseClient.auth.signInWithOAuth({
                     provider: 'facebook',
                     options: {
-                        redirectTo: window.location.origin + '/onboarding.html'
+                        redirectTo: redirectUrl
                     }
                 });
 

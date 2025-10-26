@@ -158,6 +158,39 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 調試面板 -->
+                <div class="panel-section" style="background: #f0f8ff; border: 2px solid #4a90e2;">
+                    <h3>🔍 系統狀態 (調試模式)</h3>
+                    <div class="debug-info" style="font-size: 12px; font-family: monospace;">
+                        <div style="margin: 5px 0;">
+                            <strong>使用者 ID:</strong>
+                            <span id="debugUserId" style="color: #d63031;">未初始化</span>
+                        </div>
+                        <div style="margin: 5px 0;">
+                            <strong>當前對話:</strong>
+                            <span id="debugConversation" style="color: #d63031;">無</span>
+                        </div>
+                        <div style="margin: 5px 0;">
+                            <strong>應用狀態:</strong>
+                            <span id="debugAppStatus" style="color: #d63031;">未初始化</span>
+                        </div>
+                        <div style="margin: 5px 0;">
+                            <strong>按鈕綁定:</strong>
+                            <span id="debugButtonStatus" style="color: #d63031;">未綁定</span>
+                        </div>
+                        <div style="margin: 10px 0; padding-top: 10px; border-top: 1px solid #ddd;">
+                            <button onclick="testSendButton()" class="btn btn-secondary" style="width: 100%; font-size: 14px;">
+                                🧪 測試傳送按鈕
+                            </button>
+                        </div>
+                        <div style="margin: 10px 0;">
+                            <button onclick="showConsoleInstructions()" class="btn btn-secondary" style="width: 100%; font-size: 14px;">
+                                📋 如何查看 Console
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </aside>
         </main>
 

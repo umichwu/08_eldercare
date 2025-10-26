@@ -41,6 +41,7 @@ window.initElderCareApp = async function(user, profile) {
   // 防止重複初始化
   if (appInitialized) {
     console.warn('⚠️ 應用程式已經初始化過，跳過重複初始化');
+    updateDebugInfo();
     return;
   }
 
@@ -51,9 +52,11 @@ window.initElderCareApp = async function(user, profile) {
     currentUserId = user.id;
     currentUserProfile = profile;
     console.log('✅ 使用者資訊已載入:', currentUserId);
+    updateDebugInfo();
   } else {
     console.error('❌ 未提供使用者資訊');
     alert('系統錯誤：無法取得使用者資訊');
+    updateDebugInfo();
     return;
   }
 
@@ -63,6 +66,7 @@ window.initElderCareApp = async function(user, profile) {
 
   appInitialized = true;
   console.log('✅ 應用程式初始化完成');
+  updateDebugInfo();
 };
 
 async function initializeApp() {
@@ -109,9 +113,19 @@ function setupEventListeners() {
   if (sendBtn) {
     sendBtn.addEventListener('click', () => {
       console.log('🔵 傳送按鈕被點擊');
+
+      // 視覺反饋
+      sendBtn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        sendBtn.style.transform = 'scale(1)';
+      }, 100);
+
       sendMessage();
     });
     console.log('✅ 傳送按鈕已綁定');
+
+    // 標記按鈕已綁定（用於調試檢查）
+    sendBtn.dataset.bound = 'true';
   } else {
     console.error('❌ 找不到傳送按鈕');
   }
@@ -664,6 +678,103 @@ function showLoading() {
 function hideLoading() {
   document.getElementById('loadingOverlay').style.display = 'none';
 }
+
+// ===================================
+// 調試工具
+// ===================================
+
+function updateDebugInfo() {
+  // 更新使用者 ID
+  const userIdEl = document.getElementById('debugUserId');
+  if (userIdEl) {
+    if (currentUserId) {
+      userIdEl.textContent = currentUserId.substring(0, 8) + '...';
+      userIdEl.style.color = '#27ae60';
+    } else {
+      userIdEl.textContent = '未初始化';
+      userIdEl.style.color = '#d63031';
+    }
+  }
+
+  // 更新對話狀態
+  const convEl = document.getElementById('debugConversation');
+  if (convEl) {
+    if (currentConversation && currentConversation.id) {
+      convEl.textContent = currentConversation.title || '新對話';
+      convEl.style.color = '#27ae60';
+    } else {
+      convEl.textContent = '無';
+      convEl.style.color = '#d63031';
+    }
+  }
+
+  // 更新應用狀態
+  const statusEl = document.getElementById('debugAppStatus');
+  if (statusEl) {
+    if (appInitialized) {
+      statusEl.textContent = '✅ 已初始化';
+      statusEl.style.color = '#27ae60';
+    } else {
+      statusEl.textContent = '⏳ 載入中...';
+      statusEl.style.color = '#f39c12';
+    }
+  }
+
+  // 更新按鈕狀態
+  const btnEl = document.getElementById('debugButtonStatus');
+  if (btnEl) {
+    const sendBtn = document.getElementById('sendBtn');
+    if (sendBtn && sendBtn.dataset.bound === 'true') {
+      btnEl.textContent = '✅ 已綁定';
+      btnEl.style.color = '#27ae60';
+    } else if (sendBtn) {
+      btnEl.textContent = '❌ 未綁定';
+      btnEl.style.color = '#d63031';
+    } else {
+      btnEl.textContent = '❌ 找不到按鈕';
+      btnEl.style.color = '#d63031';
+    }
+  }
+}
+
+// 測試傳送按鈕
+window.testSendButton = function() {
+  console.log('🧪 測試傳送按鈕被點擊');
+  alert('🧪 測試訊息\n\n' +
+    '使用者 ID: ' + (currentUserId || '未設定') + '\n' +
+    '當前對話: ' + (currentConversation ? currentConversation.id : '無') + '\n' +
+    '應用狀態: ' + (appInitialized ? '已初始化' : '未初始化') + '\n\n' +
+    '如果看到這個訊息，表示 JavaScript 正常運作。\n' +
+    '請查看瀏覽器 Console (F12) 以獲取更多資訊。'
+  );
+
+  // 嘗試觸發傳送
+  const input = document.getElementById('messageInput');
+  if (input) {
+    input.value = '測試訊息 ' + new Date().toLocaleTimeString();
+    console.log('📝 已填入測試訊息');
+  }
+
+  updateDebugInfo();
+};
+
+// 顯示如何查看 Console 的說明
+window.showConsoleInstructions = function() {
+  alert('📋 如何查看瀏覽器 Console\n\n' +
+    '在 Windows Chrome:\n' +
+    '1. 按下鍵盤 F12 鍵\n' +
+    '2. 或按 Ctrl + Shift + J\n' +
+    '3. 或右鍵點擊頁面 → 選擇「檢查」\n\n' +
+    '開啟後，請切換到「Console」分頁，\n' +
+    '然後嘗試點擊傳送按鈕，\n' +
+    '您會看到詳細的執行記錄。\n\n' +
+    '請將 Console 中的所有訊息\n' +
+    '（包括紅色的錯誤）複製給我。'
+  );
+};
+
+// 每 2 秒更新一次調試資訊
+setInterval(updateDebugInfo, 2000);
 
 // 全域函式（供 HTML onclick 使用）
 window.selectConversation = selectConversation;

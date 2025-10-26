@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 連接測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 ElderCare API 連接測試</h1>
+
+    <div class="test-section">
+        <h2>1. 測試 Health Endpoint</h2>
+        <button onclick="testHealth()">測試 /api/health</button>
+        <div id="healthResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 測試 CORS</h2>
+        <button onclick="testCORS()">測試 CORS 設定</button>
+        <div id="corsResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 測試創建對話</h2>
+        <input type="text" id="testUserId" placeholder="輸入 User ID" style="width: 300px; padding: 8px;">
+        <button onclick="testCreateConversation()">測試創建對話</button>
+        <div id="conversationResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 系統資訊</h2>
+        <pre id="systemInfo"></pre>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://eldercare-backend-8o4k.onrender.com/api';
+
+        // 顯示系統資訊
+        document.getElementById('systemInfo').textContent = `
+API Base URL: ${API_BASE_URL}
+Current Origin: ${window.location.origin}
+User Agent: ${navigator.userAgent}
+        `.trim();
+
+        async function testHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.innerHTML = '<p>⏳ 測試中...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <p style="color: green;">✅ 成功！</p>
+                    <p><strong>狀態碼:</strong> ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                resultDiv.parentElement.classList.add('success');
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p style="color: red;">❌ 失敗！</p>
+                    <p><strong>錯誤:</strong> ${error.message}</p>
+                `;
+                resultDiv.parentElement.classList.add('error');
+                console.error('Health test error:', error);
+            }
+        }
+
+        async function testCORS() {
+            const resultDiv = document.getElementById('corsResult');
+            resultDiv.innerHTML = '<p>⏳ 測試中...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <p style="color: green;">✅ CORS 設定正確！</p>
+                    <p><strong>狀態碼:</strong> ${response.status}</p>
+                    <p><strong>Access-Control-Allow-Origin:</strong> ${response.headers.get('access-control-allow-origin') || '未設定'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                resultDiv.parentElement.classList.add('success');
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p style="color: red;">❌ CORS 錯誤！</p>
+                    <p><strong>錯誤:</strong> ${error.message}</p>
+                    <p>這通常表示後端沒有允許來自此域名的請求。</p>
+                `;
+                resultDiv.parentElement.classList.add('error');
+                console.error('CORS test error:', error);
+            }
+        }
+
+        async function testCreateConversation() {
+            const resultDiv = document.getElementById('conversationResult');
+            const userId = document.getElementById('testUserId').value;
+
+            if (!userId) {
+                resultDiv.innerHTML = '<p style="color: orange;">⚠️ 請輸入 User ID</p>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>⏳ 測試中...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/conversations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        title: '測試對話'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p style="color: green;">✅ 創建成功！</p>
+                        <p><strong>狀態碼:</strong> ${response.status}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultDiv.parentElement.classList.add('success');
+                } else {
+                    resultDiv.innerHTML = `
+                        <p style="color: orange;">⚠️ 請求失敗</p>
+                        <p><strong>狀態碼:</strong> ${response.status}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p style="color: red;">❌ 失敗！</p>
+                    <p><strong>錯誤:</strong> ${error.message}</p>
+                `;
+                resultDiv.parentElement.classList.add('error');
+                console.error('Create conversation error:', error);
+            }
+        }
+
+        // 自動執行 health 測試
+        window.addEventListener('load', () => {
+            testHealth();
+        });
+    </script>
+</body>
+</html>

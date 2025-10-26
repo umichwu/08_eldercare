@@ -89,10 +89,13 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           // 將成功的回應存入快取
-          const responseClone = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          // 只快取 HTTP/HTTPS 請求，排除 chrome-extension 等協議
+          if (request.url.startsWith('http')) {
+            const responseClone = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -117,10 +120,13 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
 
-          const responseClone = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          // 只快取 HTTP/HTTPS 請求，排除 chrome-extension 等協議
+          if (request.url.startsWith('http')) {
+            const responseClone = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
 
           return response;
         });

@@ -245,7 +245,8 @@ button:disabled {
   flex-direction: column;
   background-color: white;
   height: 100%;
-  overflow: hidden;
+  overflow-y: scroll; /* 整個中間區域可以滾動 */
+  overflow-x: hidden;
 }
 
 /* 歡迎畫面 */
@@ -302,43 +303,41 @@ button:disabled {
 
 /* 聊天訊息區 */
 .chat-messages {
-  flex: 1;
-  overflow-y: scroll; /* 改為 scroll 讓捲軸永遠顯示（即使沒有超出內容） */
-  overflow-x: hidden;
+  flex: 0 0 auto; /* 不要 flex: 1，讓它根據內容自然增長 */
   padding: var(--spacing-lg);
   background: linear-gradient(to bottom, #FAFAFA 0%, #FFFFFF 100%);
-  min-height: 0; /* 重要：允許 flex 子元素縮小 */
+  min-height: 300px; /* 確保至少有一定高度 */
 }
 
-/* 自訂 Scroll Bar 樣式 - 增強可見度 */
-.chat-messages::-webkit-scrollbar {
+/* 自訂 Scroll Bar 樣式 - 應用到整個聊天容器 */
+.chat-container::-webkit-scrollbar {
   width: 14px; /* 加寬讓長輩更容易點擊 */
 }
 
-.chat-messages::-webkit-scrollbar-track {
+.chat-container::-webkit-scrollbar-track {
   background: #E8E8E8;
   border-radius: 10px;
   border: 1px solid #D0D0D0; /* 增加邊框讓軌道更明顯 */
 }
 
-.chat-messages::-webkit-scrollbar-thumb {
+.chat-container::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #A0A0A0 0%, #888888 100%); /* 漸層讓滑塊更立體 */
   border-radius: 10px;
   border: 2px solid #E8E8E8;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 增加陰影 */
 }
 
-.chat-messages::-webkit-scrollbar-thumb:hover {
+.chat-container::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #7A7A7A 0%, #606060 100%); /* hover 時更深 */
   cursor: pointer;
 }
 
-.chat-messages::-webkit-scrollbar-thumb:active {
+.chat-container::-webkit-scrollbar-thumb:active {
   background: linear-gradient(180deg, #606060 0%, #4A4A4A 100%); /* 點擊時最深 */
 }
 
 /* Firefox 的 Scroll Bar 樣式 */
-.chat-messages {
+.chat-container {
   scrollbar-width: auto; /* auto 或 thin */
   scrollbar-color: #888888 #E8E8E8; /* 滑塊顏色 軌道顏色 */
 }

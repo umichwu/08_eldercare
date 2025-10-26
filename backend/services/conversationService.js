@@ -38,6 +38,15 @@ class ConversationService {
 
         if (profileError) {
           console.error('❌ 查詢 user_profile 失敗:', profileError);
+          console.error('   錯誤代碼:', profileError.code);
+          console.error('   錯誤詳情:', profileError.details);
+          console.error('   錯誤提示:', profileError.hint);
+
+          // 更友善的錯誤訊息
+          if (profileError.message.includes('Invalid API key') || profileError.message.includes('JWT')) {
+            throw new Error('Supabase 配置錯誤：請檢查 Render 環境變數中的 SUPABASE_SERVICE_KEY 是否正確設定');
+          }
+
           throw new Error('查詢使用者檔案失敗: ' + profileError.message);
         }
 

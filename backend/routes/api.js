@@ -388,10 +388,25 @@ router.get('/users/languages', (req, res) => {
 // ============================================
 
 router.get('/health', (req, res) => {
+  // 檢查環境變數是否設定
+  const envCheck = {
+    SUPABASE_URL: !!process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
+    SUPABASE_SERVICE_KEY: !!process.env.SUPABASE_SERVICE_KEY,
+    OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+  };
+
+  const allConfigured = Object.values(envCheck).every(v => v === true);
+
   res.json({
-    status: 'healthy',
+    status: allConfigured ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
-    service: 'ElderCare Backend API'
+    service: 'ElderCare Backend API',
+    environment: {
+      configured: envCheck,
+      allConfigured: allConfigured,
+      missing: Object.keys(envCheck).filter(key => !envCheck[key])
+    }
   });
 });
 

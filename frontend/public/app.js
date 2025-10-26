@@ -5,7 +5,9 @@
 // API URL - 自動根據環境選擇
 const API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost:3000/api'
-  : (import.meta.env?.VITE_BACKEND_URL || 'https://eldercare-backend.onrender.com') + '/api';
+  : '/api'; // Vercel 上後端在同一個域名下
+
+console.log('🔗 API Base URL:', API_BASE_URL);
 
 // 全域狀態 - 使用者資訊
 let currentUserId = null; // 將由 initElderCareApp 初始化

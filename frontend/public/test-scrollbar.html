@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Bar 測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+        }
+
+        .test-container {
+            border: 2px solid #333;
+            margin: 20px 0;
+            padding: 10px;
+        }
+
+        .scrollable-box {
+            height: 400px;
+            border: 1px solid #ccc;
+            padding: 20px;
+            background: #f9f9f9;
+            overflow-y: scroll; /* 永遠顯示 scroll bar */
+        }
+
+        /* 自訂 Scroll Bar 樣式 - 與 styles.css 相同 */
+        .scrollable-box::-webkit-scrollbar {
+            width: 14px;
+        }
+
+        .scrollable-box::-webkit-scrollbar-track {
+            background: #E8E8E8;
+            border-radius: 10px;
+            border: 1px solid #D0D0D0;
+        }
+
+        .scrollable-box::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #A0A0A0 0%, #888888 100%);
+            border-radius: 10px;
+            border: 2px solid #E8E8E8;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .scrollable-box::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #7A7A7A 0%, #606060 100%);
+            cursor: pointer;
+        }
+
+        .scrollable-box::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #606060 0%, #4A4A4A 100%);
+        }
+
+        /* Firefox */
+        .scrollable-box {
+            scrollbar-width: auto;
+            scrollbar-color: #888888 #E8E8E8;
+        }
+
+        .message {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Scroll Bar 顯示測試</h1>
+
+    <div class="test-container">
+        <h2>測試 1: 空內容（應該看到 scroll bar，但無法捲動）</h2>
+        <div class="scrollable-box" id="box1">
+            <p>這是一個設定了 <code>overflow-y: scroll</code> 的容器。</p>
+            <p>✅ 如果您看到右側有 scroll bar（即使是灰色/不可用狀態），表示設定正確。</p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>測試 2: 有內容（應該看到可捲動的 scroll bar）</h2>
+        <button onclick="addMessages()">📝 新增 10 條訊息</button>
+        <button onclick="clearMessages()">🗑️ 清空訊息</button>
+        <div class="scrollable-box" id="box2">
+            <p>點擊上方按鈕新增訊息，測試 scroll bar 功能。</p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 診斷資訊</h2>
+        <ul>
+            <li><strong>瀏覽器:</strong> <span id="browser"></span></li>
+            <li><strong>作業系統:</strong> <span id="os"></span></li>
+            <li><strong>視窗寬度:</strong> <span id="width"></span> px</li>
+            <li><strong>視窗高度:</strong> <span id="height"></span> px</li>
+        </ul>
+        <p style="color: #666;">
+            <strong>注意:</strong> 某些作業系統（如 macOS）預設會自動隱藏 scroll bar，
+            只有在滑鼠移動到容器上時才會顯示。您可以在系統設定中改為「永遠顯示」。
+        </p>
+    </div>
+
+    <script>
+        // 顯示系統資訊
+        document.getElementById('browser').textContent = navigator.userAgent.split(/[()]/)[1] || navigator.userAgent;
+        document.getElementById('os').textContent = navigator.platform;
+        document.getElementById('width').textContent = window.innerWidth;
+        document.getElementById('height').textContent = window.innerHeight;
+
+        // 新增訊息
+        function addMessages() {
+            const box = document.getElementById('box2');
+            for (let i = 1; i <= 10; i++) {
+                const msg = document.createElement('div');
+                msg.className = 'message';
+                msg.innerHTML = `
+                    <strong>訊息 ${box.querySelectorAll('.message').length + 1}</strong>
+                    <p>這是一條測試訊息，用來測試 scroll bar 的顯示和捲動功能。</p>
+                    <small>${new Date().toLocaleTimeString('zh-TW')}</small>
+                `;
+                box.appendChild(msg);
+            }
+            // 自動捲動到底部
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // 清空訊息
+        function clearMessages() {
+            const box = document.getElementById('box2');
+            box.innerHTML = '<p>訊息已清空。點擊「新增 10 條訊息」重新測試。</p>';
+        }
+
+        // 視窗大小改變時更新資訊
+        window.addEventListener('resize', () => {
+            document.getElementById('width').textContent = window.innerWidth;
+            document.getElementById('height').textContent = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

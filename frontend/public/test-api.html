@@ -56,13 +56,36 @@
 
     <div class="test-section">
         <h2>3. 測試創建對話</h2>
-        <input type="text" id="testUserId" placeholder="輸入 User ID" style="width: 300px; padding: 8px;">
+        <input type="text" id="testUserId" placeholder="輸入 User ID" value="test-user-123" style="width: 300px; padding: 8px; margin: 5px;">
         <button onclick="testCreateConversation()">測試創建對話</button>
         <div id="conversationResult"></div>
     </div>
 
     <div class="test-section">
-        <h2>4. 系統資訊</h2>
+        <h2>4. 測試不同的 API Keys</h2>
+        <p style="color: #666; font-size: 14px;">⚠️ 這可以幫助您測試不同的 OpenAI API Key 是否有效</p>
+
+        <div style="margin: 15px 0;">
+            <label style="display: block; margin-bottom: 5px;"><strong>OpenAI API Key:</strong></label>
+            <input type="password" id="testApiKey" placeholder="輸入 OpenAI API Key (sk-...)"
+                   style="width: 500px; padding: 10px; font-family: monospace;">
+            <button onclick="toggleApiKeyVisibility()" style="margin-left: 10px;">👁️ 顯示/隱藏</button>
+        </div>
+
+        <div style="margin: 15px 0;">
+            <label style="display: block; margin-bottom: 5px;"><strong>測試訊息:</strong></label>
+            <input type="text" id="testMessage" placeholder="輸入測試訊息" value="你好，請介紹一下自己"
+                   style="width: 500px; padding: 10px;">
+        </div>
+
+        <button onclick="testApiKeyDirect()">直接測試 OpenAI API Key</button>
+        <button onclick="testApiKeyViaBackend()" style="margin-left: 10px;">透過後端測試 API Key</button>
+
+        <div id="apiKeyResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 系統資訊</h2>
         <pre id="systemInfo"></pre>
     </div>
 
@@ -180,6 +203,90 @@ User Agent: ${navigator.userAgent}
                 resultDiv.parentElement.classList.add('error');
                 console.error('Create conversation error:', error);
             }
+        }
+
+        // 顯示/隱藏 API Key
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('testApiKey');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // 直接測試 OpenAI API Key（不透過後端）
+        async function testApiKeyDirect() {
+            const resultDiv = document.getElementById('apiKeyResult');
+            const apiKey = document.getElementById('testApiKey').value;
+            const message = document.getElementById('testMessage').value;
+
+            if (!apiKey) {
+                resultDiv.innerHTML = '<p style="color: orange;">⚠️ 請輸入 OpenAI API Key</p>';
+                return;
+            }
+
+            if (!apiKey.startsWith('sk-')) {
+                resultDiv.innerHTML = '<p style="color: orange;">⚠️ OpenAI API Key 應該以 "sk-" 開頭</p>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>⏳ 直接測試 OpenAI API...</p>';
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            { role: 'user', content: message }
+                        ],
+                        max_tokens: 150
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p style="color: green;">✅ API Key 有效！OpenAI 回應成功！</p>
+                        <p><strong>模型:</strong> ${data.model}</p>
+                        <p><strong>回應:</strong></p>
+                        <pre style="background: #f0f0f0; padding: 10px; white-space: pre-wrap;">${data.choices[0].message.content}</pre>
+                        <p style="color: green; font-weight: bold;">👍 這個 API Key 可以使用！請在 Render 設定此 Key。</p>
+                    `;
+                    resultDiv.parentElement.classList.add('success');
+                } else {
+                    resultDiv.innerHTML = `
+                        <p style="color: red;">❌ API Key 無效或有錯誤</p>
+                        <p><strong>狀態碼:</strong> ${response.status}</p>
+                        <p><strong>錯誤:</strong></p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultDiv.parentElement.classList.add('error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p style="color: red;">❌ 測試失敗！</p>
+                    <p><strong>錯誤:</strong> ${error.message}</p>
+                `;
+                resultDiv.parentElement.classList.add('error');
+                console.error('API Key test error:', error);
+            }
+        }
+
+        // 透過後端測試 API Key
+        async function testApiKeyViaBackend() {
+            const resultDiv = document.getElementById('apiKeyResult');
+            const apiKey = document.getElementById('testApiKey').value;
+
+            if (!apiKey) {
+                resultDiv.innerHTML = '<p style="color: orange;">⚠️ 請輸入 OpenAI API Key</p>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>⏳ 透過後端測試...</p>';
+            resultDiv.innerHTML += '<p style="color: #666; font-size: 14px;">提示：這個功能需要後端支援動態 API Key 測試端點（尚未實作）</p>';
         }
 
         // 自動執行 health 測試

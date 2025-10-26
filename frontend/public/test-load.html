@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>檔案載入測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 JavaScript 檔案載入測試</h1>
+
+    <div id="results"></div>
+
+    <h2>Console 輸出</h2>
+    <pre id="console-output"></pre>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        const consoleOutput = document.getElementById('console-output');
+        let logs = [];
+
+        // 捕捉 console.log
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            logs.push('[LOG] ' + args.join(' '));
+            originalLog.apply(console, args);
+            updateConsoleOutput();
+        };
+
+        console.error = function(...args) {
+            logs.push('[ERROR] ' + args.join(' '));
+            originalError.apply(console, args);
+            updateConsoleOutput();
+        };
+
+        function updateConsoleOutput() {
+            consoleOutput.textContent = logs.join('\n');
+        }
+
+        function addResult(name, success, message) {
+            const div = document.createElement('div');
+            div.className = `result ${success ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${name}:</strong> ${success ? '✅' : '❌'} ${message}`;
+            resultsDiv.appendChild(div);
+        }
+
+        // 測試 1: Supabase CDN
+        console.log('測試 1: 檢查 Supabase CDN');
+        if (typeof window.supabase !== 'undefined') {
+            addResult('Supabase CDN', true, 'Supabase 已載入');
+        } else {
+            addResult('Supabase CDN', false, 'Supabase 未載入');
+        }
+
+        // 測試 2: i18n.js
+        console.log('測試 2: 檢查 i18n.js');
+        setTimeout(() => {
+            if (typeof window.i18n !== 'undefined') {
+                addResult('i18n.js', true, 'i18n 已載入');
+            } else {
+                addResult('i18n.js', false, 'i18n 未載入');
+            }
+        }, 100);
+
+        // 測試 3: settings.js
+        console.log('測試 3: 檢查 settings.js');
+        setTimeout(() => {
+            if (typeof SettingsManager !== 'undefined') {
+                addResult('settings.js', true, 'settings 已載入');
+            } else {
+                addResult('settings.js', false, 'settings 未載入');
+            }
+        }, 100);
+
+        // 測試 4: app.js
+        console.log('測試 4: 檢查 app.js');
+        setTimeout(() => {
+            if (typeof window.initElderCareApp === 'function') {
+                addResult('app.js', true, 'app.js 已載入，initElderCareApp 函數存在');
+            } else {
+                addResult('app.js', false, 'app.js 未載入或 initElderCareApp 不存在');
+            }
+        }, 100);
+
+        // 測試 5: 檢查錯誤
+        window.addEventListener('error', (event) => {
+            console.error('Global Error:', event.message, 'at', event.filename, ':', event.lineno);
+            addResult('錯誤偵測', false, `${event.message} at ${event.filename}:${event.lineno}`);
+        });
+
+        console.log('✅ 測試開始');
+    </script>
+
+    <!-- 載入相關檔案 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="i18n.js"></script>
+    <script src="settings.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+        setTimeout(() => {
+            console.log('✅ 所有測試完成');
+            addResult('測試完成', true, '請檢查上方結果');
+        }, 500);
+    </script>
+</body>
+</html>

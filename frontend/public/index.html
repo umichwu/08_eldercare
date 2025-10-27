@@ -79,7 +79,14 @@
                     <div class="welcome-content">
                         <h2 class="welcome-title" data-i18n="welcome.title">您好！我是您的陪伴助手 😊</h2>
                         <p class="welcome-subtitle" data-i18n="welcome.subtitle">有什麼我可以幫您的嗎？</p>
-                        <div class="quick-actions">
+
+                        <!-- 快速功能按鈕（行動版） -->
+                        <button id="quickFunctionsBtn" class="quick-functions-btn mobile-only">
+                            ⚡ 快速功能
+                        </button>
+
+                        <!-- 桌面版：顯示所有按鈕 -->
+                        <div class="quick-actions desktop-only">
                             <button class="quick-btn" data-message="今天天氣如何？" data-i18n="quickAction.weather">
                                 ☀️ 天氣查詢
                             </button>
@@ -224,6 +231,38 @@
                         取消
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- 快速功能選單（行動版） -->
+        <div id="quickFunctionsModal" class="modal quick-functions-modal" style="display: none;">
+            <div class="modal-content quick-functions-content">
+                <h2 class="modal-title">⚡ 快速功能</h2>
+                <div class="quick-functions-list">
+                    <button class="quick-function-item" data-message="今天天氣如何？">
+                        <span class="quick-icon">☀️</span>
+                        <span class="quick-text">天氣查詢</span>
+                    </button>
+                    <button class="quick-function-item" data-message="提醒我吃藥">
+                        <span class="quick-icon">💊</span>
+                        <span class="quick-text">用藥提醒</span>
+                    </button>
+                    <button class="quick-function-item" data-message="講個笑話給我聽">
+                        <span class="quick-icon">😄</span>
+                        <span class="quick-text">聽笑話</span>
+                    </button>
+                    <button class="quick-function-item" data-message="我覺得有點不舒服">
+                        <span class="quick-icon">🏥</span>
+                        <span class="quick-text">健康諮詢</span>
+                    </button>
+                    <button class="quick-function-item" id="sosQuickBtn">
+                        <span class="quick-icon">🆘</span>
+                        <span class="quick-text">緊急求助</span>
+                    </button>
+                </div>
+                <button id="closeQuickFunctionsBtn" class="btn btn-secondary">
+                    關閉
+                </button>
             </div>
         </div>
     </div>

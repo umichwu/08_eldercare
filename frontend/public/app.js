@@ -190,6 +190,52 @@ function setupEventListeners() {
 
   // 產生總結按鈕
   document.getElementById('generateSummaryBtn').addEventListener('click', generateSummary);
+
+  // 快速功能按鈕（行動版）
+  const quickFunctionsBtn = document.getElementById('quickFunctionsBtn');
+  if (quickFunctionsBtn) {
+    quickFunctionsBtn.addEventListener('click', showQuickFunctionsModal);
+  }
+
+  // 快速功能選單項目
+  document.querySelectorAll('.quick-function-item').forEach(btn => {
+    if (btn.id === 'sosQuickBtn') {
+      btn.addEventListener('click', () => {
+        hideQuickFunctionsModal();
+        showSosModal();
+      });
+    } else {
+      btn.addEventListener('click', () => {
+        const message = btn.dataset.message;
+        document.getElementById('messageInput').value = message;
+        hideQuickFunctionsModal();
+        sendMessage();
+      });
+    }
+  });
+
+  // 關閉快速功能選單
+  document.getElementById('closeQuickFunctionsBtn').addEventListener('click', hideQuickFunctionsModal);
+}
+
+// ===================================
+// 快速功能選單控制
+// ===================================
+
+function showQuickFunctionsModal() {
+  const modal = document.getElementById('quickFunctionsModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    console.log('⚡ 快速功能選單已打開');
+  }
+}
+
+function hideQuickFunctionsModal() {
+  const modal = document.getElementById('quickFunctionsModal');
+  if (modal) {
+    modal.style.display = 'none';
+    console.log('⚡ 快速功能選單已關閉');
+  }
 }
 
 // ===================================
@@ -368,6 +414,56 @@ async function selectConversation(conversationId) {
     await loadLatestSummary();
   } catch (error) {
     console.error('選擇對話失敗:', error);
+  }
+}
+
+// 刪除對話（僅從 UI 移除，不刪除資料庫）
+function deleteConversationFromUI(conversationId) {
+  console.log('🗑️ 刪除對話（僅 UI）:', conversationId);
+
+  const conversation = conversations.find(c => c.id === conversationId);
+  if (!conversation) {
+    console.error('找不到對話');
+    return;
+  }
+
+  // 確認對話框
+  if (!confirm(`確定要刪除對話「${conversation.title}」嗎？\n\n注意：這只會從列表中移除，資料庫中的記錄仍會保留。`)) {
+    console.log('使用者取消刪除');
+    return;
+  }
+
+  try {
+    // 從本地陣列中移除
+    const index = conversations.findIndex(c => c.id === conversationId);
+    if (index > -1) {
+      conversations.splice(index, 1);
+      console.log(`✅ 已從 UI 移除對話 (${conversations.length} 個剩餘)`);
+    }
+
+    // 如果刪除的是當前對話，清空訊息區
+    if (currentConversation && currentConversation.id === conversationId) {
+      currentConversation = null;
+      messages = [];
+
+      // 顯示歡迎畫面
+      document.getElementById('welcomeScreen').style.display = 'flex';
+      document.getElementById('chatMessages').style.display = 'none';
+      document.getElementById('chatMessages').innerHTML = '';
+    }
+
+    // 重新渲染對話列表
+    renderConversationList();
+
+    // 在行動版上關閉側邊欄
+    if (typeof DeviceDetector !== 'undefined' && DeviceDetector.isMobile()) {
+      closeSidebar();
+    }
+
+    console.log('✅ 對話已從 UI 刪除');
+  } catch (error) {
+    console.error('❌ 刪除對話失敗:', error);
+    alert('刪除對話時發生錯誤：' + error.message);
   }
 }
 
@@ -691,9 +787,14 @@ function renderConversationList() {
          onclick="handleConversationClick('${conv.id}')">
       <div class="conversation-header">
         <div class="conversation-title" id="conv-title-${conv.id}">${conv.title}</div>
-        <button class="edit-title-btn" onclick="event.stopPropagation(); editConversationTitle('${conv.id}')" title="編輯標題">
-          ✏️
-        </button>
+        <div class="conversation-actions">
+          <button class="edit-title-btn" onclick="event.stopPropagation(); editConversationTitle('${conv.id}')" title="編輯標題">
+            ✏️
+          </button>
+          <button class="delete-conv-btn" onclick="event.stopPropagation(); deleteConversationFromUI('${conv.id}')" title="刪除對話">
+            🗑️
+          </button>
+        </div>
       </div>
       <div class="conversation-time">${formatTime(conv.updated_at || conv.created_at)}</div>
     </div>

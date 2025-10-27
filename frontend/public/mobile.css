@@ -126,12 +126,23 @@ body.mobile-view .sidebar.open {
   left: 0;
 }
 
-/* 對話項目編輯按鈕 */
-body.mobile-view .edit-title-btn {
+/* 對話項目編輯/刪除按鈕 */
+body.mobile-view .edit-title-btn,
+body.mobile-view .delete-conv-btn {
   font-size: 20px;
   padding: 6px 10px;
   min-width: 40px;
   min-height: 40px;
+}
+
+/* 確保快速功能按鈕在行動版顯示 */
+body.mobile-view .quick-functions-btn {
+  display: block !important;
+  margin: 0 auto;
+}
+
+body.mobile-view .quick-actions {
+  display: none !important;
 }
 
 /* 側邊欄遮罩 */

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行動版診斷頁面</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .section {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .info {
+            margin: 5px 0;
+            padding: 5px;
+            background: #f0f0f0;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .warning { color: orange; font-weight: bold; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 行動版診斷頁面</h1>
+
+    <div class="section">
+        <h3>1. 裝置偵測</h3>
+        <div id="deviceInfo"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. CSS 檔案載入</h3>
+        <div id="cssInfo"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. Body Class</h3>
+        <div id="bodyClass"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. 測試按鈕佈局</h3>
+        <div style="max-width: 400px;">
+            <div class="test-quick-actions" style="
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 6px;
+                margin: 10px 0;
+            ">
+                <button style="padding: 10px 5px; font-size: 14px;">☀️ 天氣</button>
+                <button style="padding: 10px 5px; font-size: 14px;">💊 用藥</button>
+                <button style="padding: 10px 5px; font-size: 14px;">😄 笑話</button>
+                <button style="padding: 10px 5px; font-size: 14px;">🏥 健康</button>
+            </div>
+            <p style="font-size: 12px; color: #666;">↑ 如果上面的按鈕是橫向一行四個，表示 CSS 正常</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>5. 手動操作</h3>
+        <button onclick="forceApplyMobileView()">強制套用 mobile-view</button>
+        <button onclick="window.location.reload()">重新載入</button>
+    </div>
+
+    <div class="section">
+        <h3>6. Console 記錄</h3>
+        <div id="consoleLog" style="max-height: 200px; overflow-y: auto; background: #000; color: #0f0; padding: 10px; font-size: 12px;"></div>
+    </div>
+
+    <script src="device-detector.js"></script>
+    <link rel="stylesheet" href="mobile.css">
+
+    <script>
+        // 擷取 console.log
+        const originalLog = console.log;
+        const consoleLogDiv = document.getElementById('consoleLog');
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg =>
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            consoleLogDiv.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+            consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+        };
+
+        // 1. 裝置偵測
+        function checkDevice() {
+            const deviceInfo = document.getElementById('deviceInfo');
+
+            if (typeof DeviceDetector === 'undefined') {
+                deviceInfo.innerHTML = '<div class="error">❌ DeviceDetector 未載入！</div>';
+                return;
+            }
+
+            const info = DeviceDetector.getDeviceInfo();
+            deviceInfo.innerHTML = `
+                <div class="info">isMobile: <strong>${info.isMobile}</strong></div>
+                <div class="info">isTablet: <strong>${info.isTablet}</strong></div>
+                <div class="info">deviceType: <strong>${info.deviceType}</strong></div>
+                <div class="info">OS: <strong>${info.os}</strong></div>
+                <div class="info">Browser: <strong>${info.browser.name} ${info.browser.version}</strong></div>
+                <div class="info">Screen: <strong>${info.screenWidth}x${info.screenHeight}</strong></div>
+                <div class="info">UserAgent: <small>${info.userAgent}</small></div>
+            `;
+        }
+
+        // 2. CSS 檔案載入
+        function checkCSS() {
+            const cssInfo = document.getElementById('cssInfo');
+            const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+
+            const mobileCSS = links.find(link => link.href.includes('mobile.css'));
+            const stylesCSS = links.find(link => link.href.includes('styles.css'));
+
+            cssInfo.innerHTML = `
+                <div class="info ${mobileCSS ? 'success' : 'error'}">
+                    mobile.css: ${mobileCSS ? '✅ 已載入' : '❌ 未載入'}
+                    ${mobileCSS ? `<br><small>${mobileCSS.href}</small>` : ''}
+                </div>
+                <div class="info ${stylesCSS ? 'success' : 'warning'}">
+                    styles.css: ${stylesCSS ? '✅ 已載入' : '⚠️ 未載入'}
+                    ${stylesCSS ? `<br><small>${stylesCSS.href}</small>` : ''}
+                </div>
+            `;
+        }
+
+        // 3. Body Class
+        function checkBodyClass() {
+            const bodyClassDiv = document.getElementById('bodyClass');
+            const classes = Array.from(document.body.classList);
+
+            const hasMobileView = classes.includes('mobile-view');
+            const hasTabletView = classes.includes('tablet-view');
+            const hasDesktopView = classes.includes('desktop-view');
+
+            bodyClassDiv.innerHTML = `
+                <div class="info ${hasMobileView ? 'success' : 'error'}">
+                    mobile-view: ${hasMobileView ? '✅ 有' : '❌ 沒有'}
+                </div>
+                <div class="info">
+                    tablet-view: ${hasTabletView ? '✅ 有' : '❌ 沒有'}
+                </div>
+                <div class="info">
+                    desktop-view: ${hasDesktopView ? '✅ 有' : '❌ 沒有'}
+                </div>
+                <div class="info">
+                    所有 classes: <strong>${classes.join(', ') || '(無)'}</strong>
+                </div>
+            `;
+        }
+
+        // 強制套用 mobile-view
+        function forceApplyMobileView() {
+            document.body.classList.remove('tablet-view', 'desktop-view');
+            document.body.classList.add('mobile-view');
+            console.log('✅ 已強制套用 mobile-view');
+            checkBodyClass();
+            alert('已套用 mobile-view，請檢查主應用是否改變');
+        }
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 診斷頁面載入完成');
+
+            // 執行裝置偵測
+            if (typeof initDeviceDetection !== 'undefined') {
+                initDeviceDetection({
+                    checkLINE: false,
+                    autoRedirect: false,
+                    loadMobileCSS: false,
+                    logDeviceInfo: true
+                });
+            }
+
+            // 延遲檢查，確保所有東西都載入
+            setTimeout(() => {
+                checkDevice();
+                checkCSS();
+                checkBodyClass();
+            }, 500);
+        });
+
+        // 每秒更新 body class（以防動態變化）
+        setInterval(checkBodyClass, 1000);
+    </script>
+</body>
+</html>

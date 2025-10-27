@@ -146,15 +146,27 @@ export class LLMService {
     // 获取最后一条用户消息
     const lastMessage = chatMessages[chatMessages.length - 1];
 
-    // 如果有系统消息，将其添加到第一条用户消息中
+    // 将系统消息合并到第一条消息中
     let prompt = lastMessage.content;
-    if (systemMessage && history.length === 0) {
-      prompt = `${systemMessage.content}\n\n${prompt}`;
+    if (systemMessage) {
+      if (history.length === 0) {
+        // 如果没有历史，将系统消息添加到当前消息前
+        prompt = `${systemMessage.content}\n\n用户问题：${prompt}`;
+      } else {
+        // 如果有历史，将系统消息添加到历史的开头
+        history.unshift({
+          role: 'user',
+          parts: [{ text: systemMessage.content }]
+        });
+        history.unshift({
+          role: 'model',
+          parts: [{ text: '好的，我明白了。我會用簡單、親切、有耐心的語氣來陪伴老年人。' }]
+        });
+      }
     }
 
     const chat = model.startChat({
-      history: history,
-      systemInstruction: systemMessage ? systemMessage.content : undefined
+      history: history
     });
 
     const result = await chat.sendMessage(prompt);

@@ -124,15 +124,46 @@ https://eldercare-backend-8o4k.onrender.com/api/health
 应该看到类似的回应：
 ```json
 {
-  "status": "ok",
+  "status": "healthy",
   "timestamp": "2025-01-...",
-  "environment": "production",
+  "service": "ElderCare Backend API",
+  "environment": {
+    "configured": {
+      "SUPABASE_URL": true,
+      "SUPABASE_ANON_KEY": true,
+      "SUPABASE_SERVICE_KEY": true
+    },
+    "allConfigured": true,
+    "missing": []
+  },
   "llm": {
-    "provider": "gemini",
-    "available": true
+    "currentProvider": "gemini",
+    "currentProviderConfigured": true,
+    "providers": {
+      "openai": {
+        "available": false,
+        "keyPrefix": null
+      },
+      "gemini": {
+        "available": true,
+        "keyPrefix": "AIzaSy..."
+      },
+      "deepseek": {
+        "available": false,
+        "keyPrefix": null
+      }
+    }
   }
 }
 ```
+
+**重要检查项**：
+- [ ] `llm.currentProvider` 是否为 `"gemini"`？
+- [ ] `llm.currentProviderConfigured` 是否为 `true`？
+- [ ] `llm.providers.gemini.available` 是否为 `true`？
+- [ ] `llm.providers.gemini.keyPrefix` 是否显示 `"AIzaSy..."`？（前6个字符）
+
+如果 `currentProviderConfigured` 为 `false`，说明 Render 环境变量没有正确设置。
 
 ### 测试 2: 使用 test-api.html
 

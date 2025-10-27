@@ -1,9 +1,9 @@
 // ElderCare Companion - Service Worker
-// 版本: 2.0.0
+// 版本: 2.1.0
 // 功能: 離線支援、快取策略、背景同步
 
-const CACHE_NAME = 'eldercare-v2.0.0';
-const RUNTIME_CACHE = 'eldercare-runtime-v2.0.0';
+const CACHE_NAME = 'eldercare-v2.1.0-20251027';
+const RUNTIME_CACHE = 'eldercare-runtime-v2.1.0-20251027';
 
 // 需要快取的靜態資源
 const STATIC_ASSETS = [
@@ -12,8 +12,11 @@ const STATIC_ASSETS = [
   '/register.html',
   '/onboarding.html',
   '/index.html',
+  '/mobile-debug.html',
   '/styles.css',
+  '/mobile.css',
   '/app.js',
+  '/device-detector.js',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',

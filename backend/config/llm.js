@@ -153,15 +153,19 @@ export class LLMService {
         // 如果没有历史，将系统消息添加到当前消息前
         prompt = `${systemMessage.content}\n\n用户问题：${prompt}`;
       } else {
-        // 如果有历史，将系统消息添加到历史的开头
-        history.unshift({
-          role: 'user',
-          parts: [{ text: systemMessage.content }]
-        });
-        history.unshift({
-          role: 'model',
-          parts: [{ text: '好的，我明白了。我會用簡單、親切、有耐心的語氣來陪伴老年人。' }]
-        });
+        // 如果有历史，将系统消息作为对话历史的第一组交互
+        // 注意：Gemini API 要求第一条消息必须是 user 角色
+        const systemHistory = [
+          {
+            role: 'user',
+            parts: [{ text: systemMessage.content }]
+          },
+          {
+            role: 'model',
+            parts: [{ text: '好的，我明白了。我會用簡單、親切、有耐心的語氣來陪伴老年人。' }]
+          }
+        ];
+        history = [...systemHistory, ...history];
       }
     }
 

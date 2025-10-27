@@ -595,11 +595,11 @@ async function sendMessage() {
     if (llmProvider === 'gemini') {
       console.log('🌟 使用前端直接調用 Gemini API...');
 
-      // 從 localStorage 獲取 Gemini API Key
-      const geminiApiKey = localStorage.getItem('geminiApiKey');
-      if (!geminiApiKey) {
-        throw new Error('請先在設定中配置 Gemini API Key');
-      }
+      // 從 localStorage 獲取 Gemini API Key，如果沒有則使用默認的
+      const defaultGeminiApiKey = 'AIzaSyDpMWf60w_8ZdVSTVizw1C1zlfhQSCkllY';
+      const geminiApiKey = localStorage.getItem('geminiApiKey') || defaultGeminiApiKey;
+
+      console.log('🔑 使用 Gemini API Key:', geminiApiKey.substring(0, 10) + '...');
 
       // 構建對話歷史
       const conversationHistory = messages.slice(-10).map(msg => ({

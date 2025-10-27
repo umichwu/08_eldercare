@@ -89,7 +89,7 @@ class SettingsManager {
             <!-- Gemini API Key 設定 -->
             <div class="setting-group" id="geminiApiKeyGroup">
               <label class="setting-label">
-                Gemini API Key
+                Gemini API Key (選填)
                 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 12px; margin-left: 8px;">
                   (取得免費 API Key)
                 </a>
@@ -98,11 +98,11 @@ class SettingsManager {
                 type="password"
                 id="geminiApiKeyInput"
                 class="setting-input"
-                placeholder="AIzaSy..."
+                placeholder="已使用預設 API Key（可選填自己的）"
                 style="font-family: monospace;"
               />
               <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">
-                💡 Gemini 免費額度充足，API Key 保存在您的瀏覽器本地
+                💡 POC 階段已提供預設 API Key，您也可以使用自己的 Key
               </small>
             </div>
           </div>

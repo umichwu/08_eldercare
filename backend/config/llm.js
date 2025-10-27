@@ -87,21 +87,38 @@ export class LLMService {
 
   async generateResponse(messages, options = {}) {
     if (!this.client) {
-      throw new Error(`LLM client not initialized for provider: ${this.provider}`);
+      const errorMsg = `LLM client not initialized for provider: ${this.provider}`;
+      console.error(`❌ ${errorMsg}`);
+      console.error(`   Available API Keys:`, {
+        openai: !!openaiApiKey,
+        gemini: !!geminiApiKey,
+        deepseek: !!deepseekApiKey
+      });
+      throw new Error(errorMsg);
     }
 
     const temperature = options.temperature || 0.7;
     const maxTokens = options.maxTokens || 500;
 
+    console.log(`🤖 Generating response with ${this.provider} (${this.defaultModel})`);
+    console.log(`   Temperature: ${temperature}, MaxTokens: ${maxTokens}`);
+    console.log(`   Messages count: ${messages.length}`);
+
     try {
+      let result;
       if (this.provider === LLM_PROVIDERS.GEMINI) {
-        return await this.generateGeminiResponse(messages, temperature, maxTokens);
+        result = await this.generateGeminiResponse(messages, temperature, maxTokens);
       } else {
         // OpenAI and Deepseek use the same API format
-        return await this.generateOpenAICompatibleResponse(messages, temperature, maxTokens);
+        result = await this.generateOpenAICompatibleResponse(messages, temperature, maxTokens);
       }
+
+      console.log(`✅ Response generated successfully from ${this.provider}`);
+      console.log(`   Content length: ${result.content?.length || 0} chars`);
+      return result;
     } catch (error) {
-      console.error(`❌ Error generating response from ${this.provider}:`, error);
+      console.error(`❌ Error generating response from ${this.provider}:`, error.message);
+      console.error(`   Error details:`, error);
       throw error;
     }
   }

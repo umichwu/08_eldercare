@@ -850,14 +850,24 @@ function renderMessages() {
 
   container.innerHTML = messages
     .map(
-      msg => `
+      msg => {
+        // 获取 LLM 提供商信息
+        const provider = msg.metadata?.provider || msg.metadata?.model || '';
+        const llmBadge = msg.role === 'assistant' && provider ?
+          `<span class="llm-badge llm-${provider.toLowerCase()}">${getLLMDisplayName(provider)}</span>` : '';
+
+        return `
     <div class="message ${msg.role}">
       <div class="message-content">
         ${msg.content}
-        <div class="message-time">${formatTime(msg.created_at)}</div>
+        <div class="message-footer">
+          ${llmBadge}
+          <div class="message-time">${formatTime(msg.created_at)}</div>
+        </div>
       </div>
     </div>
-  `
+  `;
+      }
     )
     .join('');
 
@@ -865,6 +875,19 @@ function renderMessages() {
   setTimeout(() => {
     scrollToBottom();
   }, 100);
+}
+
+// 获取 LLM 显示名称
+function getLLMDisplayName(provider) {
+  const names = {
+    'gemini': '🌟 Gemini',
+    'openai': '🤖 ChatGPT',
+    'deepseek': '🧠 Deepseek',
+    'gpt-4o-mini': '🤖 ChatGPT',
+    'gemini-2.0-flash-exp': '🌟 Gemini',
+    'deepseek-chat': '🧠 Deepseek'
+  };
+  return names[provider.toLowerCase()] || `🤖 ${provider}`;
 }
 
 // 平滑捲動到底部

@@ -439,6 +439,41 @@ button:disabled {
   margin-top: 4px;
 }
 
+/* 消息底部（包含 LLM badge 和时间） */
+.message-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* LLM 提供商标签 */
+.llm-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.llm-badge.llm-gemini {
+  background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+}
+
+.llm-badge.llm-openai,
+.llm-badge.llm-gpt-4o-mini {
+  background: linear-gradient(135deg, #10a37f 0%, #1a7f64 100%);
+}
+
+.llm-badge.llm-deepseek,
+.llm-badge.llm-deepseek-chat {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+}
+
 /* ===================================
    輸入區域
    =================================== */

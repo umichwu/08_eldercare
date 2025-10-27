@@ -225,10 +225,43 @@ button:disabled {
   border-color: var(--color-primary);
 }
 
+.conversation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .conversation-title {
   font-size: var(--font-size-md);
   font-weight: bold;
-  margin-bottom: 4px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-title-btn {
+  font-size: 16px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.edit-title-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: var(--color-border);
+}
+
+.conversation-item.active .edit-title-btn {
+  opacity: 1;
 }
 
 .conversation-time {

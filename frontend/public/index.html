@@ -30,6 +30,10 @@
     <div id="app">
         <!-- 頭部區域 -->
         <header class="app-header">
+            <!-- 行動版漢堡選單按鈕 -->
+            <button id="mobileMenuBtn" class="mobile-menu-btn" title="選單">
+                ☰
+            </button>
             <h1 class="app-title" data-i18n="app.title">🏥 長輩陪伴助手</h1>
             <div class="header-controls">
                 <!-- 使用者資訊 -->
@@ -50,10 +54,13 @@
             </div>
         </header>
 
+        <!-- 側邊欄遮罩（用於行動版） -->
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
         <!-- 主要內容區 -->
         <main class="app-main">
             <!-- 左側：對話列表 -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <h2 data-i18n="sidebar.title">對話記錄</h2>
                     <button id="newChatBtn" class="btn btn-primary" data-i18n="sidebar.newChat">

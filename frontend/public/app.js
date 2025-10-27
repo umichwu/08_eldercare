@@ -96,6 +96,20 @@ async function initializeApp() {
 function setupEventListeners() {
   console.log('📎 設置事件監聽器...');
 
+  // 行動版漢堡選單按鈕
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', toggleSidebar);
+    console.log('✅ 行動版選單按鈕已綁定');
+  }
+
+  // 側邊欄遮罩點擊關閉
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebar);
+    console.log('✅ 側邊欄遮罩已綁定');
+  }
+
   // 新對話按鈕
   const newChatBtn = document.getElementById('newChatBtn');
   if (newChatBtn) {
@@ -176,6 +190,47 @@ function setupEventListeners() {
 
   // 產生總結按鈕
   document.getElementById('generateSummaryBtn').addEventListener('click', generateSummary);
+}
+
+// ===================================
+// 行動版側邊欄控制
+// ===================================
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (sidebar && overlay) {
+    const isOpen = sidebar.classList.contains('open');
+
+    if (isOpen) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }
+}
+
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (sidebar && overlay) {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+    console.log('📂 側邊欄已打開');
+  }
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (sidebar && overlay) {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    console.log('📁 側邊欄已關閉');
+  }
 }
 
 // ===================================
@@ -276,7 +331,19 @@ async function createNewConversation() {
   }
 }
 
+// 處理對話點擊（包含行動版關閉側邊欄）
+function handleConversationClick(conversationId) {
+  selectConversation(conversationId);
+
+  // 在行動版上，點擊對話後關閉側邊欄
+  if (typeof DeviceDetector !== 'undefined' && DeviceDetector.isMobile()) {
+    closeSidebar();
+  }
+}
+
 async function selectConversation(conversationId) {
+  console.log('📂 選擇對話:', conversationId);
+
   try {
     currentConversation = conversations.find(c => c.id === conversationId);
 
@@ -301,6 +368,54 @@ async function selectConversation(conversationId) {
     await loadLatestSummary();
   } catch (error) {
     console.error('選擇對話失敗:', error);
+  }
+}
+
+// 編輯對話標題
+async function editConversationTitle(conversationId) {
+  console.log('✏️ 編輯對話標題:', conversationId);
+
+  const conversation = conversations.find(c => c.id === conversationId);
+  if (!conversation) {
+    console.error('找不到對話');
+    return;
+  }
+
+  const currentTitle = conversation.title;
+  const newTitle = prompt('請輸入新的對話標題：', currentTitle);
+
+  // 使用者取消或輸入空白
+  if (!newTitle || newTitle.trim() === '' || newTitle === currentTitle) {
+    console.log('取消編輯或標題未變更');
+    return;
+  }
+
+  try {
+    showLoading();
+
+    // 發送 API 請求更新標題
+    const response = await apiCall(
+      `/conversations/${conversationId}`,
+      'PUT',
+      {
+        userId: currentUserId,
+        title: newTitle.trim()
+      }
+    );
+
+    console.log('✅ 對話標題更新成功:', response);
+
+    // 更新本地資料
+    conversation.title = newTitle.trim();
+
+    // 重新渲染對話列表
+    renderConversationList();
+
+    hideLoading();
+  } catch (error) {
+    console.error('❌ 更新對話標題失敗:', error);
+    alert('更新標題失敗：' + error.message);
+    hideLoading();
   }
 }
 
@@ -573,8 +688,13 @@ function renderConversationList() {
     .map(
       conv => `
     <div class="conversation-item ${currentConversation?.id === conv.id ? 'active' : ''}"
-         onclick="selectConversation('${conv.id}')">
-      <div class="conversation-title">${conv.title}</div>
+         onclick="handleConversationClick('${conv.id}')">
+      <div class="conversation-header">
+        <div class="conversation-title" id="conv-title-${conv.id}">${conv.title}</div>
+        <button class="edit-title-btn" onclick="event.stopPropagation(); editConversationTitle('${conv.id}')" title="編輯標題">
+          ✏️
+        </button>
+      </div>
       <div class="conversation-time">${formatTime(conv.updated_at || conv.created_at)}</div>
     </div>
   `

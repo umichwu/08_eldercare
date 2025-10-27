@@ -107,26 +107,35 @@ body.mobile-view .app-main {
    行動版：側邊欄（隱藏或改為抽屜式）
    =================================== */
 
+/* 抽屜式側邊欄 */
 body.mobile-view .sidebar {
-  /* 預設隱藏，可改為抽屜式設計 */
-  display: none;
+  display: block; /* 改為 block，但預設在畫面外 */
   position: fixed;
   top: 0;
   left: -100%;
   width: 80%;
   max-width: 320px;
   height: 100vh;
-  z-index: 1000;
+  z-index: 1001;
   transition: left 0.3s ease;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  background-color: var(--color-bg-secondary);
 }
 
 body.mobile-view .sidebar.open {
   left: 0;
 }
 
+/* 對話項目編輯按鈕 */
+body.mobile-view .edit-title-btn {
+  font-size: 20px;
+  padding: 6px 10px;
+  min-width: 40px;
+  min-height: 40px;
+}
+
 /* 側邊欄遮罩 */
-body.mobile-view .sidebar-overlay {
+.sidebar-overlay {
   display: none;
   position: fixed;
   top: 0;
@@ -134,11 +143,14 @@ body.mobile-view .sidebar-overlay {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-body.mobile-view .sidebar-overlay.active {
+.sidebar-overlay.active {
   display: block;
+  opacity: 1;
 }
 
 /* ===================================
@@ -188,30 +200,45 @@ body.mobile-view .welcome-subtitle {
   margin-bottom: var(--spacing-lg);
 }
 
-/* 快速操作按鈕 - 改為單欄 */
+/* 快速操作按鈕 - 改為 1 row x 4 columns */
 body.mobile-view .quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-xs);
   width: 100%;
+  margin-bottom: var(--spacing-md);
 }
 
 body.mobile-view .quick-btn {
   width: 100%;
-  padding: var(--spacing-lg);
-  font-size: var(--font-size-lg);
-  font-weight: bold;
-  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
   /* 增加觸控反饋 */
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   touch-action: manipulation;
+  /* 文字不換行，使用縮寫 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
 }
 
 /* 聊天訊息區 - 行動版優化 */
 body.mobile-view .chat-messages {
   padding: var(--spacing-md);
-  flex: 0 0 auto;
+  flex: 1 1 auto; /* 修復：讓訊息區域可以自動擴展 */
   min-height: 200px;
+  overflow-y: auto; /* 訊息多時可以滾動 */
+  -webkit-overflow-scrolling: touch;
+  display: block; /* 確保可見 */
+  width: 100%;
 }
 
 body.mobile-view .message {

@@ -342,6 +342,20 @@ const UIAdapter = {
    * 應在頁面載入時立即執行
    */
   initialize() {
+    // 檢查 body 是否存在，如果不存在則等待 DOM 載入
+    if (!document.body) {
+      console.log('⏳ document.body 尚未載入，等待 DOMContentLoaded...');
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('✅ DOM 已載入，開始套用裝置類別');
+        this._doInitialize();
+      });
+      return null;
+    } else {
+      return this._doInitialize();
+    }
+  },
+
+  _doInitialize() {
     const deviceType = this.applyDeviceClass();
     this.setDeviceCSSVariables();
 

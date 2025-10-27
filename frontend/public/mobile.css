@@ -202,9 +202,9 @@ body.mobile-view .welcome-subtitle {
 
 /* 快速操作按鈕 - 改為 1 row x 4 columns */
 body.mobile-view .quick-actions {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-xs);
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: var(--spacing-xs) !important;
   width: 100%;
   margin-bottom: var(--spacing-md);
 }
@@ -233,11 +233,11 @@ body.mobile-view .quick-btn {
 /* 聊天訊息區 - 行動版優化 */
 body.mobile-view .chat-messages {
   padding: var(--spacing-md);
-  flex: 1 1 auto; /* 修復：讓訊息區域可以自動擴展 */
+  flex: 1 1 auto !important; /* 修復：讓訊息區域可以自動擴展 */
   min-height: 200px;
-  overflow-y: auto; /* 訊息多時可以滾動 */
+  overflow-y: auto !important; /* 訊息多時可以滾動 */
   -webkit-overflow-scrolling: touch;
-  display: block; /* 確保可見 */
+  display: block !important; /* 確保可見 */
   width: 100%;
 }
 

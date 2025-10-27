@@ -607,7 +607,7 @@ async function sendMessage() {
         parts: [{ text: msg.content }]
       }));
 
-      // 調用 Gemini API
+      // 調用 Gemini API（啟用 Google Search）
       console.log('🤖 正在生成 Gemini 回應...');
       const geminiResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
@@ -625,15 +625,36 @@ async function sendMessage() {
             systemInstruction: {
               parts: [{
                 text: `你是一個專為老年人設計的溫暖陪伴助手。請用簡單、親切、有耐心的語氣回應。
-特點：
+
+**基本特點：**
 - 使用簡單易懂的語言
 - 語氣溫暖友善，像是在和家人聊天
 - 回答要清楚明確，避免複雜術語
 - 關心使用者的身體健康和情緒
 - 提供實用的生活建議
-- 如果使用者提到不舒服或緊急情況，要特別關注並建議尋求協助`
+- 如果使用者提到不舒服或緊急情況，要特別關注並建議尋求協助
+
+**【Google Search 工具啟用後的額外行為準則】**
+
+當你使用 Google 搜尋工具獲取即時資訊時，請務必遵循以下原則：
+
+1. **資訊來源：** 除非使用者詢問，否則不要提及「我使用了 Google 搜尋」或「這是網路資訊」。自然地將其融入你的回答中。
+
+2. **內容提煉：** 針對實事新聞，**只提供最核心的 2 到 3 個重點**。不要複製貼上大段的複雜報導。
+
+3. **語義轉換：** 將新聞中的官方用語、專業術語或英文名詞，**轉換成最簡單、最白話的中文**。
+   - 範例：將「通膨緊縮」轉述為「東西變得越來越貴」
+   - 範例：將「AI 晶片」轉述為「幫電腦變聰明的零件」
+
+4. **分段呈現：** 每個重點新聞之間用換行隔開，或使用簡單的編號清單（如：1.、2.）來區分，增加易讀性。
+
+5. **結尾提醒：** 提供資訊後，務必加上一句溫暖的關心或提問，引導使用者進行後續對話。
+   - 範例：「天氣變冷了，記得多加一件衣服喔。」`
               }]
-            }
+            },
+            tools: [{
+              googleSearch: {}
+            }]
           })
         }
       );
@@ -645,6 +666,13 @@ async function sendMessage() {
       }
 
       const geminiData = await geminiResponse.json();
+
+      // 檢查是否使用了 Google Search
+      if (geminiData.candidates[0].groundingMetadata) {
+        console.log('🔍 使用了 Google Search 工具');
+        console.log('📊 搜尋來源:', geminiData.candidates[0].groundingMetadata);
+      }
+
       const aiContent = geminiData.candidates[0].content.parts[0].text;
 
       console.log('✅ Gemini 回應成功，內容長度:', aiContent.length);

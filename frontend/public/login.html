@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登入 - ElderCare 長輩陪伴智能系統</title>
+
+    <!-- 裝置偵測與行動版樣式 -->
+    <link rel="stylesheet" href="mobile.css">
+    <script src="device-detector.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -360,6 +365,24 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+        // ===================================
+        // 裝置偵測和 LINE 瀏覽器處理 - 最優先執行
+        // ===================================
+
+        // 在頁面載入的最開始就執行裝置偵測和 LINE 瀏覽器檢查
+        // 這會在任何 OAuth 流程之前執行
+        initDeviceDetection({
+            checkLINE: true,        // 檢查 LINE 瀏覽器
+            autoRedirect: true,     // 自動重導向到外部瀏覽器
+            loadMobileCSS: true,    // 自動載入行動版 CSS（已在 head 中載入，這裡設為 true 也無妨）
+            logDeviceInfo: true     // 在 console 輸出裝置資訊（方便調試）
+        });
+
+        // 如果是 LINE 瀏覽器且沒有 openExternalBrowser 參數，會自動重導向
+        // 頁面會在這裡停止，等待重導向完成
+    </script>
+
+    <script>
         // 初始化 Supabase
         const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
@@ -460,6 +483,17 @@
         // Google OAuth 登入
         document.getElementById('googleLoginBtn').addEventListener('click', async () => {
             try {
+                // === 額外安全檢查：再次確認不是在 LINE In-App Browser 中 ===
+                if (DeviceDetector.isLINEBrowser()) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (!urlParams.has('openExternalBrowser')) {
+                        console.warn('⚠️ 仍在 LINE 瀏覽器中，嘗試重導向...');
+                        LINEBrowserHandler.showUserPrompt('請在外部瀏覽器中開啟以使用 Google 登入');
+                        showError('請使用外部瀏覽器開啟此頁面以使用 Google 登入');
+                        return;
+                    }
+                }
+
                 // 根據環境決定 redirect URL
                 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
                 const redirectUrl = isProduction
@@ -467,6 +501,7 @@
                     : 'http://localhost:8080/onboarding.html';
 
                 console.log('Google OAuth Redirect URL:', redirectUrl);
+                console.log('裝置資訊:', DeviceDetector.getDeviceInfo());
 
                 const { data, error } = await supabaseClient.auth.signInWithOAuth({
                     provider: 'google',

@@ -1,0 +1,696 @@
+/* ===================================
+   行動版專屬樣式 - Mobile-First Design
+   針對長輩友善設計，優化手機體驗
+   =================================== */
+
+/* ===================================
+   行動版：全域調整
+   =================================== */
+
+body.mobile-view {
+  /* 行動版字體大小調整 */
+  --base-font-size: 20px;
+  --font-size-xs: 16px;
+  --font-size-sm: 18px;
+  --font-size-md: 20px;
+  --font-size-lg: 24px;
+  --font-size-xl: 28px;
+  --font-size-xxl: 32px;
+
+  /* 行動版間距調整 */
+  --spacing-xs: 6px;
+  --spacing-sm: 10px;
+  --spacing-md: 14px;
+  --spacing-lg: 20px;
+  --spacing-xl: 28px;
+
+  /* 防止水平滾動 */
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* ===================================
+   行動版：應用程式主框架
+   =================================== */
+
+body.mobile-view #app {
+  max-width: 100%;
+  height: 100vh;
+  height: 100dvh; /* 動態視窗高度，避免地址欄影響 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===================================
+   行動版：頭部優化
+   =================================== */
+
+body.mobile-view .app-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  flex-shrink: 0; /* 防止被壓縮 */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+body.mobile-view .app-title {
+  font-size: var(--font-size-xl);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.mobile-view .header-controls {
+  gap: var(--spacing-sm);
+}
+
+body.mobile-view .icon-btn {
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  /* 增加觸控區域 */
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* 使用者資訊 - 行動版優化 */
+body.mobile-view .user-info {
+  padding: 6px 10px;
+  gap: 8px;
+}
+
+body.mobile-view .user-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+body.mobile-view .user-name {
+  /* 在小螢幕上隱藏使用者名稱 */
+  display: none;
+}
+
+/* ===================================
+   行動版：主要內容區 - 單欄佈局
+   =================================== */
+
+body.mobile-view .app-main {
+  /* 改為垂直單欄佈局 */
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ===================================
+   行動版：側邊欄（隱藏或改為抽屜式）
+   =================================== */
+
+body.mobile-view .sidebar {
+  /* 預設隱藏，可改為抽屜式設計 */
+  display: none;
+  position: fixed;
+  top: 0;
+  left: -100%;
+  width: 80%;
+  max-width: 320px;
+  height: 100vh;
+  z-index: 1000;
+  transition: left 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+body.mobile-view .sidebar.open {
+  left: 0;
+}
+
+/* 側邊欄遮罩 */
+body.mobile-view .sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+body.mobile-view .sidebar-overlay.active {
+  display: block;
+}
+
+/* ===================================
+   行動版：資訊面板（隱藏）
+   =================================== */
+
+body.mobile-view .info-panel {
+  display: none;
+}
+
+/* ===================================
+   行動版：聊天容器 - 全螢幕優化
+   =================================== */
+
+body.mobile-view .chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* iOS 平滑滾動 */
+}
+
+/* 歡迎畫面 - 行動版優化 */
+body.mobile-view .welcome-screen {
+  padding: var(--spacing-lg);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.mobile-view .welcome-content {
+  width: 100%;
+  max-width: 100%;
+}
+
+body.mobile-view .welcome-title {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+body.mobile-view .welcome-subtitle {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 快速操作按鈕 - 改為單欄 */
+body.mobile-view .quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+body.mobile-view .quick-btn {
+  width: 100%;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-lg);
+  font-weight: bold;
+  border-radius: var(--radius-md);
+  /* 增加觸控反饋 */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+/* 聊天訊息區 - 行動版優化 */
+body.mobile-view .chat-messages {
+  padding: var(--spacing-md);
+  flex: 0 0 auto;
+  min-height: 200px;
+}
+
+body.mobile-view .message {
+  margin-bottom: var(--spacing-md);
+}
+
+body.mobile-view .message-content {
+  max-width: 85%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-md);
+  line-height: 1.8;
+  /* 更容易點擊 */
+  min-height: 44px;
+  border-radius: var(--radius-md);
+}
+
+body.mobile-view .message-time {
+  font-size: var(--font-size-xs);
+}
+
+/* ===================================
+   行動版：輸入區域 - 固定底部
+   =================================== */
+
+body.mobile-view .input-container {
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-top: 2px solid var(--color-border);
+  flex-shrink: 0;
+  /* 固定在底部 */
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  /* 防止鍵盤推開 */
+  width: 100%;
+}
+
+/* 快捷功能按鈕 - 改為2欄 */
+body.mobile-view .quick-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+body.mobile-view .shortcut-btn {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* 最小觸控區域 44x44px */
+  min-height: 44px;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
+
+/* SOS 按鈕 - 更大更明顯 */
+body.mobile-view .sos-btn {
+  width: 100%;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  margin-bottom: var(--spacing-md);
+  /* 最小觸控區域 */
+  min-height: 56px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 輸入框區域 */
+body.mobile-view .input-wrapper {
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+}
+
+body.mobile-view .message-input {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-md);
+  min-height: 56px;
+  max-height: 120px;
+  /* iOS 輸入框優化 */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+body.mobile-view .input-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+/* 語音輸入按鈕 */
+body.mobile-view .btn-voice {
+  flex: 1;
+  font-size: var(--font-size-md);
+  padding: var(--spacing-md);
+  min-height: 48px;
+}
+
+/* 傳送按鈕 - 更明顯 */
+body.mobile-view .btn-send {
+  flex: 2;
+  font-size: var(--font-size-lg);
+  font-weight: bold;
+  padding: var(--spacing-md) var(--spacing-lg);
+  min-height: 48px;
+}
+
+/* ===================================
+   行動版：按鈕通用樣式優化
+   =================================== */
+
+body.mobile-view .btn {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-md);
+  font-weight: bold;
+  border-radius: var(--radius-md);
+  /* 最小觸控區域 */
+  min-height: 44px;
+  min-width: 44px;
+  /* 觸控反饋 */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+  /* 防止雙擊放大 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.mobile-view .btn-primary {
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-lg);
+}
+
+/* ===================================
+   行動版：模態對話框優化
+   =================================== */
+
+body.mobile-view .modal {
+  padding: var(--spacing-md);
+}
+
+body.mobile-view .modal-content {
+  padding: var(--spacing-lg);
+  width: 95%;
+  max-width: 400px;
+  border-radius: var(--radius-lg);
+}
+
+body.mobile-view .modal-title {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+body.mobile-view .modal-text {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+body.mobile-view .modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+body.mobile-view .modal-actions .btn {
+  width: 100%;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-lg);
+}
+
+/* ===================================
+   行動版：載入指示器
+   =================================== */
+
+body.mobile-view .loading-spinner {
+  width: 50px;
+  height: 50px;
+  border-width: 5px;
+}
+
+body.mobile-view .loading-text {
+  font-size: var(--font-size-lg);
+}
+
+/* ===================================
+   行動版：登入頁面優化
+   =================================== */
+
+body.mobile-view .login-container {
+  width: 100%;
+  max-width: 100%;
+  padding: var(--spacing-lg);
+  margin: 0;
+  border-radius: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+body.mobile-view .logo {
+  margin-bottom: var(--spacing-lg);
+}
+
+body.mobile-view .logo-icon {
+  font-size: 56px;
+}
+
+body.mobile-view .logo h1 {
+  font-size: var(--font-size-xl);
+}
+
+body.mobile-view .logo p {
+  font-size: var(--font-size-md);
+}
+
+body.mobile-view .form-group input {
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-md);
+  min-height: 52px;
+  border-radius: var(--radius-md);
+}
+
+body.mobile-view .form-options {
+  font-size: var(--font-size-sm);
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+body.mobile-view .oauth-buttons {
+  gap: var(--spacing-md);
+}
+
+body.mobile-view .oauth-buttons .btn {
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-md);
+  min-height: 52px;
+}
+
+/* ===================================
+   行動版：滾動條優化
+   =================================== */
+
+/* WebKit 瀏覽器 (iOS Safari, Chrome) */
+body.mobile-view .chat-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.mobile-view .chat-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+body.mobile-view .chat-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===================================
+   行動版：手勢和觸控優化
+   =================================== */
+
+/* 防止長按彈出選單 */
+body.mobile-view .btn,
+body.mobile-view .icon-btn,
+body.mobile-view .quick-btn,
+body.mobile-view .shortcut-btn {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 防止拖拽圖片 */
+body.mobile-view img {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* ===================================
+   行動版：安全區域適配 (iPhone X 及以上)
+   =================================== */
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  body.mobile-view .app-header {
+    padding-top: max(var(--spacing-md), env(safe-area-inset-top));
+  }
+
+  body.mobile-view .input-container {
+    padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
+  }
+}
+
+/* ===================================
+   行動版：橫向模式優化
+   =================================== */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  body.mobile-view .app-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  body.mobile-view .app-title {
+    font-size: var(--font-size-lg);
+  }
+
+  body.mobile-view .icon-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  body.mobile-view .welcome-screen {
+    padding: var(--spacing-md);
+  }
+
+  body.mobile-view .quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+    flex-direction: row;
+  }
+
+  body.mobile-view .input-container {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* ===================================
+   行動版：小螢幕額外優化 (< 360px)
+   =================================== */
+
+@media (max-width: 360px) {
+  body.mobile-view {
+    --base-font-size: 18px;
+    --font-size-xs: 14px;
+    --font-size-sm: 16px;
+    --font-size-md: 18px;
+    --font-size-lg: 20px;
+    --font-size-xl: 24px;
+    --font-size-xxl: 28px;
+  }
+
+  body.mobile-view .app-title {
+    font-size: var(--font-size-lg);
+  }
+
+  body.mobile-view .quick-shortcuts {
+    grid-template-columns: 1fr;
+  }
+
+  body.mobile-view .message-content {
+    max-width: 90%;
+  }
+}
+
+/* ===================================
+   行動版：動畫和過渡效果優化
+   =================================== */
+
+/* 降低動畫以提升性能 */
+@media (prefers-reduced-motion: reduce) {
+  body.mobile-view * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===================================
+   行動版：暗色模式支援
+   =================================== */
+
+@media (prefers-color-scheme: dark) {
+  body.mobile-view.theme-auto {
+    --color-bg-primary: #1E1E1E;
+    --color-bg-secondary: #2D2D2D;
+    --color-bg-chat-user: #1A237E;
+    --color-bg-chat-assistant: #1B5E20;
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #E0E0E0;
+    --color-text-muted: #BDBDBD;
+    --color-border: #424242;
+  }
+}
+
+/* ===================================
+   平板模式 (介於手機和桌面之間)
+   =================================== */
+
+body.tablet-view .app-main {
+  grid-template-columns: 240px 1fr;
+}
+
+body.tablet-view .info-panel {
+  display: none;
+}
+
+body.tablet-view .quick-actions {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+body.tablet-view .quick-shortcuts {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+body.tablet-view .message-content {
+  max-width: 80%;
+}
+
+/* ===================================
+   行動版漢堡選單按鈕（用於開啟側邊欄）
+   =================================== */
+
+.mobile-menu-btn {
+  display: none;
+}
+
+body.mobile-view .mobile-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: 28px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.mobile-view .mobile-menu-btn:active {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ===================================
+   行動版底部導航列（可選）
+   =================================== */
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+body.mobile-view .mobile-bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: white;
+  border-top: 2px solid var(--color-border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 90;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+body.mobile-view .mobile-bottom-nav .nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  padding: 8px;
+}
+
+body.mobile-view .mobile-bottom-nav .nav-item.active {
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+body.mobile-view .mobile-bottom-nav .nav-icon {
+  font-size: 24px;
+}

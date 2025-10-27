@@ -18,6 +18,10 @@
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
 
+    <!-- 裝置偵測與行動版樣式 -->
+    <link rel="stylesheet" href="mobile.css">
+    <script src="device-detector.js"></script>
+
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -219,6 +223,25 @@
 
     <!-- JavaScript -->
     <script>
+        // ===================================
+        // 裝置偵測初始化 - 最優先執行
+        // ===================================
+
+        // 初始化裝置偵測和 UI 適配
+        // 注意：在主應用頁面，我們只需要檢測裝置類型，不需要處理 LINE 瀏覽器
+        // （因為 OAuth 認證已經在 login.html 完成）
+        initDeviceDetection({
+            checkLINE: false,       // 主應用不需要檢查 LINE（認證已完成）
+            autoRedirect: false,    // 不需要重導向
+            loadMobileCSS: true,    // 載入行動版 CSS
+            logDeviceInfo: true     // 輸出裝置資訊到 console
+        });
+
+        // 輸出裝置類型供應用程式使用
+        const DEVICE_TYPE = DeviceDetector.getDeviceType();
+        const IS_MOBILE = DeviceDetector.isMobile();
+        console.log(`📱 當前裝置類型: ${DEVICE_TYPE}, 行動裝置: ${IS_MOBILE}`);
+
         // ===================================
         // PWA Service Worker Registration
         // ===================================

@@ -13,7 +13,29 @@
 
 ## 📦 部署前準備
 
-### 1. 確認環境變數
+### 1. 選擇 LLM 提供商 🤖
+
+本系統支援三種 AI 模型提供商，**至少需要配置一個**：
+
+| 提供商 | 推薦度 | 免費額度 | API Key 格式 | 備註 |
+|--------|--------|----------|--------------|------|
+| **Google Gemini** | ⭐⭐⭐⭐⭐ | 每分鐘 60 次請求 | `AIza...` | **推薦！** 免費額度充足，無需儲值 |
+| **OpenAI ChatGPT** | ⭐⭐⭐⭐ | 需儲值 $5 | `sk-...` | 回應品質佳，但需付費 |
+| **Deepseek** | ⭐⭐⭐ | 需儲值 | `sk-...` | 中國開發，價格便宜 |
+
+**推薦配置**：
+- **免費使用**：使用 **Gemini**（無需儲值，免費額度充足）
+- **付費使用**：使用 **OpenAI**（回應品質最佳）
+- **預算有限**：使用 **Deepseek**（價格最便宜）
+
+**多模型支援**：
+- 可以同時配置多個 LLM 提供商
+- 用戶可以在設定頁面自由切換
+- 系統預設使用 `LLM_PROVIDER` 環境變數指定的提供商
+
+---
+
+### 2. 確認環境變數
 
 在 `.env` 檔案中確認以下變數：
 
@@ -21,15 +43,26 @@
 # Supabase
 SUPABASE_URL=https://oatdjdelzybcacwqafkk.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_KEY=your_service_role_key
 
-# OpenAI
+# LLM Configuration
+LLM_PROVIDER=gemini  # 可選: openai, gemini, deepseek
+
+# Google Gemini (推薦，默認)
+GEMINI_API_KEY=your_gemini_api_key
+
+# OpenAI (選用)
 OPENAI_API_KEY=your_openai_key
+OPENAI_MODEL=gpt-4o-mini
+
+# Deepseek (選用)
+DEEPSEEK_API_KEY=your_deepseek_key
 
 # Server
 PORT=3000
 ```
 
-### 2. 確認資料庫 Migration
+### 3. 確認資料庫 Migration
 
 在 Supabase Dashboard 執行：
 - `database/migrations/001_fix_summary_fields.sql`
@@ -116,10 +149,16 @@ git push -u origin main
 | `APP_HOST` | `0.0.0.0` | 允許外部訪問 |
 | `SUPABASE_URL` | `https://oatdjdelzybcacwqafkk.supabase.co` | 你的 Supabase URL |
 | `SUPABASE_ANON_KEY` | `eyJhbGci...` | 從 Supabase Dashboard 複製 |
-| `SUPABASE_SERVICE_KEY` | `eyJhbGci...` | 從 Supabase Dashboard 複製（service_role key）|
-| `OPENAI_API_KEY` | `sk-...` | 你的 OpenAI API Key |
-| `OPENAI_MODEL` | `gpt-4o-mini` | 使用的模型 |
+| `SUPABASE_SERVICE_KEY` | `eyJhbGci...` | 從 Supabase Dashboard 複製（service_role key）⚠️ 保密！|
+| `LLM_PROVIDER` | `gemini` | **新增！** LLM提供商：openai / gemini / deepseek |
+| `GEMINI_API_KEY` | `AI...` | **新增！必填！** 你的 Gemini API Key（推薦使用）|
+| `OPENAI_API_KEY` | `sk-...` | **選用** 你的 OpenAI API Key |
+| `OPENAI_MODEL` | `gpt-4o-mini` | **選用** OpenAI 使用的模型 |
+| `DEEPSEEK_API_KEY` | `sk-...` | **選用** 你的 Deepseek API Key |
 | `FRONTEND_URL` | `https://08-eldercare.vercel.app` | 你的 Vercel URL（用於 CORS）|
+| `ENABLE_AUTO_SUMMARY` | `true` | 啟用自動對話總結 |
+| `AUTO_SUMMARY_THRESHOLD` | `20` | 觸發自動總結的訊息數量 |
+| `SESSION_SECRET` | `eldercare-companion-secret-2025` | Session 加密密鑰（建議改為隨機字串）|
 
 **如何取得 Supabase Keys：**
 1. 前往 [Supabase Dashboard](https://supabase.com/dashboard/project/oatdjdelzybcacwqafkk/settings/api)
@@ -129,10 +168,25 @@ git push -u origin main
    - **anon public** → `SUPABASE_ANON_KEY`
    - **service_role** → `SUPABASE_SERVICE_KEY` ⚠️ 保密！
 
-**如何取得 OpenAI API Key：**
+**如何取得 Gemini API Key：** ⭐ 推薦
+1. 前往 [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. 使用 Google 帳號登入
+3. 點擊 **"Get API Key"** 或 **"Create API Key"**
+4. 選擇現有的 Google Cloud 專案或建立新專案
+5. 複製 API Key（格式：`AIza...`）
+6. **注意**：Gemini 提供免費額度，每分鐘 60 次請求
+
+**如何取得 OpenAI API Key：** (選用)
 1. 前往 [OpenAI Platform](https://platform.openai.com/api-keys)
 2. 登入後點擊 **"Create new secret key"**
-3. 複製 API Key（只會顯示一次！）
+3. 複製 API Key（只會顯示一次！格式：`sk-...`）
+4. **注意**：需要先儲值至少 $5 才能使用 API
+
+**如何取得 Deepseek API Key：** (選用)
+1. 前往 [Deepseek Platform](https://platform.deepseek.com/api_keys)
+2. 註冊並登入帳號
+3. 點擊 **"Create API Key"**
+4. 複製 API Key（格式：`sk-...`）
 
 #### 2.4 部署
 
@@ -530,30 +584,79 @@ Error: Missing Supabase environment variables
 
 ---
 
-### 問題 5: OpenAI API 錯誤
+### 問題 5: LLM API 錯誤（Gemini / OpenAI / Deepseek）
 
 **症狀**：
 ```
+Error: LLM API 未配置
 Error: Incorrect API key provided
-Invalid OpenAI API Key
+Invalid API Key
 ```
 
-**解決方案**：
+**針對 Gemini API 錯誤**：
 
 1. **檢查 API Key 格式**
-   - 應該以 `sk-` 開頭
+   - Gemini API Key 應該以 `AIza` 開頭
+   - 長度約 39 字元
+
+2. **重新生成 Gemini API Key**
+   - 前往 [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - 點擊 **"Get API Key"** 或 **"Create API Key"**
+   - 複製並更新到 Render 環境變數 `GEMINI_API_KEY`
+
+3. **檢查 Gemini API 額度**
+   - Gemini 提供免費額度：每分鐘 60 次請求
+   - 如果超過限制，等待一分鐘後重試
+   - 查看 [Google AI Studio](https://aistudio.google.com/) 的使用情況
+
+4. **確認 LLM_PROVIDER 設定正確**
+   - 在 Render 環境變數中確認 `LLM_PROVIDER=gemini`
+
+**針對 OpenAI API 錯誤**：
+
+1. **檢查 API Key 格式**
+   - OpenAI API Key 應該以 `sk-` 開頭
    - 長度約 51 字元
 
 2. **重新生成 API Key**
    - 前往 [OpenAI Platform](https://platform.openai.com/api-keys)
    - 點擊 **"Create new secret key"**
-   - 複製並更新到 Render 環境變數
+   - 複製並更新到 Render 環境變數 `OPENAI_API_KEY`
 
 3. **檢查 API 額度**
    - 前往 [Usage](https://platform.openai.com/usage)
    - 確認還有可用額度
+   - OpenAI 需要至少 $5 儲值才能使用 API
 
-4. **更新環境變數並重新部署**
+4. **確認 LLM_PROVIDER 設定正確**
+   - 如果要使用 OpenAI，在 Render 環境變數中設定 `LLM_PROVIDER=openai`
+
+**針對 Deepseek API 錯誤**：
+
+1. **檢查 API Key 格式**
+   - Deepseek API Key 應該以 `sk-` 開頭
+
+2. **重新生成 API Key**
+   - 前往 [Deepseek Platform](https://platform.deepseek.com/api_keys)
+   - 建立新的 API Key
+   - 更新到 Render 環境變數 `DEEPSEEK_API_KEY`
+
+3. **確認 LLM_PROVIDER 設定正確**
+   - 如果要使用 Deepseek，在 Render 環境變數中設定 `LLM_PROVIDER=deepseek`
+
+**通用解決步驟**：
+
+1. **更新環境變數並重新部署**
+   - 在 Render Dashboard 更新環境變數
+   - 點擊 **"Manual Deploy"** → **"Deploy latest commit"**
+
+2. **檢查 Render Logs**
+   - 查看啟動日誌中的 LLM 配置訊息
+   - 應該看到類似：`✅ Gemini client initialized`
+
+3. **測試 Health Check**
+   - 訪問 `https://your-backend-url.onrender.com/api/health`
+   - 檢查回應中的 LLM 配置狀態
 
 ---
 
@@ -606,15 +709,31 @@ Invalid OpenAI API Key
 
 ## 📊 部署成本
 
-### 免費方案
+### 免費方案（推薦配置）
 - **Vercel**: 免費（Hobby 方案）
 - **Render**: 免費（750 小時/月）
 - **Supabase**: 免費（含 500MB 資料庫）
-- **總計**: $0/月
+- **Gemini API**: 免費（每分鐘 60 次請求）
+- **總計**: $0/月 ⭐ 完全免費！
 
-### 付費建議（生產環境）
-- **Render Pro**: $7/月（移除休眠限制）
-- **Supabase Pro**: $25/月（更多資源）
+### 付費方案（進階使用）
+- **Vercel Pro**: $20/月（更高流量限制）
+- **Render Starter**: $7/月（移除休眠限制，更好效能）
+- **Supabase Pro**: $25/月（更多資源和備份）
+- **OpenAI API**: 依使用量計費（gpt-4o-mini 約 $0.15/1M tokens）
+- **Deepseek API**: 依使用量計費（價格較 OpenAI 便宜約 90%）
+
+### LLM 成本比較（每百萬 tokens）
+| Provider | 輸入成本 | 輸出成本 | 免費額度 |
+|----------|---------|---------|---------|
+| **Gemini** | $0 | $0 | ✅ 每分鐘 60 次請求 |
+| **OpenAI gpt-4o-mini** | $0.15 | $0.60 | ❌ 需儲值 $5 |
+| **Deepseek** | $0.014 | $0.28 | ❌ 需儲值 |
+
+**建議**：
+- 個人使用或測試：使用 Gemini（完全免費）
+- 中小型應用：Gemini 或 Deepseek（成本低）
+- 企業級應用：OpenAI（品質最佳，但成本較高）
 
 ---
 
@@ -640,16 +759,32 @@ Render 會自動重新部署
 
 ## 📝 部署檢查清單
 
+### 基本設定
 - [ ] GitHub repo 建立完成
 - [ ] `.gitignore` 已設定（不上傳 `.env`）
 - [ ] Backend 在 Render 部署成功
 - [ ] Frontend 在 Vercel 部署成功
-- [ ] 環境變數都已設定
+
+### 環境變數設定
+- [ ] Supabase 環境變數已設定（URL, ANON_KEY, SERVICE_KEY）
+- [ ] **LLM_PROVIDER 已設定**（gemini / openai / deepseek）
+- [ ] **至少一個 LLM API Key 已設定**
+  - [ ] Gemini API Key（推薦）
+  - [ ] 或 OpenAI API Key
+  - [ ] 或 Deepseek API Key
+- [ ] FRONTEND_URL 已設定
+- [ ] SESSION_SECRET 已設定
+
+### 服務設定
 - [ ] CORS 設定正確
 - [ ] Supabase Redirect URLs 已更新
+- [ ] Render Logs 顯示 LLM 已成功初始化
+
+### 功能測試
 - [ ] 測試登入/註冊功能
-- [ ] 測試聊天功能
+- [ ] 測試聊天功能（AI 回應正常）
 - [ ] 測試多語言切換
+- [ ] 測試 LLM 模型切換（在設定頁面）
 
 ---
 
@@ -659,12 +794,41 @@ Render 會自動重新部署
 
 - **Frontend URL**: https://08-eldercare.vercel.app
 - **Backend URL**: https://eldercare-backend-xxxx.onrender.com
+- **當前 LLM**: Gemini（或您設定的其他模型）
 
-記得：
-1. 定期備份 Supabase 資料庫
-2. 監控 API 使用量（OpenAI, Supabase）
-3. 檢查錯誤日誌（Render Logs, Vercel Logs）
-4. 設定 UptimeRobot 防止後端休眠
+### 🔍 部署驗證步驟
+
+1. **檢查後端健康狀態**
+   ```bash
+   curl https://your-backend-url.onrender.com/api/health
+   ```
+   應該看到 LLM 配置資訊
+
+2. **測試 AI 回應**
+   - 登入應用
+   - 發送測試訊息
+   - 確認收到 AI 回應
+
+3. **測試 LLM 切換**
+   - 進入設定頁面
+   - 嘗試切換不同的 AI 模型
+   - 確認切換後仍能正常對話
+
+### 📊 使用監控
+
+記得定期檢查：
+1. **LLM API 使用量**
+   - Gemini: 免費每分鐘 60 次請求
+   - OpenAI: 查看 [Usage Dashboard](https://platform.openai.com/usage)
+   - Deepseek: 查看平台使用情況
+
+2. **定期備份 Supabase 資料庫**
+
+3. **監控錯誤日誌**
+   - Render Logs（後端錯誤）
+   - Vercel Logs（前端錯誤）
+
+4. **設定 UptimeRobot 防止後端休眠**
 
 ---
 
@@ -674,7 +838,12 @@ Render 會自動重新部署
 - **Render Dashboard**: https://dashboard.render.com
 - **Vercel Dashboard**: https://vercel.com/dashboard
 - **Supabase Dashboard**: https://supabase.com/dashboard/project/oatdjdelzybcacwqafkk
-- **OpenAI Platform**: https://platform.openai.com
+
+### LLM Provider 連結
+- **Google AI Studio** (Gemini): https://aistudio.google.com/app/apikey
+- **OpenAI Platform**: https://platform.openai.com/api-keys
+- **OpenAI Usage**: https://platform.openai.com/usage
+- **Deepseek Platform**: https://platform.deepseek.com/api_keys
 
 ### API 端點
 - **Backend Health**: `https://your-backend-url.onrender.com/api/health`
@@ -683,17 +852,42 @@ Render 會自動重新部署
 
 ### 環境變數清單
 
-#### Render (Backend)
+#### Render (Backend) - 完整設定
 ```env
+# 應用程式設定
 NODE_ENV=production
 APP_PORT=3000
 APP_HOST=0.0.0.0
+
+# Supabase 資料庫
 SUPABASE_URL=https://oatdjdelzybcacwqafkk.supabase.co
 SUPABASE_ANON_KEY=eyJhbGci...
 SUPABASE_SERVICE_KEY=eyJhbGci...
-OPENAI_API_KEY=sk-...
+
+# LLM 配置（至少需要配置一個 LLM 提供商的 API Key）
+LLM_PROVIDER=gemini                    # 預設使用 Gemini（可選：openai, gemini, deepseek）
+
+# Google Gemini (推薦) - 必填
+GEMINI_API_KEY=AIza...                 # 從 https://aistudio.google.com/app/apikey 獲取
+
+# OpenAI (選用)
+OPENAI_API_KEY=sk-...                  # 從 https://platform.openai.com/api-keys 獲取
 OPENAI_MODEL=gpt-4o-mini
+
+# Deepseek (選用)
+DEEPSEEK_API_KEY=sk-...                # 從 https://platform.deepseek.com/api_keys 獲取
+
+# 前端 CORS 設定
 FRONTEND_URL=https://08-eldercare.vercel.app
+
+# 功能開關
+ENABLE_AUTO_SUMMARY=true
+AUTO_SUMMARY_THRESHOLD=20
+ENABLE_VOICE=true
+ENABLE_SOS=true
+
+# Session 設定
+SESSION_SECRET=eldercare-companion-secret-2025  # 建議改為隨機字串
 ```
 
 #### Vercel (Frontend) - 選用

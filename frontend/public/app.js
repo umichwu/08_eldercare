@@ -558,13 +558,15 @@ async function sendMessage() {
     console.log('📍 URL:', `/conversations/${currentConversation.id}/messages`);
     console.log('📦 資料:', { userId: currentUserId, content });
 
-    // 發送到後端
+    // 發送到後端（包含用戶選擇的LLM提供商）
+    const llmProvider = localStorage.getItem('llmProvider') || 'gemini';
     const response = await apiCall(
       `/conversations/${currentConversation.id}/messages`,
       'POST',
       {
         userId: currentUserId,
-        content
+        content,
+        llmProvider
       }
     );
 

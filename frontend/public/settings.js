@@ -9,7 +9,8 @@ class SettingsManager {
     this.currentSettings = {
       language: localStorage.getItem('language') || 'zh-TW',
       fontSize: parseInt(localStorage.getItem('fontSize')) || 24,
-      theme: localStorage.getItem('theme') || 'light'
+      theme: localStorage.getItem('theme') || 'light',
+      llmProvider: localStorage.getItem('llmProvider') || 'gemini'
     };
     this.init();
   }
@@ -72,6 +73,18 @@ class SettingsManager {
                 </button>
               </div>
             </div>
+
+            <!-- LLM提供商設定 -->
+            <div class="setting-group">
+              <label class="setting-label" data-i18n="settings.llmProvider">
+                AI 模型
+              </label>
+              <select id="llmProviderSelect" class="setting-select">
+                <option value="gemini">Google Gemini (推薦)</option>
+                <option value="openai">OpenAI ChatGPT</option>
+                <option value="deepseek">Deepseek</option>
+              </select>
+            </div>
           </div>
           <div class="modal-footer">
             <button id="saveSettings" class="btn btn-primary" data-i18n="settings.save">
@@ -92,8 +105,21 @@ class SettingsManager {
     // 載入語言選項
     this.loadLanguageOptions();
 
+    // 載入LLM提供商選項
+    this.loadLLMProviderOptions();
+
     // 更新選擇狀態
     this.updateSelectedOptions();
+  }
+
+  /**
+   * 載入LLM提供商選項
+   */
+  loadLLMProviderOptions() {
+    const select = document.getElementById('llmProviderSelect');
+    if (select) {
+      select.value = this.currentSettings.llmProvider;
+    }
   }
 
   /**
@@ -146,6 +172,14 @@ class SettingsManager {
     languageSelect.addEventListener('change', (e) => {
       this.currentSettings.language = e.target.value;
     });
+
+    // LLM提供商變更
+    const llmProviderSelect = document.getElementById('llmProviderSelect');
+    if (llmProviderSelect) {
+      llmProviderSelect.addEventListener('change', (e) => {
+        this.currentSettings.llmProvider = e.target.value;
+      });
+    }
 
     // 字體大小按鈕
     document.querySelectorAll('.font-size-btn').forEach(btn => {
@@ -219,6 +253,7 @@ class SettingsManager {
       localStorage.setItem('language', this.currentSettings.language);
       localStorage.setItem('fontSize', this.currentSettings.fontSize);
       localStorage.setItem('theme', this.currentSettings.theme);
+      localStorage.setItem('llmProvider', this.currentSettings.llmProvider);
 
       // 套用設定
       this.applySettings();
@@ -255,7 +290,8 @@ class SettingsManager {
           preferences: {
             language: this.currentSettings.language,
             fontSize: this.currentSettings.fontSize,
-            theme: this.currentSettings.theme
+            theme: this.currentSettings.theme,
+            llmProvider: this.currentSettings.llmProvider
           }
         })
       });
@@ -326,10 +362,14 @@ class SettingsManager {
       if (profile.theme) {
         this.currentSettings.theme = profile.theme;
       }
+      if (profile.llm_provider) {
+        this.currentSettings.llmProvider = profile.llm_provider;
+      }
 
       // 套用設定
       this.applySettings();
       this.updateSelectedOptions();
+      this.loadLLMProviderOptions();
 
       console.log('✅ 從後端載入設定成功');
     } catch (error) {

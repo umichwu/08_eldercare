@@ -1,5 +1,5 @@
 import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { openai, defaultModel } from '../config/openai.js';
+import { defaultLLMService, createLLMService } from '../config/llm.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -143,11 +143,15 @@ class MessageService {
    * @param {string} conversationId - 對話 ID
    * @param {string} authUserId - auth.users 的 ID
    * @param {string} userMessage - 使用者訊息
+   * @param {string} llmProvider - LLM提供商 (可選)
    */
-  async generateAIResponse(conversationId, authUserId, userMessage) {
+  async generateAIResponse(conversationId, authUserId, userMessage, llmProvider = null) {
     try {
-      if (!openai) {
-        throw new Error('OpenAI API 未配置');
+      // 根據用戶選擇的提供商創建LLM服務
+      const llmService = llmProvider ? createLLMService(llmProvider) : defaultLLMService;
+
+      if (!llmService.isAvailable()) {
+        throw new Error(`LLM API 未配置: ${llmProvider || '默認提供商'}`);
       }
 
       // 取得對話歷史
@@ -183,23 +187,20 @@ class MessageService {
         }
       ];
 
-      // 呼叫 OpenAI API
-      const completion = await openai.chat.completions.create({
-        model: defaultModel,
-        messages: messages,
+      // 使用LLM服務生成回應
+      const result = await llmService.generateResponse(messages, {
         temperature: 0.7,
-        max_tokens: 500
+        maxTokens: 500
       });
 
-      const aiResponse = completion.choices[0].message.content;
-
-      console.log('✅ AI 回應已生成');
+      console.log(`✅ AI 回應已生成 (Provider: ${llmService.getProviderName()}, Model: ${llmService.getModelName()})`);
       return {
         success: true,
         data: {
-          content: aiResponse,
-          model: defaultModel,
-          tokens: completion.usage.total_tokens
+          content: result.content,
+          model: llmService.getModelName(),
+          provider: llmService.getProviderName(),
+          tokens: result.usage.totalTokens
         }
       };
     } catch (error) {
@@ -210,8 +211,9 @@ class MessageService {
 
   /**
    * 處理完整的對話流程（使用者訊息 → AI 回應）
+   * @param {string} llmProvider - LLM提供商 (可選)
    */
-  async processUserMessage(conversationId, userId, userMessage) {
+  async processUserMessage(conversationId, userId, userMessage, llmProvider = null) {
     try {
       // 1. 儲存使用者訊息
       const userMsgResult = await this.addUserMessage(
@@ -224,11 +226,12 @@ class MessageService {
         throw new Error('無法儲存使用者訊息');
       }
 
-      // 2. 產生 AI 回應
+      // 2. 產生 AI 回應（使用用戶指定的LLM提供商）
       const aiResult = await this.generateAIResponse(
         conversationId,
         userId,
-        userMessage
+        userMessage,
+        llmProvider
       );
 
       if (!aiResult.success) {

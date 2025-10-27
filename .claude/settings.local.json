@@ -9,7 +9,12 @@
       "Bash(git reset:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Read(//mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/**)"
+      "Read(//mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/**)",
+      "Bash(git rev-parse:*)",
+      "Bash(git log:*)",
+      "Bash(curl:*)",
+      "Bash(npm run build:frontend:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

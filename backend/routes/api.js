@@ -182,14 +182,14 @@ router.get('/conversations/:id/messages', async (req, res) => {
 router.post('/conversations/:id/messages', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId, content } = req.body;
+    const { userId, content, llmProvider } = req.body;
 
     if (!userId || !content) {
       return res.status(400).json({ error: '缺少必要參數' });
     }
 
-    // 處理使用者訊息並產生回應
-    const result = await messageService.processUserMessage(id, userId, content);
+    // 處理使用者訊息並產生回應（使用用戶指定的LLM提供商）
+    const result = await messageService.processUserMessage(id, userId, content, llmProvider);
 
     if (result.success) {
       // 檢查是否需要產生自動總結

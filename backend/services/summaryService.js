@@ -1,5 +1,5 @@
 import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { openai, defaultModel } from '../config/openai.js';
+import { defaultLLMService } from '../config/llm.js';
 import messageService from './messageService.js';
 import dotenv from 'dotenv';
 
@@ -46,8 +46,8 @@ class SummaryService {
    */
   async generateSummary(conversationId, userId) {
     try {
-      if (!openai) {
-        throw new Error('OpenAI API 未配置');
+      if (!defaultLLMService.isAvailable()) {
+        throw new Error('LLM API 未配置');
       }
 
       // 取得最近的訊息
@@ -79,24 +79,22 @@ ${conversationText}
 
 總結（請用 3-5 個要點列出）：`;
 
-      // 呼叫 OpenAI API
-      const completion = await openai.chat.completions.create({
-        model: defaultModel,
-        messages: [
-          {
-            role: 'system',
-            content: '你是一個專業的對話總結助手，擅長從老年人的對話中提取重要資訊。'
-          },
-          {
-            role: 'user',
-            content: summaryPrompt
-          }
-        ],
+      // 使用統一的 LLM 服務
+      const result = await defaultLLMService.generateResponse([
+        {
+          role: 'system',
+          content: '你是一個專業的對話總結助手，擅長從老年人的對話中提取重要資訊。'
+        },
+        {
+          role: 'user',
+          content: summaryPrompt
+        }
+      ], {
         temperature: 0.3,
-        max_tokens: 300
+        maxTokens: 300
       });
 
-      const summaryText = completion.choices[0].message.content;
+      const summaryText = result.content;
 
       // 儲存總結到資料庫
       const { data: summary, error } = await supabase
@@ -107,7 +105,7 @@ ${conversationText}
             user_profile_id: userId,
             summary: summaryText,
             summary_type: 'auto',
-            token_count: completion.usage.total_tokens,
+            token_count: result.usage.totalTokens,
             is_latest: true
           }
         ])
@@ -129,7 +127,7 @@ ${conversationText}
         .update({ messages_since_last_summary: 0 })
         .eq('id', conversationId);
 
-      console.log('✅ 對話總結已產生:', summary.id);
+      console.log(`✅ 對話總結已產生 (Provider: ${defaultLLMService.getProviderName()}):`, summary.id);
       return { success: true, data: summary };
     } catch (error) {
       console.error('❌ 產生總結失敗:', error.message);

@@ -155,7 +155,7 @@ export class LLMService {
     const chatMessages = messages.filter(m => m.role !== 'system');
 
     // 构建聊天历史
-    const history = chatMessages.slice(0, -1).map(msg => ({
+    let history = chatMessages.slice(0, -1).map(msg => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));

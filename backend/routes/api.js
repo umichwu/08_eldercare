@@ -184,14 +184,26 @@ router.post('/conversations/:id/messages', async (req, res) => {
     const { id } = req.params;
     const { userId, content, llmProvider } = req.body;
 
+    console.log('📨 收到訊息請求:', { conversationId: id, userId, llmProvider, contentLength: content?.length });
+
     if (!userId || !content) {
-      return res.status(400).json({ error: '缺少必要參數' });
+      console.error('❌ 缺少必要參數:', { userId: !!userId, content: !!content });
+      return res.status(400).json({
+        error: '缺少必要參數',
+        details: {
+          userId: !userId ? '缺少 userId' : 'OK',
+          content: !content ? '缺少 content' : 'OK'
+        }
+      });
     }
 
     // 處理使用者訊息並產生回應（使用用戶指定的LLM提供商）
+    console.log('🤖 使用 LLM 提供商:', llmProvider || '默認');
     const result = await messageService.processUserMessage(id, userId, content, llmProvider);
 
     if (result.success) {
+      console.log('✅ 訊息處理成功');
+
       // 檢查是否需要產生自動總結
       const summaryCheck = await summaryService.checkAutoSummary(id, userId);
 
@@ -205,10 +217,19 @@ router.post('/conversations/:id/messages', async (req, res) => {
 
       res.status(201).json(result.data);
     } else {
-      res.status(500).json({ error: result.error });
+      console.error('❌ 訊息處理失敗:', result.error);
+      res.status(500).json({
+        error: result.error,
+        details: 'LLM API 呼叫失敗，請檢查 API Key 配置'
+      });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ 伺服器錯誤:', error);
+    res.status(500).json({
+      error: error.message,
+      type: error.name,
+      details: '伺服器內部錯誤'
+    });
   }
 });
 

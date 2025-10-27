@@ -299,15 +299,50 @@ async function apiCall(endpoint, method = 'GET', data = null) {
 
   if (data) {
     options.body = JSON.stringify(data);
+    console.log('📦 請求資料:', data);
   }
 
-  const response = await fetch(url, options);
+  try {
+    const response = await fetch(url, options);
 
-  if (!response.ok) {
-    throw new Error(`API 錯誤: ${response.statusText}`);
+    // 讀取回應內容
+    const contentType = response.headers.get('content-type');
+    let responseData;
+
+    if (contentType && contentType.includes('application/json')) {
+      responseData = await response.json();
+    } else {
+      responseData = await response.text();
+    }
+
+    if (!response.ok) {
+      // 從後端回應中提取錯誤訊息
+      let errorMessage = `API 錯誤 (${response.status})`;
+
+      if (typeof responseData === 'object' && responseData.error) {
+        errorMessage = responseData.error;
+        if (responseData.details) {
+          errorMessage += `\n詳情: ${responseData.details}`;
+        }
+      } else if (typeof responseData === 'string') {
+        errorMessage += `: ${responseData}`;
+      } else {
+        errorMessage += `: ${response.statusText}`;
+      }
+
+      console.error('❌ API 錯誤回應:', responseData);
+      throw new Error(errorMessage);
+    }
+
+    console.log('✅ API 回應:', responseData);
+    return responseData;
+  } catch (error) {
+    // 網路錯誤或其他異常
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      throw new Error('網路連線失敗，請檢查網路連線或後端服務是否正常');
+    }
+    throw error;
   }
-
-  return await response.json();
 }
 
 // ===================================

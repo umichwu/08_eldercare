@@ -211,14 +211,8 @@ body.mobile-view .welcome-subtitle {
   margin-bottom: var(--spacing-lg);
 }
 
-/* 快速操作按鈕 - 改為 1 row x 4 columns */
-body.mobile-view .quick-actions {
-  display: grid !important;
-  grid-template-columns: repeat(4, 1fr) !important;
-  gap: var(--spacing-xs) !important;
-  width: 100%;
-  margin-bottom: var(--spacing-md);
-}
+/* 快速操作按鈕 - 行動版已改用彈出選單，不再顯示原始按鈕 */
+/* body.mobile-view .quick-actions 在 line 144-146 已設定為 display: none */
 
 body.mobile-view .quick-btn {
   width: 100%;
@@ -566,10 +560,7 @@ body.mobile-view img {
     padding: var(--spacing-md);
   }
 
-  body.mobile-view .quick-actions {
-    grid-template-columns: repeat(2, 1fr);
-    flex-direction: row;
-  }
+  /* .quick-actions 已改用彈出選單，不再需要調整佈局 */
 
   body.mobile-view .input-container {
     padding: var(--spacing-sm);

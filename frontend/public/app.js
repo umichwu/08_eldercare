@@ -589,38 +589,125 @@ async function sendMessage() {
     messages.push(userMessage);
     renderMessages();
 
-    console.log('🌐 準備發送 API 請求...');
-    console.log('📍 URL:', `/conversations/${currentConversation.id}/messages`);
-    console.log('📦 資料:', { userId: currentUserId, content });
-
-    // 發送到後端（包含用戶選擇的LLM提供商）
+    // 檢查是否使用 Gemini（前端直接調用）
     const llmProvider = localStorage.getItem('llmProvider') || 'gemini';
-    const response = await apiCall(
-      `/conversations/${currentConversation.id}/messages`,
-      'POST',
-      {
-        userId: currentUserId,
-        content,
-        llmProvider
+
+    if (llmProvider === 'gemini') {
+      console.log('🌟 使用前端直接調用 Gemini API...');
+
+      // 從 localStorage 獲取 Gemini API Key
+      const geminiApiKey = localStorage.getItem('geminiApiKey');
+      if (!geminiApiKey) {
+        throw new Error('請先在設定中配置 Gemini API Key');
       }
-    );
 
-    console.log('✅ API 回應成功:', response);
+      // 構建對話歷史
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      }));
 
-    // 更新訊息列表
-    messages[messages.length - 1] = response.userMessage;
-    messages.push(response.assistantMessage);
+      // 調用 Gemini API
+      console.log('🤖 正在生成 Gemini 回應...');
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: conversationHistory,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 500,
+            },
+            systemInstruction: {
+              parts: [{
+                text: `你是一個專為老年人設計的溫暖陪伴助手。請用簡單、親切、有耐心的語氣回應。
+特點：
+- 使用簡單易懂的語言
+- 語氣溫暖友善，像是在和家人聊天
+- 回答要清楚明確，避免複雜術語
+- 關心使用者的身體健康和情緒
+- 提供實用的生活建議
+- 如果使用者提到不舒服或緊急情況，要特別關注並建議尋求協助`
+              }]
+            }
+          })
+        }
+      );
 
-    renderMessages();
-    updateStats();
+      if (!geminiResponse.ok) {
+        const errorData = await geminiResponse.text();
+        console.error('❌ Gemini API 錯誤:', errorData);
+        throw new Error('Gemini API 調用失敗，請檢查 API Key');
+      }
 
-    hideLoading();
+      const geminiData = await geminiResponse.json();
+      const aiContent = geminiData.candidates[0].content.parts[0].text;
 
-    // 語音播放回應
-    speakText(response.assistantMessage.content);
+      console.log('✅ Gemini 回應成功，內容長度:', aiContent.length);
 
-    // 重新載入總結狀態
-    await loadLatestSummary();
+      // 保存到後端數據庫
+      const saveResponse = await apiCall(
+        `/conversations/${currentConversation.id}/messages/save`,
+        'POST',
+        {
+          userId: currentUserId,
+          userMessage: content,
+          assistantMessage: aiContent,
+          provider: 'gemini',
+          model: 'gemini-2.0-flash-exp'
+        }
+      );
+
+      // 更新訊息列表
+      messages[messages.length - 1] = saveResponse.userMessage;
+      messages.push(saveResponse.assistantMessage);
+
+      renderMessages();
+      updateStats();
+      hideLoading();
+
+      // 語音播放回應
+      speakText(aiContent);
+
+      // 重新載入總結狀態
+      await loadLatestSummary();
+
+    } else {
+      // 使用後端 API（OpenAI 或 Deepseek）
+      console.log('🌐 準備發送 API 請求...');
+      console.log('📍 URL:', `/conversations/${currentConversation.id}/messages`);
+      console.log('📦 資料:', { userId: currentUserId, content });
+
+      const response = await apiCall(
+        `/conversations/${currentConversation.id}/messages`,
+        'POST',
+        {
+          userId: currentUserId,
+          content,
+          llmProvider
+        }
+      );
+
+      console.log('✅ API 回應成功:', response);
+
+      // 更新訊息列表
+      messages[messages.length - 1] = response.userMessage;
+      messages.push(response.assistantMessage);
+
+      renderMessages();
+      updateStats();
+      hideLoading();
+
+      // 語音播放回應
+      speakText(response.assistantMessage.content);
+
+      // 重新載入總結狀態
+      await loadLatestSummary();
+    }
   } catch (error) {
     console.error('❌ 傳送訊息失敗:', error);
     console.error('錯誤詳情:', error.message);

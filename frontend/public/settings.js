@@ -80,10 +80,30 @@ class SettingsManager {
                 AI 模型
               </label>
               <select id="llmProviderSelect" class="setting-select">
-                <option value="gemini">Google Gemini (推薦)</option>
+                <option value="gemini">Google Gemini (推薦免費)</option>
                 <option value="openai">OpenAI ChatGPT</option>
                 <option value="deepseek">Deepseek</option>
               </select>
+            </div>
+
+            <!-- Gemini API Key 設定 -->
+            <div class="setting-group" id="geminiApiKeyGroup">
+              <label class="setting-label">
+                Gemini API Key
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size: 12px; margin-left: 8px;">
+                  (取得免費 API Key)
+                </a>
+              </label>
+              <input
+                type="password"
+                id="geminiApiKeyInput"
+                class="setting-input"
+                placeholder="AIzaSy..."
+                style="font-family: monospace;"
+              />
+              <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">
+                💡 Gemini 免費額度充足，API Key 保存在您的瀏覽器本地
+              </small>
             </div>
           </div>
           <div class="modal-footer">
@@ -249,6 +269,12 @@ class SettingsManager {
    */
   async saveSettings() {
     try {
+      // 儲存 Gemini API Key
+      const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+      if (geminiApiKeyInput && geminiApiKeyInput.value) {
+        localStorage.setItem('geminiApiKey', geminiApiKeyInput.value.trim());
+      }
+
       // 儲存到 localStorage
       localStorage.setItem('language', this.currentSettings.language);
       localStorage.setItem('fontSize', this.currentSettings.fontSize);
@@ -312,6 +338,14 @@ class SettingsManager {
    */
   show() {
     this.modal.style.display = 'flex';
+
+    // 載入已保存的 Gemini API Key
+    const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+    const savedGeminiApiKey = localStorage.getItem('geminiApiKey');
+    if (geminiApiKeyInput && savedGeminiApiKey) {
+      geminiApiKeyInput.value = savedGeminiApiKey;
+    }
+
     // 更新翻譯
     if (window.i18n) {
       window.i18n.updatePageContent();

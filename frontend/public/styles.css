@@ -1019,6 +1019,25 @@ button:disabled {
   border-color: var(--color-primary);
 }
 
+.setting-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: white;
+  transition: border-color 0.3s;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.setting-input::placeholder {
+  color: #999;
+}
+
 /* 字體大小選項 */
 .font-size-options,
 .theme-options {

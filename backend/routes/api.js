@@ -176,6 +176,71 @@ router.get('/conversations/:id/messages', async (req, res) => {
 });
 
 /**
+ * 保存前端生成的訊息（用於 Gemini 前端調用）
+ * POST /api/conversations/:id/messages/save
+ */
+router.post('/conversations/:id/messages/save', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, userMessage, assistantMessage, provider, model } = req.body;
+
+    console.log('💾 收到前端消息保存請求:', { conversationId: id, userId, provider, model });
+
+    if (!userId || !userMessage || !assistantMessage) {
+      console.error('❌ 缺少必要參數');
+      return res.status(400).json({
+        error: '缺少必要參數',
+        details: {
+          userId: !userId ? '缺少 userId' : 'OK',
+          userMessage: !userMessage ? '缺少 userMessage' : 'OK',
+          assistantMessage: !assistantMessage ? '缺少 assistantMessage' : 'OK'
+        }
+      });
+    }
+
+    // 保存用戶消息
+    const userMsgResult = await messageService.addUserMessage(
+      id,
+      userId,
+      userMessage
+    );
+
+    if (!userMsgResult.success) {
+      throw new Error('無法儲存使用者訊息');
+    }
+
+    // 保存助理消息
+    const aiMsgResult = await messageService.addAssistantMessage(
+      id,
+      userId,
+      assistantMessage,
+      {
+        provider: provider || 'gemini',
+        model: model || 'gemini-2.0-flash-exp',
+        tokens: 0
+      }
+    );
+
+    if (!aiMsgResult.success) {
+      throw new Error('無法儲存助理訊息');
+    }
+
+    console.log('✅ 前端消息已成功保存到數據庫');
+
+    res.status(201).json({
+      userMessage: userMsgResult.data,
+      assistantMessage: aiMsgResult.data
+    });
+  } catch (error) {
+    console.error('❌ 保存前端消息失敗:', error);
+    res.status(500).json({
+      error: error.message,
+      details: '保存消息到數據庫失敗'
+    });
+  }
+});
+
+/**
  * 傳送訊息並取得 AI 回應
  * POST /api/conversations/:id/messages
  */

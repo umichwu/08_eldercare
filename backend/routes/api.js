@@ -414,19 +414,55 @@ router.get('/health', (req, res) => {
     SUPABASE_URL: !!process.env.SUPABASE_URL,
     SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
     SUPABASE_SERVICE_KEY: !!process.env.SUPABASE_SERVICE_KEY,
-    OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
   };
 
-  const allConfigured = Object.values(envCheck).every(v => v === true);
+  // LLM 提供商檢查
+  const llmCheck = {
+    currentProvider: process.env.LLM_PROVIDER || 'gemini',
+    openai: {
+      configured: !!process.env.OPENAI_API_KEY,
+      keyPrefix: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 7) + '...' : null
+    },
+    gemini: {
+      configured: !!process.env.GEMINI_API_KEY,
+      keyPrefix: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 6) + '...' : null
+    },
+    deepseek: {
+      configured: !!process.env.DEEPSEEK_API_KEY,
+      keyPrefix: process.env.DEEPSEEK_API_KEY ? process.env.DEEPSEEK_API_KEY.substring(0, 7) + '...' : null
+    }
+  };
+
+  // 檢查當前提供商是否已配置
+  const currentProviderConfigured = llmCheck[llmCheck.currentProvider]?.configured || false;
+  const allCoreConfigured = Object.values(envCheck).every(v => v === true) && currentProviderConfigured;
 
   res.json({
-    status: allConfigured ? 'healthy' : 'degraded',
+    status: allCoreConfigured ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     service: 'ElderCare Backend API',
     environment: {
       configured: envCheck,
-      allConfigured: allConfigured,
+      allConfigured: Object.values(envCheck).every(v => v === true),
       missing: Object.keys(envCheck).filter(key => !envCheck[key])
+    },
+    llm: {
+      currentProvider: llmCheck.currentProvider,
+      currentProviderConfigured: currentProviderConfigured,
+      providers: {
+        openai: {
+          available: llmCheck.openai.configured,
+          keyPrefix: llmCheck.openai.keyPrefix
+        },
+        gemini: {
+          available: llmCheck.gemini.configured,
+          keyPrefix: llmCheck.gemini.keyPrefix
+        },
+        deepseek: {
+          available: llmCheck.deepseek.configured,
+          keyPrefix: llmCheck.deepseek.keyPrefix
+        }
+      }
     }
   });
 });

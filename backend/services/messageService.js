@@ -244,6 +244,7 @@ class MessageService {
         userId,
         aiResult.data.content,
         {
+          provider: aiResult.data.provider,
           model: aiResult.data.model,
           tokens: aiResult.data.tokens
         }

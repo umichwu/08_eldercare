@@ -14,7 +14,8 @@
       "Bash(git log:*)",
       "Bash(curl:*)",
       "Bash(npm run build:frontend:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(node --check:*)"
     ],
     "deny": [],
     "ask": []

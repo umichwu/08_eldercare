@@ -20,6 +20,9 @@ let messages = [];
 let isVoiceEnabled = true;
 let isSpeaking = false;
 
+// 全域狀態 - 地理位置
+let userLocation = null; // { city, lat, lng, localTime }
+
 // 防止無限循環的標記
 let isLoadingConversations = false;
 let loadConversationsTimeout = null;
@@ -73,6 +76,9 @@ async function initializeApp() {
   showLoading();
 
   try {
+    // 獲取地理位置
+    await getUserLocation();
+
     // 載入對話列表
     await loadConversations();
 
@@ -87,6 +93,85 @@ async function initializeApp() {
     hideLoading();
     alert('載入失敗，請重新整理頁面');
   }
+}
+
+// ===================================
+// 地理位置功能
+// ===================================
+
+async function getUserLocation() {
+  console.log('📍 開始獲取地理位置...');
+
+  // 檢查瀏覽器是否支援地理位置
+  if (!navigator.geolocation) {
+    console.warn('⚠️ 瀏覽器不支援地理位置');
+    return;
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log('✅ 已獲取經緯度:', latitude, longitude);
+
+        try {
+          // 使用反向地理編碼獲取城市名稱（使用 OpenStreetMap Nominatim）
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=zh-TW`
+          );
+          const data = await response.json();
+
+          // 提取城市名稱
+          const city = data.address.city ||
+                      data.address.town ||
+                      data.address.village ||
+                      data.address.county ||
+                      data.address.state ||
+                      '未知地點';
+
+          // 獲取當地時間
+          const localTime = new Date().toLocaleString('zh-TW', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+
+          userLocation = {
+            city: city,
+            lat: latitude.toFixed(4),
+            lng: longitude.toFixed(4),
+            localTime: localTime
+          };
+
+          console.log('✅ 地理位置資訊已設定:', userLocation);
+        } catch (error) {
+          console.error('❌ 反向地理編碼失敗:', error);
+          // 即使無法獲取城市名稱，仍然保存經緯度
+          userLocation = {
+            city: '未知地點',
+            lat: latitude.toFixed(4),
+            lng: longitude.toFixed(4),
+            localTime: new Date().toLocaleString('zh-TW')
+          };
+        }
+
+        resolve();
+      },
+      (error) => {
+        console.warn('⚠️ 無法獲取地理位置:', error.message);
+        console.log('💡 將在需要時詢問使用者所在城市');
+        resolve(); // 即使失敗也繼續初始化
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000 // 5分鐘內的快取位置可接受
+      }
+    );
+  });
 }
 
 // ===================================
@@ -607,6 +692,41 @@ async function sendMessage() {
         parts: [{ text: msg.content }]
       }));
 
+      // 將地理位置資訊插入到最新的使用者訊息中
+      if (conversationHistory.length > 0) {
+        const lastMessage = conversationHistory[conversationHistory.length - 1];
+
+        if (lastMessage.role === 'user') {
+          if (userLocation) {
+            // 更新當地時間（確保時間是最新的）
+            userLocation.localTime = new Date().toLocaleString('zh-TW', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            });
+
+            // 有地理位置資訊，插入到訊息前面
+            const locationContext = `[位置資訊]
+城市：${userLocation.city}
+經緯度：${userLocation.lat}, ${userLocation.lng}
+當地時間：${userLocation.localTime}
+[位置資訊結束]
+
+`;
+            lastMessage.parts[0].text = locationContext + lastMessage.parts[0].text;
+            console.log('📍 已將地理位置資訊加入訊息上下文');
+          } else {
+            // 沒有地理位置資訊
+            const noLocationMarker = '[位置資訊不可用]\n\n';
+            lastMessage.parts[0].text = noLocationMarker + lastMessage.parts[0].text;
+            console.log('⚠️ 未獲取到地理位置資訊');
+          }
+        }
+      }
+
       // 調用 Gemini API（啟用 Google Search）
       console.log('🤖 正在生成 Gemini 回應...');
       const geminiResponse = await fetch(
@@ -633,6 +753,49 @@ async function sendMessage() {
 - 關心使用者的身體健康和情緒
 - 提供實用的生活建議
 - 如果使用者提到不舒服或緊急情況，要特別關注並建議尋求協助
+
+**【地理位置資訊處理規則】**
+
+當使用者的訊息中包含「[位置資訊]」區塊時，請遵循以下原則：
+
+1. **資訊可信度：**
+   - 這些地理資訊是由系統自動偵測的，具有絕對準確性，請優先採用。
+   - 時間資訊為當地實際時間，請以此為準進行所有時間相關的判斷。
+
+2. **自然引用方式：**
+   - 當回答天氣、時間、附近活動等問題時，請自然地使用「城市」名稱（如：台北、高雄）。
+   - **絕對不要**直接提及經緯度數值，應轉換為友善的地名表述。
+   - 範例：說「您在台北市」，而非「您在經緯度 25.0330, 121.5654」。
+
+3. **缺少位置資訊時的處理：**
+   - 若未收到位置資訊，且使用者詢問天氣、時間或地點相關問題，請親切地說：
+     「阿姨/伯伯，我想幫您查查天氣，不過需要知道您現在在哪個城市或地區呢？」
+   - **不要**直接詢問經緯度或要求開啟定位權限。
+
+4. **時間感知：**
+   - 使用提供的當地時間來判斷「早上」、「中午」、「晚上」，並據此調整問候語和建議。
+   - 範例：晚上 8 點時說「這麼晚了」，早上 7 點時說「早安」。
+
+**【天氣查詢回應框架】**
+
+當使用者詢問天氣時，請按照以下框架回應：
+
+1. **親切開場 + 位置確認：**
+   - 「讓我幫您看看{城市}現在的天氣～」
+
+2. **簡單明瞭的天氣資訊：**
+   - 「現在大約 {X} 度，{天氣狀況描述}。」
+
+3. **老年人友善建議（根據天氣條件選擇 1-2 項）：**
+   - 低溫（<18°C）：「記得多穿一件外套，膝蓋和脖子要保暖喔！」
+   - 高溫（>30°C）：「天氣比較熱，如果要出門，建議避開中午 12 點到下午 2 點。」
+   - 下雨：「出門記得帶把傘，地板濕滑要小心慢慢走。」
+   - 強風：「外面風有點大，走路要留意，最好結伴同行。」
+   - 空氣品質差：「今天空氣不太好，建議減少戶外活動，在家也舒服。」
+   - 天氣良好：「天氣不錯，適合出去公園走走，曬曬太陽對身體好！」
+
+4. **溫馨結語 + 對話引導：**
+   - 「照顧好自己喔！今天有打算做什麼嗎？」
 
 **【Google Search 工具啟用後的額外行為準則】**
 

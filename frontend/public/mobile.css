@@ -490,16 +490,16 @@ body.mobile-view .oauth-buttons .btn {
    =================================== */
 
 /* WebKit 瀏覽器 (iOS Safari, Chrome) */
-body.mobile-view .chat-container::-webkit-scrollbar {
+body.mobile-view .chat-messages::-webkit-scrollbar {
   width: 8px;
 }
 
-body.mobile-view .chat-container::-webkit-scrollbar-thumb {
+body.mobile-view .chat-messages::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
 
-body.mobile-view .chat-container::-webkit-scrollbar-track {
+body.mobile-view .chat-messages::-webkit-scrollbar-track {
   background: transparent;
 }
 

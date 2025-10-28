@@ -292,8 +292,7 @@ button:disabled {
   flex-direction: column;
   background-color: white;
   height: 100%;
-  overflow-y: scroll; /* 整個中間區域可以滾動 */
-  overflow-x: hidden;
+  overflow: hidden; /* 移除滾動，改為在 chat-messages 中滾動 */
 }
 
 /* 歡迎畫面 */
@@ -350,41 +349,42 @@ button:disabled {
 
 /* 聊天訊息區 */
 .chat-messages {
-  flex: 0 0 auto; /* 不要 flex: 1，讓它根據內容自然增長 */
+  flex: 1; /* 填充剩餘空間 */
   padding: var(--spacing-lg);
   background: linear-gradient(to bottom, #FAFAFA 0%, #FFFFFF 100%);
-  min-height: 300px; /* 確保至少有一定高度 */
+  overflow-y: auto; /* 獨立滾動條 */
+  overflow-x: hidden;
 }
 
-/* 自訂 Scroll Bar 樣式 - 應用到整個聊天容器 */
-.chat-container::-webkit-scrollbar {
+/* 自訂 Scroll Bar 樣式 - 應用到聊天訊息區域 */
+.chat-messages::-webkit-scrollbar {
   width: 14px; /* 加寬讓長輩更容易點擊 */
 }
 
-.chat-container::-webkit-scrollbar-track {
+.chat-messages::-webkit-scrollbar-track {
   background: #E8E8E8;
   border-radius: 10px;
   border: 1px solid #D0D0D0; /* 增加邊框讓軌道更明顯 */
 }
 
-.chat-container::-webkit-scrollbar-thumb {
+.chat-messages::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #A0A0A0 0%, #888888 100%); /* 漸層讓滑塊更立體 */
   border-radius: 10px;
   border: 2px solid #E8E8E8;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 增加陰影 */
 }
 
-.chat-container::-webkit-scrollbar-thumb:hover {
+.chat-messages::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #7A7A7A 0%, #606060 100%); /* hover 時更深 */
   cursor: pointer;
 }
 
-.chat-container::-webkit-scrollbar-thumb:active {
+.chat-messages::-webkit-scrollbar-thumb:active {
   background: linear-gradient(180deg, #606060 0%, #4A4A4A 100%); /* 點擊時最深 */
 }
 
 /* Firefox 的 Scroll Bar 樣式 */
-.chat-container {
+.chat-messages {
   scrollbar-width: auto; /* auto 或 thin */
   scrollbar-color: #888888 #E8E8E8; /* 滑塊顏色 軌道顏色 */
 }
@@ -688,6 +688,7 @@ button:disabled {
    =================================== */
 
 .input-container {
+  flex-shrink: 0; /* 防止被壓縮，固定在底部 */
   padding: var(--spacing-lg);
   background-color: var(--color-bg-secondary);
   border-top: 2px solid var(--color-border);

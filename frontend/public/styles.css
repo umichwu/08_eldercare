@@ -475,6 +475,215 @@ button:disabled {
 }
 
 /* ===================================
+   Markdown 內容樣式（老年人友善設計）
+   =================================== */
+
+.markdown-content {
+  /* 確保良好的可讀性 */
+  line-height: 1.9;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 段落間距 */
+.markdown-content p {
+  margin: 0.8em 0;
+  line-height: 1.9;
+}
+
+.markdown-content p:first-child {
+  margin-top: 0;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* 標題樣式 */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  margin: 1em 0 0.6em 0;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+.markdown-content h1 {
+  font-size: 28px;
+  border-bottom: 3px solid var(--color-primary);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h2 {
+  font-size: 26px;
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h3 {
+  font-size: 24px;
+}
+
+.markdown-content h4 {
+  font-size: 22px;
+}
+
+/* 粗體與斜體 */
+.markdown-content strong,
+.markdown-content b {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  background: linear-gradient(180deg, transparent 60%, #FFF9C4 60%);
+  padding: 0 3px;
+}
+
+.markdown-content em,
+.markdown-content i {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+/* 列表樣式 */
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.8em 0;
+  padding-left: 2em;
+  line-height: 2;
+}
+
+.markdown-content li {
+  margin: 0.5em 0;
+  line-height: 1.9;
+}
+
+/* 無序列表使用大圓點 */
+.markdown-content ul li {
+  list-style-type: disc;
+}
+
+.markdown-content ul li::marker {
+  font-size: 1.2em;
+  color: var(--color-primary);
+}
+
+/* 有序列表數字加粗 */
+.markdown-content ol li {
+  list-style-type: decimal;
+}
+
+.markdown-content ol li::marker {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* 巢狀列表 */
+.markdown-content ul ul,
+.markdown-content ol ul,
+.markdown-content ul ol,
+.markdown-content ol ol {
+  margin: 0.3em 0;
+}
+
+/* 引用區塊 */
+.markdown-content blockquote {
+  margin: 1em 0;
+  padding: 0.8em 1.2em;
+  border-left: 5px solid var(--color-primary);
+  background-color: rgba(25, 118, 210, 0.05);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.markdown-content blockquote p {
+  margin: 0.4em 0;
+}
+
+/* 程式碼區塊 */
+.markdown-content code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20px;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content pre {
+  margin: 1em 0;
+  padding: 1em;
+  background-color: #F5F5F5;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  border: none;
+  font-size: 18px;
+  display: block;
+}
+
+/* 水平分隔線 */
+.markdown-content hr {
+  margin: 1.5em 0;
+  border: none;
+  border-top: 3px solid var(--color-border);
+  opacity: 0.5;
+}
+
+/* 連結樣式 */
+.markdown-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.markdown-content a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* 表格樣式 */
+.markdown-content table {
+  width: 100%;
+  margin: 1em 0;
+  border-collapse: collapse;
+  border: 2px solid var(--color-border);
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 0.8em;
+  border: 1px solid var(--color-border);
+  text-align: left;
+  line-height: 1.6;
+}
+
+.markdown-content th {
+  background-color: var(--color-bg-secondary);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.markdown-content tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* 圖片樣式 */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  margin: 0.8em 0;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===================================
    輸入區域
    =================================== */
 

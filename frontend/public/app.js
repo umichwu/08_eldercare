@@ -1118,6 +1118,42 @@ function renderConversationList() {
     .join('');
 }
 
+// ===================================
+// Markdown 渲染輔助函數
+// ===================================
+
+/**
+ * 渲染 Markdown 內容為 HTML
+ * @param {string} content - 原始文字內容
+ * @param {string} role - 消息角色 ('user' 或 'assistant')
+ * @returns {string} 渲染後的 HTML
+ */
+function renderMarkdown(content, role) {
+  // 只對 AI 回覆使用 Markdown 渲染
+  if (role === 'assistant' && typeof marked !== 'undefined') {
+    try {
+      // 配置 marked 選項
+      marked.setOptions({
+        breaks: true,        // 支援單行換行（GitHub Flavored Markdown）
+        gfm: true,          // 啟用 GitHub Flavored Markdown
+        headerIds: false,   // 不生成標題 ID（避免重複）
+        mangle: false,      // 不混淆郵件地址
+        sanitize: false     // 不清除 HTML（由 DOMPurify 處理更安全，但這裡暫不使用）
+      });
+
+      // 渲染 Markdown
+      return marked.parse(content);
+    } catch (error) {
+      console.error('Markdown 渲染失敗:', error);
+      // 降級為純文字，但保留換行
+      return content.replace(/\n/g, '<br>');
+    }
+  }
+
+  // 使用者訊息：保留換行但不使用 Markdown
+  return content.replace(/\n/g, '<br>');
+}
+
 function renderMessages() {
   const container = document.getElementById('chatMessages');
 
@@ -1134,10 +1170,13 @@ function renderMessages() {
         const llmBadge = msg.role === 'assistant' && provider ?
           `<span class="llm-badge llm-${provider.toLowerCase()}">${getLLMDisplayName(provider)}</span>` : '';
 
+        // 渲染訊息內容（AI 回覆使用 Markdown）
+        const renderedContent = renderMarkdown(msg.content, msg.role);
+
         return `
     <div class="message ${msg.role}">
-      <div class="message-content">
-        ${msg.content}
+      <div class="message-content ${msg.role === 'assistant' ? 'markdown-content' : ''}">
+        ${renderedContent}
         <div class="message-footer">
           ${llmBadge}
           <div class="message-time">${formatTime(msg.created_at)}</div>

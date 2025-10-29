@@ -18,7 +18,8 @@
       "Bash(node --check:*)",
       "Bash(tree:*)",
       "Bash(wc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

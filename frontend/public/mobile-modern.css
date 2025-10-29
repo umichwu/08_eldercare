@@ -1,0 +1,487 @@
+/* ===================================
+   ElderCare - Modern Mobile Design
+   針對行動裝置優化的現代化樣式
+   =================================== */
+
+/* === 行動版全域調整 === */
+body.mobile-view {
+  /* 行動版字體大小 */
+  --font-size-xs: 14px;
+  --font-size-sm: 16px;
+  --font-size-md: 18px;
+  --font-size-lg: 22px;
+  --font-size-xl: 26px;
+  --font-size-xxl: 32px;
+  --font-size-hero: 40px;
+
+  /* 行動版間距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* === 應用主框架 === */
+body.mobile-view #app {
+  max-width: 100%;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* === 頭部優化 === */
+body.mobile-view .app-header {
+  padding: var(--spacing-md) var(--spacing-lg);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+body.mobile-view .app-title {
+  font-size: var(--font-size-xl);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.mobile-view .header-controls {
+  gap: var(--spacing-sm);
+}
+
+body.mobile-view .icon-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+}
+
+body.mobile-view .user-info {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  gap: var(--spacing-sm);
+}
+
+body.mobile-view .user-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+body.mobile-view .user-name {
+  display: none;
+}
+
+/* === 主要內容區 === */
+body.mobile-view .app-main {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* === 側邊欄 - 抽屜式 === */
+body.mobile-view .sidebar {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: -100%;
+  width: 85%;
+  max-width: 320px;
+  height: 100vh;
+  z-index: 1001;
+  transition: left var(--transition-base) cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-xl);
+}
+
+body.mobile-view .sidebar.open {
+  left: 0;
+}
+
+/* === 資訊面板隱藏 === */
+body.mobile-view .info-panel {
+  display: none;
+}
+
+/* === 聊天容器 === */
+body.mobile-view .chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* === 歡迎畫面 === */
+body.mobile-view .welcome-screen {
+  padding: var(--spacing-xl);
+}
+
+body.mobile-view .welcome-content {
+  width: 100%;
+  max-width: 100%;
+}
+
+body.mobile-view .welcome-title {
+  font-size: var(--font-size-hero);
+  margin-bottom: var(--spacing-md);
+}
+
+body.mobile-view .welcome-subtitle {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+body.mobile-view .quick-actions {
+  display: none !important;
+}
+
+body.mobile-view .quick-functions-btn {
+  display: block !important;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* === 聊天訊息區 === */
+body.mobile-view .chat-messages {
+  padding: var(--spacing-lg);
+  flex: 1 1 auto !important;
+  min-height: 200px;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.mobile-view .message {
+  margin-bottom: var(--spacing-lg);
+}
+
+body.mobile-view .message-content {
+  max-width: 85%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-md);
+  min-height: 44px;
+}
+
+/* === 輸入區域 === */
+body.mobile-view .input-container {
+  padding: var(--spacing-md);
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+}
+
+body.mobile-view .quick-shortcuts {
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+body.mobile-view .shortcut-btn {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  min-height: 44px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.mobile-view .sos-btn {
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+  min-height: 56px;
+}
+
+body.mobile-view .input-wrapper {
+  padding: var(--spacing-sm);
+}
+
+body.mobile-view .message-input {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-md);
+  min-height: 56px;
+  max-height: 120px;
+}
+
+body.mobile-view .input-controls {
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+body.mobile-view .btn-voice {
+  flex: 1;
+  font-size: var(--font-size-md);
+  padding: var(--spacing-md);
+  min-height: 48px;
+}
+
+body.mobile-view .btn-send {
+  flex: 2;
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  min-height: 48px;
+}
+
+/* === 按鈕通用樣式 === */
+body.mobile-view .btn {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-md);
+  min-height: 44px;
+  min-width: 44px;
+  -webkit-tap-highlight-color: rgba(138, 180, 248, 0.1);
+  touch-action: manipulation;
+  user-select: none;
+}
+
+body.mobile-view .btn-primary {
+  font-size: var(--font-size-lg);
+  padding: var(--spacing-lg);
+}
+
+/* === 模態框 === */
+body.mobile-view .modal {
+  padding: var(--spacing-md);
+}
+
+body.mobile-view .modal-content {
+  padding: var(--spacing-xl);
+  width: 95%;
+  max-width: 400px;
+}
+
+body.mobile-view .modal-title {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-md);
+}
+
+body.mobile-view .modal-text {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+body.mobile-view .modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+body.mobile-view .modal-actions .btn {
+  width: 100%;
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-lg);
+}
+
+/* === 滾動條優化 === */
+body.mobile-view .chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+body.mobile-view .chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(138, 180, 248, 0.3);
+  border-radius: var(--radius-full);
+}
+
+body.mobile-view .chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* === 觸控優化 === */
+body.mobile-view .btn,
+body.mobile-view .icon-btn,
+body.mobile-view .quick-btn,
+body.mobile-view .shortcut-btn,
+body.mobile-view .quick-function-item {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body.mobile-view img {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* === 安全區域適配 === */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body.mobile-view .app-header {
+    padding-top: max(var(--spacing-md), env(safe-area-inset-top));
+  }
+
+  body.mobile-view .input-container {
+    padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
+  }
+}
+
+/* === 側邊欄遮罩 === */
+body.mobile-view .sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: var(--blur-lg);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+body.mobile-view .sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* === 漢堡選單按鈕 === */
+.mobile-menu-btn {
+  display: none;
+}
+
+body.mobile-view .mobile-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  background: rgba(138, 180, 248, 0.1);
+  border: 1px solid rgba(138, 180, 248, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.mobile-view .mobile-menu-btn:active {
+  background: rgba(138, 180, 248, 0.2);
+  transform: scale(0.95);
+}
+
+/* === 快速功能按鈕 === */
+body.mobile-view .quick-functions-btn {
+  padding: var(--spacing-xl);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: white;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+  transition: all var(--transition-base);
+}
+
+body.mobile-view .quick-functions-btn:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+}
+
+/* === 快速功能列表 === */
+body.mobile-view .quick-functions-list {
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+body.mobile-view .quick-function-item {
+  padding: var(--spacing-lg);
+  min-height: 64px;
+}
+
+body.mobile-view .quick-icon {
+  font-size: 32px;
+}
+
+body.mobile-view .quick-text {
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+}
+
+/* === 橫向模式優化 === */
+@media (orientation: landscape) and (max-height: 500px) {
+  body.mobile-view .app-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  body.mobile-view .app-title {
+    font-size: var(--font-size-lg);
+  }
+
+  body.mobile-view .icon-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  body.mobile-view .welcome-screen {
+    padding: var(--spacing-md);
+  }
+
+  body.mobile-view .input-container {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* === 小螢幕優化 === */
+@media (max-width: 360px) {
+  body.mobile-view {
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 20px;
+    --font-size-xl: 24px;
+    --font-size-xxl: 28px;
+    --font-size-hero: 36px;
+  }
+
+  body.mobile-view .quick-shortcuts {
+    grid-template-columns: 1fr;
+  }
+
+  body.mobile-view .message-content {
+    max-width: 90%;
+  }
+}
+
+/* === 減少動畫（性能優化） === */
+@media (prefers-reduced-motion: reduce) {
+  body.mobile-view * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* === 載入動畫 === */
+body.mobile-view .loading-spinner {
+  width: 50px;
+  height: 50px;
+  border-width: 4px;
+}
+
+body.mobile-view .loading-text {
+  font-size: var(--font-size-lg);
+}
+
+/* === 對話編輯按鈕 === */
+body.mobile-view .edit-title-btn,
+body.mobile-view .delete-conv-btn {
+  padding: var(--spacing-sm);
+  min-width: 40px;
+  min-height: 40px;
+  font-size: var(--font-size-md);
+}
+
+/* === Toast 通知 === */
+body.mobile-view .toast {
+  bottom: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-md);
+  max-width: 90%;
+}

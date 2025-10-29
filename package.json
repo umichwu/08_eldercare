@@ -9,9 +9,7 @@
     "dev:frontend": "live-server frontend/public --port=8080 --host=localhost --open=/login.html",
     "start": "npm run dev",
     "backend": "cd backend && npm start",
-    "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "cp -r frontend/public ./public",
-    "build:backend": "echo 'Backend will be deployed as serverless function'",
+    "build": "echo 'Frontend built by Vercel, Backend built by Render'",
     "test": "echo 'Running tests...' && npm run test:backend",
     "test:backend": "cd backend && npm test"
   },

@@ -1,0 +1,35 @@
+# Render Blueprint Configuration
+# 用於自動化部署 ElderCare Backend
+
+services:
+  # Backend API Service
+  - type: web
+    name: eldercare-backend
+    runtime: node
+    env: node
+    region: singapore
+    plan: free
+    # 從 backend 子目錄建置
+    rootDir: backend
+    # Build 命令（不需要複雜的 build）
+    buildCommand: npm install
+    # Start 命令
+    startCommand: npm start
+    # 健康檢查
+    healthCheckPath: /api/health
+    # 環境變數（在 Render Dashboard 設定）
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # 以下需要在 Render Dashboard 手動設定：
+      # - SUPABASE_URL
+      # - SUPABASE_ANON_KEY
+      # - SUPABASE_SERVICE_ROLE_KEY
+      # - OPENAI_API_KEY
+      # - GEMINI_API_KEY
+      # - DEEPSEEK_API_KEY
+      # - FIREBASE_PROJECT_ID
+      # - FIREBASE_CLIENT_EMAIL
+      # - FIREBASE_PRIVATE_KEY

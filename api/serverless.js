@@ -1,56 +1,51 @@
-// Vercel Serverless Function - API Entry Point
-import express from 'express';
-import cors from 'cors';
-import apiRouter from '../backend/routes/api.js';
+/**
+ * Vercel Serverless Function - Simple Health Check & Status
+ *
+ * 注意：這是前端專案的 API 路由，不應包含後端邏輯
+ * 完整的後端 API 部署在 Render: https://eldercare-backend-8o4k.onrender.com
+ */
 
-const app = express();
+// 簡單的處理函數，不依賴 Express 或複雜的模組
+export default function handler(req, res) {
+  // 設定 CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-// CORS 設定
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  // 處理 OPTIONS preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  // 根據路徑處理不同請求
+  const path = req.url || '';
 
-// 請求日誌
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
+  // Health Check
+  if (path.includes('/health') || path === '/api' || path === '/') {
+    res.status(200).json({
+      status: 'ok',
+      message: 'Frontend API is running',
+      timestamp: new Date().toISOString(),
+      environment: process.env.VERCEL_ENV || process.env.NODE_ENV || 'production',
+      note: 'This is the frontend deployment. Backend API is at: https://eldercare-backend-8o4k.onrender.com',
+      backend: {
+        url: 'https://eldercare-backend-8o4k.onrender.com',
+        health: 'https://eldercare-backend-8o4k.onrender.com/api/health'
+      },
+      frontend: {
+        supabase_configured: !!process.env.SUPABASE_URL && !!process.env.SUPABASE_ANON_KEY,
+        deployment: 'Vercel'
+      }
+    });
+    return;
+  }
 
-// API Routes
-app.use('/api', apiRouter);
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'production'
+  // 其他路徑導向後端
+  res.status(200).json({
+    message: 'Please use the backend API',
+    backend_url: 'https://eldercare-backend-8o4k.onrender.com',
+    requested_path: path,
+    suggestion: `Try: https://eldercare-backend-8o4k.onrender.com${path}`
   });
-});
-
-// 404 處理
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    path: req.path
-  });
-});
-
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: err.message
-  });
-});
-
-// Export for Vercel
-export default app;
+}

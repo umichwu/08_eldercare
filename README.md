@@ -69,9 +69,12 @@ cp .env.example .env
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-key
+# ⚠️ 注意：已從 SUPABASE_SERVICE_KEY 改名為 SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 OPENAI_API_KEY=sk-your-openai-key
 ```
+
+> 📘 **重要更新**：環境變數已統一命名，詳見 [環境變數統一說明](docs/環境變數統一說明.md)
 
 ### 4. 安裝後端依賴
 ```bash

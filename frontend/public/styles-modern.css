@@ -4,6 +4,9 @@
    =================================== */
 
 :root {
+  /* === 字體大小基準 - 可動態調整 === */
+  --base-font-size: 24px; /* 預設中等大小，可通過 JavaScript 調整 */
+
   /* === 配色方案 - 預設使用深色主題 === */
   /* 主色調 - 深邃優雅 */
   --color-bg-primary: #0A0A0F;
@@ -104,7 +107,7 @@ html, body {
 
 body {
   font-family: var(--font-family-base);
-  font-size: var(--font-size-md);
+  font-size: var(--base-font-size); /* 使用可調整的基準字體大小 */
   line-height: 1.6;
   color: var(--color-text-primary);
   background: var(--color-bg-primary);
@@ -1180,7 +1183,7 @@ body {
   padding: var(--spacing-md);
   font-size: var(--font-size-md);
   background: rgba(30, 30, 36, 0.6);
-  border: 1px solid rgba(138, 180, 248, 0.2);
+  border: 1px solid rgba(10, 132, 255, 0.2);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   transition: all var(--transition-base);
@@ -1191,6 +1194,76 @@ body {
   outline: none;
   border-color: var(--color-accent-primary);
   box-shadow: var(--shadow-glow);
+}
+
+/* 字體大小選項 */
+.font-size-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.font-size-btn {
+  padding: var(--spacing-md);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  background: rgba(30, 30, 36, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.font-size-btn:hover {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  transform: scale(1.05);
+}
+
+.font-size-btn.active {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.4);
+}
+
+/* 主題選項 */
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-sm);
+}
+
+.theme-btn {
+  padding: var(--spacing-lg);
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  background: rgba(30, 30, 36, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.theme-btn:hover {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  transform: scale(1.02);
+}
+
+.theme-btn.active {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.4);
 }
 
 /* === Toast 通知 === */
@@ -1514,18 +1587,58 @@ body.theme-light .icon-btn:hover {
   box-shadow: 0 2px 8px rgba(0, 97, 255, 0.15);
 }
 
-/* 設定相關 */
+/* 設定相關（Dropbox 風格） */
 body.theme-light .setting-select,
 body.theme-light .setting-input {
-  background: rgba(248, 249, 250, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
   color: var(--color-text-primary);
 }
 
 body.theme-light .setting-select:focus,
 body.theme-light .setting-input:focus {
   border-color: var(--color-accent-primary);
-  box-shadow: 0 0 20px rgba(33, 150, 243, 0.2);
+  box-shadow: 0 0 0 3px rgba(0, 97, 255, 0.1);
+}
+
+/* 字體大小按鈕（淺色主題） */
+body.theme-light .font-size-btn {
+  background: #FFFFFF;
+  border: 2px solid #DFE1E6;
+  color: var(--color-text-secondary);
+}
+
+body.theme-light .font-size-btn:hover {
+  background: rgba(0, 97, 255, 0.06);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+body.theme-light .font-size-btn.active {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 97, 255, 0.3);
+}
+
+/* 主題按鈕（淺色主題） */
+body.theme-light .theme-btn {
+  background: #FFFFFF;
+  border: 2px solid #DFE1E6;
+  color: var(--color-text-secondary);
+}
+
+body.theme-light .theme-btn:hover {
+  background: rgba(0, 97, 255, 0.06);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+body.theme-light .theme-btn.active {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 97, 255, 0.3);
 }
 
 /* 快速功能項目 */

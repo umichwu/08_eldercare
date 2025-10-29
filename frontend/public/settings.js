@@ -206,7 +206,10 @@ class SettingsManager {
       btn.addEventListener('click', () => {
         const size = parseInt(btn.dataset.size);
         this.currentSettings.fontSize = size;
-        this.updateSelectedOptions();
+        console.log(`🔧 字體大小已變更為: ${size}px`);
+
+        // 立即套用（預覽效果）
+        this.applySettings();
       });
     });
 
@@ -214,7 +217,10 @@ class SettingsManager {
     document.querySelectorAll('.theme-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         this.currentSettings.theme = btn.dataset.theme;
-        this.updateSelectedOptions();
+        console.log(`🔧 主題已變更為: ${btn.dataset.theme}`);
+
+        // 立即套用（預覽效果）
+        this.applySettings();
       });
     });
 
@@ -251,17 +257,27 @@ class SettingsManager {
    * 套用設定
    */
   applySettings() {
-    // 套用字體大小
+    // 套用字體大小到 root element
     document.documentElement.style.setProperty('--base-font-size', `${this.currentSettings.fontSize}px`);
+
+    // 同時直接套用到 body（確保立即生效）
+    document.body.style.fontSize = `${this.currentSettings.fontSize}px`;
+
+    console.log(`✅ 字體大小已設定為: ${this.currentSettings.fontSize}px`);
 
     // 套用主題
     document.body.classList.remove('theme-light', 'theme-dark');
     document.body.classList.add(`theme-${this.currentSettings.theme}`);
 
+    console.log(`✅ 主題已設定為: ${this.currentSettings.theme}`);
+
     // 套用語言
     if (window.i18n) {
       window.i18n.setLanguage(this.currentSettings.language);
     }
+
+    // 更新按鈕選中狀態
+    this.updateSelectedOptions();
   }
 
   /**

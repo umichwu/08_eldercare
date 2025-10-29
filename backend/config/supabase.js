@@ -7,8 +7,15 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 載入環境變數（向上兩層 = 專案根目錄）
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// 載入環境變數
+// 在本地開發：從根目錄的 .env 載入
+// 在 Render：環境變數已經在 Dashboard 設定，dotenv.config() 不會覆蓋現有變數
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+} else {
+  // 生產環境：環境變數應該由平台提供（Render Dashboard）
+  dotenv.config(); // 嘗試載入，但不強制要求檔案存在
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -19,9 +26,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('   SUPABASE_URL:', supabaseUrl ? '✅ 已設定' : '❌ 缺少');
   console.error('   SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ 已設定' : '❌ 缺少');
   console.error('   SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceRoleKey ? '✅ 已設定' : '❌ 缺少');
-  console.error('   請檢查 .env 檔案是否存在且格式正確');
-  console.error('   .env 路徑:', path.resolve(__dirname, '../../.env'));
-  throw new Error('Missing Supabase environment variables');
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('   請檢查 .env 檔案是否存在且格式正確');
+    console.error('   .env 路徑:', path.resolve(__dirname, '../../.env'));
+  } else {
+    console.error('   請確認 Render Dashboard 的環境變數設定');
+    console.error('   必要變數: SUPABASE_URL, SUPABASE_ANON_KEY');
+  }
+
+  throw new Error('Missing required Supabase environment variables');
 }
 
 if (!supabaseServiceRoleKey) {

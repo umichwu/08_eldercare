@@ -12,8 +12,15 @@ import { startMedicationScheduler } from './services/medicationScheduler.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 載入環境變數（明確指定路徑）
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// 載入環境變數
+// 在本地開發：從根目錄的 .env 載入
+// 在 Render：環境變數已經在 Dashboard 設定，dotenv.config() 不會覆蓋現有變數
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+} else {
+  // 生產環境：環境變數應該由平台提供（Render Dashboard）
+  dotenv.config(); // 嘗試載入，但不強制要求檔案存在
+}
 
 // 初始化 Firebase Admin SDK (用於 FCM 推送通知)
 try {

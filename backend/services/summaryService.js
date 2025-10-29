@@ -3,7 +3,15 @@ import { defaultLLMService } from '../config/llm.js';
 import messageService from './messageService.js';
 import dotenv from 'dotenv';
 
-dotenv.config();
+// 載入環境變數
+// 在本地開發：從根目錄的 .env 載入
+// 在 Render：環境變數已經在 Dashboard 設定，dotenv.config() 不會覆蓋現有變數
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+} else {
+  // 生產環境：環境變數應該由平台提供（Render Dashboard）
+  dotenv.config(); // 嘗試載入，但不強制要求檔案存在
+}
 
 /**
  * 對話總結服務

@@ -19,7 +19,10 @@
       "Bash(tree:*)",
       "Bash(wc:*)",
       "Bash(find:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "WebFetch(domain:www.apple.com)",
+      "WebFetch(domain:www.spacex.com)",
+      "WebFetch(domain:www.dropbox.com)"
     ],
     "deny": [],
     "ask": []

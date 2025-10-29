@@ -4,7 +4,7 @@
    =================================== */
 
 :root {
-  /* === 配色方案 - 現代化深色主題 === */
+  /* === 配色方案 - 預設使用深色主題 === */
   /* 主色調 - 深邃優雅 */
   --color-bg-primary: #0A0A0F;
   --color-bg-secondary: #141419;
@@ -17,22 +17,22 @@
   --color-text-tertiary: #9AA0A6;
   --color-text-disabled: #5F6368;
 
-  /* 強調色 - 科技感藍色 */
-  --color-accent-primary: #8AB4F8;
-  --color-accent-secondary: #669DF6;
-  --color-accent-hover: #AECBFA;
+  /* 強調色 - 精緻科技感藍色（Apple 啟發） */
+  --color-accent-primary: #0A84FF;
+  --color-accent-secondary: #0071E3;
+  --color-accent-hover: #409CFF;
 
-  /* 漸層色 - 未來感 */
-  --gradient-primary: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
-  --gradient-secondary: linear-gradient(135deg, #8AB4F8 0%, #4285F4 100%);
-  --gradient-accent: linear-gradient(135deg, #F093FB 0%, #F5576C 100%);
-  --gradient-success: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+  /* 漸層色 - 精緻優雅（Apple & SpaceX 啟發） */
+  --gradient-primary: linear-gradient(135deg, #0A84FF 0%, #0066CC 100%);
+  --gradient-secondary: linear-gradient(135deg, #0A84FF 0%, #0071E3 100%);
+  --gradient-accent: linear-gradient(135deg, #FF375F 0%, #FF2D55 100%);
+  --gradient-success: linear-gradient(135deg, #30D158 0%, #34C759 100%);
 
-  /* 功能色 */
-  --color-success: #81C995;
-  --color-warning: #FDD663;
-  --color-error: #F28B82;
-  --color-info: #78D9EC;
+  /* 功能色（iOS/macOS 風格） */
+  --color-success: #30D158;
+  --color-warning: #FF9F0A;
+  --color-error: #FF453A;
+  --color-info: #64D2FF;
 
   /* 聊天氣泡 */
   --color-chat-user-bg: #2C3E50;
@@ -167,7 +167,7 @@ body {
   align-items: center;
 }
 
-/* 現代化按鈕 */
+/* 現代化按鈕（Apple 風格） */
 .icon-btn {
   width: 48px;
   height: 48px;
@@ -175,12 +175,12 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  background: rgba(138, 180, 248, 0.1);
-  border: 1px solid rgba(138, 180, 248, 0.2);
+  background: rgba(10, 132, 255, 0.12);
+  border: 1px solid rgba(10, 132, 255, 0.25);
   border-radius: var(--radius-md);
   color: var(--color-accent-primary);
   cursor: pointer;
-  transition: all var(--transition-base) cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
 }
@@ -193,16 +193,16 @@ body {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(138, 180, 248, 0.2);
+  background: rgba(10, 132, 255, 0.15);
   transform: translate(-50%, -50%);
   transition: width var(--transition-base), height var(--transition-base);
 }
 
 .icon-btn:hover {
-  background: rgba(138, 180, 248, 0.15);
+  background: rgba(10, 132, 255, 0.2);
   border-color: var(--color-accent-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(10, 132, 255, 0.4);
 }
 
 .icon-btn:hover::before {
@@ -211,7 +211,7 @@ body {
 }
 
 .icon-btn:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
 /* === 主要內容區 === */
@@ -454,20 +454,21 @@ body {
   margin-top: var(--spacing-xl);
 }
 
-/* 快速操作按鈕 - 卡片式 */
+/* 快速操作按鈕 - 卡片式（Apple 風格） */
 .quick-btn {
   padding: var(--spacing-xl);
   font-size: var(--font-size-md);
   font-weight: 500;
   background: rgba(30, 30, 36, 0.6);
-  border: 1px solid rgba(138, 180, 248, 0.15);
-  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
   color: var(--color-text-primary);
   cursor: pointer;
-  transition: all var(--transition-base) cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
   backdrop-filter: var(--blur-sm);
+  letter-spacing: -0.01em;
 }
 
 .quick-btn::before {
@@ -483,17 +484,18 @@ body {
 }
 
 .quick-btn:hover {
+  background: rgba(10, 132, 255, 0.12);
   border-color: var(--color-accent-primary);
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-glow);
+  transform: scale(1.02);
+  box-shadow: 0 4px 20px rgba(10, 132, 255, 0.25);
 }
 
 .quick-btn:hover::before {
-  opacity: 0.1;
+  opacity: 0.08;
 }
 
 .quick-btn:active {
-  transform: translateY(-2px);
+  transform: scale(0.98);
 }
 
 /* === 聊天訊息區 === */
@@ -696,18 +698,23 @@ body {
   font-size: var(--font-size-sm);
   font-weight: 500;
   background: rgba(30, 30, 36, 0.6);
-  border: 1px solid rgba(138, 180, 248, 0.1);
-  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  letter-spacing: -0.01em;
 }
 
 .shortcut-btn:hover {
-  background: rgba(138, 180, 248, 0.15);
+  background: rgba(10, 132, 255, 0.15);
   border-color: var(--color-accent-primary);
-  color: var(--color-text-primary);
-  transform: translateY(-2px);
+  color: var(--color-accent-primary);
+  transform: scale(1.02);
+}
+
+.shortcut-btn:active {
+  transform: scale(0.98);
 }
 
 .sos-btn {
@@ -717,17 +724,23 @@ body {
   font-size: var(--font-size-lg);
   font-weight: 600;
   color: white;
-  background: linear-gradient(135deg, #F093FB 0%, #F5576C 100%);
+  background: var(--color-error);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: 0 4px 16px rgba(245, 87, 108, 0.3);
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 4px 16px rgba(255, 69, 58, 0.35);
+  letter-spacing: -0.01em;
 }
 
 .sos-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(245, 87, 108, 0.4);
+  background: #FF5951;
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(255, 69, 58, 0.5);
+}
+
+.sos-btn:active {
+  transform: scale(0.98);
 }
 
 .input-wrapper {
@@ -766,56 +779,88 @@ body {
   margin-top: var(--spacing-md);
 }
 
-/* === 按鈕系統 === */
+/* === 按鈕系統（Apple & SpaceX 風格） === */
 .btn {
   padding: var(--spacing-md) var(--spacing-xl);
   font-size: var(--font-size-md);
   font-weight: 600;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   cursor: pointer;
-  transition: all var(--transition-base) cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   overflow: hidden;
+  letter-spacing: -0.01em;
 }
 
 .btn-primary {
-  background: var(--gradient-secondary);
+  background: var(--color-accent-primary);
   color: white;
-  box-shadow: 0 4px 16px rgba(138, 180, 248, 0.3);
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(138, 180, 248, 0.4);
+  background: var(--color-accent-hover);
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(10, 132, 255, 0.4);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
 .btn-secondary {
   background: rgba(30, 30, 36, 0.8);
   color: var(--color-text-primary);
-  border: 1px solid rgba(138, 180, 248, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .btn-secondary:hover {
-  background: rgba(138, 180, 248, 0.15);
-  border-color: var(--color-accent-primary);
+  background: rgba(60, 60, 67, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.02);
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
 }
 
 .btn-voice {
   flex: 1;
-  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
-  color: white;
+  background: rgba(100, 210, 255, 0.15);
+  color: #64D2FF;
+  border: 1px solid rgba(100, 210, 255, 0.3);
+}
+
+.btn-voice:hover {
+  background: rgba(100, 210, 255, 0.25);
+  border-color: #64D2FF;
+  transform: scale(1.02);
 }
 
 .btn-send {
   flex: 2;
-  background: var(--gradient-success);
+  background: var(--color-accent-primary);
   color: white;
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
+}
+
+.btn-send:hover {
+  background: var(--color-accent-hover);
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(10, 132, 255, 0.4);
 }
 
 .btn-danger {
-  background: var(--gradient-accent);
+  background: var(--color-error);
   color: white;
+  box-shadow: 0 2px 8px rgba(255, 69, 58, 0.3);
+}
+
+.btn-danger:hover {
+  background: #FF5951;
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(255, 69, 58, 0.4);
 }
 
 /* === 資訊面板 === */
@@ -1207,4 +1252,346 @@ body {
   .mobile-only {
     display: block;
   }
+}
+
+/* ===================================
+   淺色主題配色
+   當 body 有 theme-light class 時套用
+   =================================== */
+
+body.theme-light {
+  /* === 背景顏色 - 清新明亮（Dropbox 啟發） === */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F7F9FA;
+  --color-bg-tertiary: #EFF1F3;
+  --color-bg-elevated: #FFFFFF;
+
+  /* === 文字顏色 - 清晰易讀 === */
+  --color-text-primary: #1E1919;
+  --color-text-secondary: #5F6368;
+  --color-text-tertiary: #7D8084;
+  --color-text-disabled: #9FA6AD;
+
+  /* === 強調色 - 專業藍色（Dropbox 風格） === */
+  --color-accent-primary: #0061FF;
+  --color-accent-secondary: #0051D5;
+  --color-accent-hover: #1C74FF;
+
+  /* === 漸層色 - 簡潔專業 === */
+  --gradient-primary: linear-gradient(135deg, #0061FF 0%, #0051D5 100%);
+  --gradient-secondary: linear-gradient(135deg, #0061FF 0%, #0051D5 100%);
+  --gradient-accent: linear-gradient(135deg, #FF385C 0%, #E61E4D 100%);
+  --gradient-success: linear-gradient(135deg, #00D084 0%, #00B878 100%);
+
+  /* === 功能色（清晰明確） === */
+  --color-success: #00D084;
+  --color-warning: #FF9F0A;
+  --color-error: #FF385C;
+  --color-info: #0061FF;
+
+  /* === 聊天氣泡 === */
+  --color-chat-user-bg: #E3F2FD;
+  --color-chat-assistant-bg: #F7F9FA;
+  --color-chat-user-border: #0061FF;
+  --color-chat-assistant-border: #DFE1E6;
+
+  /* === 陰影系統 - 柔和自然（Dropbox 風格） === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.16);
+  --shadow-glow: 0 0 20px rgba(0, 97, 255, 0.15);
+  --shadow-glow-strong: 0 0 32px rgba(0, 97, 255, 0.25);
+}
+
+/* === 淺色主題專屬調整 === */
+
+/* 背景漸層效果調整（Dropbox 風格 - 極簡） */
+body.theme-light #app::before {
+  background:
+    radial-gradient(circle at 20% 80%, rgba(0, 97, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 97, 255, 0.02) 0%, transparent 50%);
+}
+
+/* 頭部區域（Dropbox 風格 - 乾淨） */
+body.theme-light .app-header {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid #EFF1F3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* 側邊欄 */
+body.theme-light .sidebar {
+  background: rgba(248, 249, 250, 0.95);
+  backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .sidebar::before {
+  background: linear-gradient(180deg, rgba(33, 150, 243, 0.03) 0%, transparent 100%);
+}
+
+body.theme-light .sidebar-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* 對話項目 */
+body.theme-light .conversation-item {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .conversation-item:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(33, 150, 243, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .conversation-item.active {
+  background: rgba(33, 150, 243, 0.08);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.2);
+}
+
+/* 聊天訊息區 */
+body.theme-light .chat-messages {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%);
+}
+
+/* 訊息氣泡（Dropbox 風格 - 清爽） */
+body.theme-light .message.user .message-content {
+  background: linear-gradient(135deg, rgba(0, 97, 255, 0.08) 0%, rgba(0, 97, 255, 0.06) 100%);
+  border: 1px solid rgba(0, 97, 255, 0.2);
+  box-shadow: 0 1px 4px rgba(0, 97, 255, 0.1);
+}
+
+body.theme-light .message.assistant .message-content {
+  background: #F7F9FA;
+  border: 1px solid #EFF1F3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* 輸入區域 */
+body.theme-light .input-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .input-wrapper {
+  background: rgba(248, 249, 250, 0.8);
+  border: 2px solid rgba(33, 150, 243, 0.2);
+}
+
+body.theme-light .input-wrapper:focus-within {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.2);
+}
+
+body.theme-light .message-input::placeholder {
+  color: #9E9E9E;
+}
+
+/* 快捷按鈕（Dropbox 風格） */
+body.theme-light .shortcut-btn {
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  color: var(--color-text-secondary);
+}
+
+body.theme-light .shortcut-btn:hover {
+  background: rgba(0, 97, 255, 0.06);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+}
+
+/* 快速操作按鈕（Dropbox 風格） */
+body.theme-light .quick-btn {
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+}
+
+body.theme-light .quick-btn:hover {
+  background: rgba(0, 97, 255, 0.04);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 2px 12px rgba(0, 97, 255, 0.12);
+}
+
+/* 資訊面板 */
+body.theme-light .info-panel {
+  background: rgba(248, 249, 250, 0.95);
+  backdrop-filter: blur(16px);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .panel-section {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .stat-item {
+  background: rgba(0, 97, 255, 0.04);
+  border: 1px solid rgba(0, 97, 255, 0.08);
+}
+
+/* SOS 按鈕 */
+body.theme-light .sos-btn {
+  background: var(--color-error);
+  box-shadow: 0 2px 8px rgba(255, 56, 92, 0.25);
+}
+
+body.theme-light .sos-btn:hover {
+  background: #FF5270;
+  box-shadow: 0 4px 12px rgba(255, 56, 92, 0.35);
+}
+
+/* 模態框 */
+body.theme-light .modal {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+body.theme-light .modal-content {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+}
+
+/* 按鈕（Dropbox 風格） */
+body.theme-light .btn-primary {
+  background: var(--color-accent-primary);
+  box-shadow: 0 1px 3px rgba(0, 97, 255, 0.2);
+}
+
+body.theme-light .btn-primary:hover {
+  background: var(--color-accent-hover);
+  box-shadow: 0 2px 8px rgba(0, 97, 255, 0.3);
+}
+
+body.theme-light .btn-secondary {
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  color: var(--color-text-primary);
+}
+
+body.theme-light .btn-secondary:hover {
+  background: #F7F9FA;
+  border-color: var(--color-accent-primary);
+}
+
+body.theme-light .btn-voice {
+  background: rgba(0, 97, 255, 0.08);
+  color: var(--color-accent-primary);
+  border: 1px solid rgba(0, 97, 255, 0.2);
+}
+
+body.theme-light .btn-voice:hover {
+  background: rgba(0, 97, 255, 0.15);
+  border-color: var(--color-accent-primary);
+}
+
+body.theme-light .btn-send {
+  background: var(--color-accent-primary);
+  box-shadow: 0 1px 3px rgba(0, 97, 255, 0.2);
+}
+
+body.theme-light .btn-send:hover {
+  background: var(--color-accent-hover);
+  box-shadow: 0 2px 8px rgba(0, 97, 255, 0.3);
+}
+
+/* Icon 按鈕（Dropbox 風格 - 簡潔） */
+body.theme-light .icon-btn {
+  background: rgba(0, 97, 255, 0.06);
+  border: 1px solid rgba(0, 97, 255, 0.15);
+  color: var(--color-accent-primary);
+}
+
+body.theme-light .icon-btn:hover {
+  background: rgba(0, 97, 255, 0.12);
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 2px 8px rgba(0, 97, 255, 0.15);
+}
+
+/* 設定相關 */
+body.theme-light .setting-select,
+body.theme-light .setting-input {
+  background: rgba(248, 249, 250, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: var(--color-text-primary);
+}
+
+body.theme-light .setting-select:focus,
+body.theme-light .setting-input:focus {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.2);
+}
+
+/* 快速功能項目 */
+body.theme-light .quick-function-item {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .quick-function-item:hover {
+  background: rgba(33, 150, 243, 0.08);
+  border-color: var(--color-accent-primary);
+}
+
+/* 滾動條（Dropbox 風格 - 細緻） */
+body.theme-light .conversation-list::-webkit-scrollbar-thumb,
+body.theme-light .chat-messages::-webkit-scrollbar-thumb,
+body.theme-light .info-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 97, 255, 0.2);
+}
+
+body.theme-light .conversation-list::-webkit-scrollbar-thumb:hover,
+body.theme-light .chat-messages::-webkit-scrollbar-thumb:hover,
+body.theme-light .info-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 97, 255, 0.4);
+}
+
+/* 側邊欄遮罩 */
+body.theme-light .sidebar-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Markdown 內容（Dropbox 風格） */
+body.theme-light .markdown-content code {
+  background: rgba(0, 97, 255, 0.06);
+  color: var(--color-accent-primary);
+  border: 1px solid rgba(0, 97, 255, 0.1);
+}
+
+body.theme-light .markdown-content pre {
+  background: #F7F9FA;
+  border: 1px solid #EFF1F3;
+}
+
+body.theme-light .markdown-content blockquote {
+  border-left: 4px solid var(--color-accent-primary);
+  background-color: rgba(0, 97, 255, 0.03);
+}
+
+/* LLM Badge（Dropbox 風格） */
+body.theme-light .llm-badge {
+  background: rgba(0, 97, 255, 0.08);
+  border: 1px solid rgba(0, 97, 255, 0.2);
+  color: var(--color-accent-primary);
+}
+
+/* 編輯/刪除按鈕（Dropbox 風格） */
+body.theme-light .edit-title-btn {
+  background: rgba(0, 97, 255, 0.04);
+}
+
+body.theme-light .edit-title-btn:hover {
+  background: rgba(0, 97, 255, 0.1);
+  color: var(--color-accent-primary);
+}
+
+body.theme-light .delete-conv-btn:hover {
+  background: rgba(255, 56, 92, 0.1);
+  color: var(--color-error);
 }

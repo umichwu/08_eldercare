@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
+import medicationRouter from './routes/medicationApi.js';
+import { initializeFirebase } from './services/fcmService.js';
+import { startMedicationScheduler } from './services/medicationScheduler.js';
 
 // 取得當前檔案的目錄（ES Module 需要）
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +14,13 @@ const __dirname = path.dirname(__filename);
 
 // 載入環境變數（明確指定路徑）
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+// 初始化 Firebase Admin SDK (用於 FCM 推送通知)
+try {
+  initializeFirebase();
+} catch (error) {
+  console.warn('⚠️  Firebase 初始化失敗，FCM 功能將無法使用');
+}
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000;
@@ -52,6 +62,7 @@ app.use((req, res, next) => {
 
 // API 路由
 app.use('/api', apiRouter);
+app.use('/api', medicationRouter);
 
 // 根路由
 app.get('/', (req, res) => {
@@ -62,7 +73,12 @@ app.get('/', (req, res) => {
       health: '/api/health',
       conversations: '/api/conversations',
       messages: '/api/conversations/:id/messages',
-      summaries: '/api/conversations/:id/summaries'
+      summaries: '/api/conversations/:id/summaries',
+      medications: '/api/medications',
+      medicationReminders: '/api/medication-reminders',
+      medicationLogs: '/api/medication-logs',
+      fcmRegister: '/api/fcm/register',
+      schedulerCheck: '/api/scheduler/check-reminders'
     }
   });
 });
@@ -92,6 +108,7 @@ app.listen(PORT, HOST, () => {
   console.log(`📡 環境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL}`);
   console.log(`🤖 OpenAI: ${process.env.OPENAI_API_KEY ? '已配置' : '未配置'}`);
+  console.log(`🔔 Firebase: ${process.env.FIREBASE_PROJECT_ID ? '已配置' : '未配置'}`);
   console.log('');
   console.log('可用端點:');
   console.log(`   GET  /api/health                              - 健康檢查`);
@@ -101,8 +118,28 @@ app.listen(PORT, HOST, () => {
   console.log(`   POST /api/conversations/:id/messages          - 傳送訊息`);
   console.log(`   GET  /api/conversations/:id/summaries/latest  - 取得最新總結`);
   console.log('');
+  console.log('用藥管理端點:');
+  console.log(`   POST /api/medications                         - 建立藥物`);
+  console.log(`   GET  /api/medications/elder/:elderId          - 取得長輩藥物`);
+  console.log(`   PUT  /api/medications/:id                     - 更新藥物`);
+  console.log(`   DEL  /api/medications/:id                     - 刪除藥物`);
+  console.log(`   POST /api/medication-reminders                - 建立提醒`);
+  console.log(`   GET  /api/medication-reminders/elder/:id      - 取得提醒`);
+  console.log(`   POST /api/medication-logs/:id/confirm         - 確認服藥`);
+  console.log(`   GET  /api/medication-logs/pending             - 待處理記錄`);
+  console.log(`   GET  /api/medication-logs/statistics/:id      - 用藥統計`);
+  console.log(`   POST /api/fcm/register                        - 註冊 FCM Token`);
+  console.log(`   POST /api/scheduler/check-reminders           - 手動檢查提醒`);
+  console.log('');
   console.log('='.repeat(60));
   console.log('');
+
+  // 啟動用藥提醒排程器
+  try {
+    startMedicationScheduler();
+  } catch (error) {
+    console.error('❌ 啟動排程器失敗:', error.message);
+  }
 });
 
 export default app;

@@ -8,6 +8,10 @@ backend/node_modules/
 .env.local
 .env.*.local
 
+# Firebase Service Account Keys (NEVER commit these!)
+*firebase-adminsdk*.json
+serviceAccountKey.json
+
 # Logs
 logs
 *.log

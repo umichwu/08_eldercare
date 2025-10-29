@@ -15,7 +15,10 @@
       "Bash(curl:*)",
       "Bash(npm run build:frontend:*)",
       "Bash(npm install:*)",
-      "Bash(node --check:*)"
+      "Bash(node --check:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

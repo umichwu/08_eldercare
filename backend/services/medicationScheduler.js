@@ -10,8 +10,10 @@
  */
 
 import cron from 'node-cron';
-import { parseExpression } from 'cron-parser';
+import cronParser from 'cron-parser';
 import { createClient } from '@supabase/supabase-js';
+
+const { parseExpression } = cronParser;
 import {
   sendMedicationReminder,
   notifyFamilyMissedMedication,

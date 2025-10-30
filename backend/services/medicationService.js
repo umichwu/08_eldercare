@@ -10,8 +10,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { parseExpression } from 'cron-parser';
+import cronParser from 'cron-parser';
 import dotenv from 'dotenv';
+
+const { parseExpression } = cronParser;
 
 // 載入環境變數
 // 在本地開發：從根目錄的 .env 載入

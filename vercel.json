@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "public",
+  "outputDirectory": "frontend/public",
   "installCommand": "npm install",
   "rewrites": [
     {

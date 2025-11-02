@@ -22,7 +22,9 @@
       "Bash(git rm:*)",
       "WebFetch(domain:www.apple.com)",
       "WebFetch(domain:www.spacex.com)",
-      "WebFetch(domain:www.dropbox.com)"
+      "WebFetch(domain:www.dropbox.com)",
+      "WebSearch",
+      "WebFetch(domain:resend.com)"
     ],
     "deny": [],
     "ask": []

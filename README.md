@@ -27,6 +27,14 @@
 - 快捷功能按鈕（緊急聯絡、用藥提醒、健康記錄）
 - 智能健康關注
 
+### 💊 用藥提醒系統（NEW!）
+- 📧 Email 自動通知（Resend，免費 3000 封/月）
+- 📱 FCM 推播通知（完全免費）
+- ⏰ Cron 排程自動提醒
+- 👨‍👩‍👧 未服藥時通知家屬
+- 📊 用藥記錄追蹤與統計
+- 🌏 多語言 Email 模板（繁中、簡中、英文）
+
 ---
 
 ## 🚀 快速開始
@@ -65,12 +73,17 @@ SUPABASE_SERVICE_ROLE_KEY=你的 Service Role Key
 LLM_PROVIDER=gemini  # 或 openai, deepseek
 GEMINI_API_KEY=你的 Gemini Key  # 推薦！免費額度充足
 # OPENAI_API_KEY=你的 OpenAI Key
+
+# Email 通知（用藥提醒功能，可選）
+RESEND_API_KEY=re_your_api_key  # Resend API Key
+RESEND_FROM_EMAIL=ElderCare <noreply@yourdomain.com>
 ```
 
 **如何取得 API Keys?**
 - **Gemini**: https://aistudio.google.com/app/apikey（推薦，免費）
 - **OpenAI**: https://platform.openai.com/api-keys（需付費）
 - **Supabase**: https://supabase.com/dashboard（免費）
+- **Resend**: https://resend.com/（Email 通知，免費 3000 封/月）
 
 ---
 
@@ -79,7 +92,8 @@ GEMINI_API_KEY=你的 Gemini Key  # 推薦！免費額度充足
 | 文件 | 說明 |
 |------|------|
 | **[COMPLETE_DOCUMENTATION.md](COMPLETE_DOCUMENTATION.md)** | 📖 完整文件（系統架構、API、部署） |
-| **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** | 🚀 詳細部署指南（Vercel + Render） |
+| **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** | 🚀 詳細部署指南（Vercel + Render + FCM） |
+| **[MEDICATION_REMINDER_SETUP.md](MEDICATION_REMINDER_SETUP.md)** | 💊 用藥提醒設定指南（Email 通知） |
 | **[QUICKSTART.md](QUICKSTART.md)** | ⚡ 5分鐘快速啟動 |
 
 ---
@@ -199,6 +213,9 @@ npm run backend
 - ✅ 快捷功能按鈕
 - ✅ 對話歷史記錄
 - ✅ 跨裝置同步
+- ✅ 用藥提醒系統（Email + FCM 推播）
+- ✅ 未服藥家屬通知
+- ✅ 用藥記錄追蹤
 
 ---
 
@@ -212,10 +229,13 @@ npm run backend
   - 數據趨勢圖表顯示
   - 異常數值警示
 
-- [ ] **用藥提醒系統**
-  - 定時推送提醒通知
-  - 用藥記錄追蹤
-  - 與家屬同步用藥狀況
+- [x] **用藥提醒系統** ✅ 已完成
+  - ✅ Email 自動通知（Resend）
+  - ✅ FCM 推播通知
+  - ✅ Cron 排程自動提醒
+  - ✅ 用藥記錄追蹤
+  - ✅ 未服藥時通知家屬
+  - ✅ 多語言 Email 模板
 
 - [ ] **語音功能強化**
   - 離線語音辨識
@@ -338,10 +358,10 @@ npm run backend
 
 ### 📊 優先順序評估
 
-| 功能 | 優先級 | 預估工時 | 依賴項目 |
-|------|--------|----------|----------|
-| 用藥提醒系統 | 🔴 高 | 2 週 | 推播服務 |
-| 家屬監控面板 | 🔴 高 | 3 週 | 權限系統 |
+| 功能 | 優先級 | 預估工時 | 狀態 |
+|------|--------|----------|------|
+| 用藥提醒系統 | 🔴 高 | 2 週 | ✅ 已完成 |
+| 家屬監控面板 | 🔴 高 | 3 週 | 🔄 進行中 |
 | 健康數據整合 | 🟡 中 | 3 週 | 資料庫擴充 |
 | 語音功能強化 | 🟡 中 | 4 週 | 語音引擎 |
 | 原生 APP 開發 | 🟢 低 | 8 週 | React Native |

@@ -19,6 +19,10 @@ import {
   notifyFamilyMissedMedication,
 } from './fcmService.js';
 import {
+  sendMedicationReminderEmail,
+  sendMissedMedicationAlert,
+} from './emailNotificationService.js';
+import {
   createMedicationLog,
   autoMarkMissedMedications,
   getPendingMedicationLogs,
@@ -236,16 +240,42 @@ async function processReminder(reminder, scheduledTime) {
       scheduledTime: scheduledTime.toISOString(),
     });
 
+    // 發送 Email 通知（如果長輩有設定 Email）
+    let emailSent = false;
+    const { data: elder } = await supabase
+      .from('elders')
+      .select('name, email, preferred_language')
+      .eq('id', reminder.elder_id)
+      .single();
+
+    if (elder?.email) {
+      const emailResult = await sendMedicationReminderEmail({
+        to: elder.email,
+        elderName: elder.name,
+        medicationName: medication.medication_name,
+        dosage: medication.dosage,
+        scheduledTime: scheduledTime.toISOString(),
+        instructions: medication.instructions,
+        language: elder.preferred_language || 'zh-TW'
+      });
+
+      emailSent = emailResult.success;
+
+      if (emailResult.success) {
+        console.log(`📧 Email 通知已發送: ${elder.email}`);
+      }
+    }
+
     // 更新記錄的推送狀態
     await supabase
       .from('medication_logs')
       .update({
-        push_sent: pushResult.success,
+        push_sent: pushResult.success || emailSent,
         push_sent_at: new Date().toISOString(),
       })
       .eq('id', logId);
 
-    if (pushResult.success) {
+    if (pushResult.success || emailSent) {
       console.log(`✅ [${scheduledTime.getHours()}:${scheduledTime.getMinutes()}] 提醒已發送: ${medication.medication_name}`);
 
       // 更新提醒統計
@@ -316,7 +346,7 @@ async function checkAndNotifyMissedMedications() {
           continue;
         }
 
-        // 發送家屬通知
+        // 發送家屬 FCM 推送通知
         const notifyResult = await notifyFamilyMissedMedication(missedLog.elder_id, {
           medicationId: missedLog.medication_id,
           medicationName: medication.medication_name,
@@ -324,16 +354,61 @@ async function checkAndNotifyMissedMedications() {
           scheduledTime: missedLog.scheduled_time,
         });
 
+        // 發送家屬 Email 通知
+        let emailSent = false;
+        const { data: elder } = await supabase
+          .from('elders')
+          .select('name')
+          .eq('id', missedLog.elder_id)
+          .single();
+
+        if (elder) {
+          // 獲取家屬的 Email
+          const { data: familyMembers } = await supabase
+            .from('elder_family_relations')
+            .select(`
+              family_members!inner (
+                id,
+                name,
+                email
+              )
+            `)
+            .eq('elder_id', missedLog.elder_id)
+            .eq('status', 'active')
+            .eq('can_receive_alerts', true);
+
+          if (familyMembers && familyMembers.length > 0) {
+            for (const relation of familyMembers) {
+              const familyMember = relation.family_members;
+              if (familyMember.email) {
+                const emailResult = await sendMissedMedicationAlert({
+                  to: familyMember.email,
+                  elderName: elder.name,
+                  medicationName: medication.medication_name,
+                  scheduledTime: missedLog.scheduled_time,
+                  familyMemberName: familyMember.name,
+                  language: 'zh-TW'
+                });
+
+                if (emailResult.success) {
+                  emailSent = true;
+                  console.log(`📧 已發送家屬警告 Email: ${familyMember.email}`);
+                }
+              }
+            }
+          }
+        }
+
         // 更新通知狀態
         await supabase
           .from('medication_logs')
           .update({
-            family_notified: notifyResult.success,
+            family_notified: notifyResult.success || emailSent,
             family_notified_at: new Date().toISOString(),
           })
           .eq('id', missedLog.id);
 
-        if (notifyResult.success) {
+        if (notifyResult.success || emailSent) {
           console.log(`✅ 已通知家屬: ${medication.medication_name} 錯過服用`);
         }
       } catch (notifyError) {

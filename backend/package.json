@@ -30,6 +30,7 @@
     "firebase-admin": "^13.5.0",
     "node-cron": "^4.2.1",
     "openai": "^4.20.1",
+    "resend": "^6.4.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

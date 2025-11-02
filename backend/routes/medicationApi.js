@@ -22,6 +22,9 @@ import {
   removeFCMToken,
 } from '../services/fcmService.js';
 import {
+  sendTestEmail,
+} from '../services/emailNotificationService.js';
+import {
   manualCheckReminders,
   generateTodayMedicationLogs,
 } from '../services/medicationScheduler.js';
@@ -418,6 +421,136 @@ router.post('/scheduler/generate-today-logs', async (req, res) => {
     });
   } catch (error) {
     console.error('API 錯誤 (POST /scheduler/generate-today-logs):', error);
+    res.status(500).json({ error: '伺服器錯誤' });
+  }
+});
+
+// ==================== Email 通知管理 API ====================
+
+/**
+ * POST /api/email/test
+ * 發送測試 Email
+ */
+router.post('/email/test', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        error: '缺少 Email 參數',
+        message: 'email 為必填',
+      });
+    }
+
+    const result = await sendTestEmail(email);
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: '測試 Email 發送失敗',
+        message: result.error,
+      });
+    }
+
+    res.json({
+      message: '測試 Email 已發送',
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('API 錯誤 (POST /email/test):', error);
+    res.status(500).json({ error: '伺服器錯誤' });
+  }
+});
+
+/**
+ * PUT /api/elders/:id/email
+ * 更新長輩的 Email 設定
+ */
+router.put('/elders/:id/email', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.body;
+
+    // 驗證 Email 格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email)) {
+      return res.status(400).json({
+        error: '無效的 Email 格式',
+      });
+    }
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { data, error } = await supabase
+      .from('elders')
+      .update({ email: email || null })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({
+        error: '更新 Email 失敗',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      message: 'Email 更新成功',
+      data: data,
+    });
+  } catch (error) {
+    console.error('API 錯誤 (PUT /elders/:id/email):', error);
+    res.status(500).json({ error: '伺服器錯誤' });
+  }
+});
+
+/**
+ * PUT /api/family-members/:id/email
+ * 更新家屬的 Email 設定
+ */
+router.put('/family-members/:id/email', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.body;
+
+    // 驗證 Email 格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email)) {
+      return res.status(400).json({
+        error: '無效的 Email 格式',
+      });
+    }
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { data, error } = await supabase
+      .from('family_members')
+      .update({ email: email || null })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({
+        error: '更新 Email 失敗',
+        message: error.message,
+      });
+    }
+
+    res.json({
+      message: 'Email 更新成功',
+      data: data,
+    });
+  } catch (error) {
+    console.error('API 錯誤 (PUT /family-members/:id/email):', error);
     res.status(500).json({ error: '伺服器錯誤' });
   }
 });

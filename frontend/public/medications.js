@@ -4,12 +4,12 @@
 
 // API 基礎 URL
 const API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000/api'
-  : 'https://eldercare-backend.onrender.com/api';
+  ? 'http://localhost:3000'
+  : 'https://eldercare-backend.onrender.com';
 
 // Supabase 設定
 const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenlicy2FjY3dxYWZrayIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM3ODAzMzkxLCJleHAiOjIwNTMzNzkzOTF9.yXIm_PQBhT8VmMG8NoNLRPv4k8dQ_yXLXWXqOiN3Gus';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
 
 const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -40,20 +40,35 @@ async function checkAuth() {
 // 載入當前使用者資料
 async function loadCurrentUser() {
     try {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('user_profiles')
             .select('*')
             .eq('auth_user_id', currentUser.id)
             .single();
 
+        if (profileError) {
+            console.error('載入 profile 失敗:', profileError);
+            showToast('載入使用者資料失敗', 'error');
+            return;
+        }
+
         if (profile && profile.role === 'elder') {
-            const { data: elder } = await supabase
+            const { data: elder, error: elderError } = await supabase
                 .from('elders')
                 .select('*')
-                .eq('auth_user_id', currentUser.id)
+                .eq('user_profile_id', profile.id)
                 .single();
 
+            if (elderError) {
+                console.error('載入 elder 失敗:', elderError);
+                showToast('找不到長輩資料', 'error');
+                return;
+            }
+
             currentElderId = elder?.id;
+            console.log('✅ 當前長輩 ID:', currentElderId);
+        } else {
+            showToast('此功能僅供長輩使用', 'warning');
         }
     } catch (error) {
         console.error('載入使用者失敗:', error);
@@ -93,7 +108,7 @@ async function loadMedications() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/medications/elder/${currentElderId}`);
+        const response = await fetch(`${API_BASE_URL}/api/medications/elder/${currentElderId}`);
         const result = await response.json();
 
         if (result.data && result.data.length > 0) {
@@ -237,14 +252,14 @@ async function saveMedication(event) {
         let response;
         if (id) {
             // 更新
-            response = await fetch(`${API_BASE_URL}/medications/${id}`, {
+            response = await fetch(`${API_BASE_URL}/api/medications/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
         } else {
             // 新增
-            response = await fetch(`${API_BASE_URL}/medications`, {
+            response = await fetch(`${API_BASE_URL}/api/medications`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -276,7 +291,7 @@ async function deleteMedication(id) {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/medications/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/medications/${id}`, {
             method: 'DELETE'
         });
 
@@ -300,7 +315,7 @@ async function showReminderSettings(medicationId) {
 
     try {
         // 載入現有的提醒設定
-        const response = await fetch(`${API_BASE_URL}/medication-reminders/elder/${currentElderId}`);
+        const response = await fetch(`${API_BASE_URL}/api/medication-reminders/elder/${currentElderId}`);
         const result = await response.json();
 
         const reminder = result.data?.find(r => r.medication_id === medicationId);
@@ -437,14 +452,14 @@ async function saveReminder(event, medicationId) {
         let response;
         if (reminderId) {
             // 更新
-            response = await fetch(`${API_BASE_URL}/medication-reminders/${reminderId}`, {
+            response = await fetch(`${API_BASE_URL}/api/medication-reminders/${reminderId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
         } else {
             // 新增
-            response = await fetch(`${API_BASE_URL}/medication-reminders`, {
+            response = await fetch(`${API_BASE_URL}/api/medication-reminders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -493,7 +508,7 @@ async function loadTodayMedications() {
     if (!currentElderId) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/medication-logs/pending?elderId=${currentElderId}`);
+        const response = await fetch(`${API_BASE_URL}/api/medication-logs/pending?elderId=${currentElderId}`);
         const result = await response.json();
 
         todayLogs = result.data || [];
@@ -576,7 +591,7 @@ function renderTodayTimeline(logs) {
 
 async function confirmMedication(logId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/medication-logs/${logId}/confirm`, {
+        const response = await fetch(`${API_BASE_URL}/api/medication-logs/${logId}/confirm`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -603,7 +618,7 @@ async function loadStatistics(days) {
     if (!currentElderId) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/medication-logs/statistics/${currentElderId}?days=${days}`);
+        const response = await fetch(`${API_BASE_URL}/api/medication-logs/statistics/${currentElderId}?days=${days}`);
         const result = await response.json();
 
         const stats = result.data;
@@ -689,7 +704,7 @@ async function saveEmailSettings(event) {
     const email = document.getElementById('userEmail').value;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/elders/${currentElderId}/email`, {
+        const response = await fetch(`${API_BASE_URL}/api/elders/${currentElderId}/email`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -716,7 +731,7 @@ async function testEmail() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/email/test`, {
+        const response = await fetch(`${API_BASE_URL}/api/email/test`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })

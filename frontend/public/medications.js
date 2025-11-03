@@ -11,7 +11,8 @@ const API_BASE_URL = window.location.hostname === 'localhost'
 const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
 
-const supabase = supabasejs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 全域變數
 let currentUser = null;
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // 檢查登入狀態
 async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
         window.location.href = 'login.html';
         return;
@@ -40,7 +41,7 @@ async function checkAuth() {
 // 載入當前使用者資料
 async function loadCurrentUser() {
     try {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await supabaseClient
             .from('user_profiles')
             .select('*')
             .eq('auth_user_id', currentUser.id)
@@ -53,7 +54,7 @@ async function loadCurrentUser() {
         }
 
         if (profile && profile.role === 'elder') {
-            const { data: elder, error: elderError } = await supabase
+            const { data: elder, error: elderError } = await supabaseClient
                 .from('elders')
                 .select('*')
                 .eq('user_profile_id', profile.id)

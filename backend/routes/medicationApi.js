@@ -298,6 +298,78 @@ router.get('/medication-logs/statistics/:elderId', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/medication-logs/elder/:elderId
+ * 取得長輩的所有用藥記錄（供家屬查看）
+ */
+router.get('/medication-logs/elder/:elderId', async (req, res) => {
+  try {
+    const { elderId } = req.params;
+    const { days, status } = req.query;
+
+    const daysFilter = days ? parseInt(days) : 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysFilter);
+
+    // 查詢用藥記錄
+    const { supabase } = await import('../config/supabase.js');
+    let query = supabase
+      .from('medication_logs')
+      .select(`
+        id,
+        scheduled_time,
+        taken_at,
+        status,
+        notes,
+        created_at,
+        medications (
+          id,
+          medication_name,
+          dosage
+        )
+      `)
+      .eq('elder_id', elderId)
+      .gte('scheduled_time', startDate.toISOString())
+      .order('scheduled_time', { ascending: false });
+
+    // 狀態篩選
+    if (status && status !== 'all') {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('查詢用藥記錄失敗:', error);
+      return res.status(400).json({
+        error: '查詢失敗',
+        message: error.message,
+      });
+    }
+
+    // 整理資料格式
+    const logs = data.map(log => ({
+      id: log.id,
+      medication_name: log.medications?.medication_name || '未知藥物',
+      dosage: log.medications?.dosage || '',
+      scheduled_time: log.scheduled_time,
+      taken_at: log.taken_at,
+      status: log.status,
+      notes: log.notes,
+      created_at: log.created_at
+    }));
+
+    res.json({
+      success: true,
+      message: '查詢成功',
+      data: logs
+    });
+  } catch (error) {
+    console.error('API 錯誤 (GET /medication-logs/elder/:elderId):', error);
+    res.status(500).json({ error: '伺服器錯誤' });
+  }
+});
+
 // ==================== FCM Token 管理 API ====================
 
 /**

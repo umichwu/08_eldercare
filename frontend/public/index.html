@@ -167,8 +167,11 @@
                             <button class="quick-btn" data-message="今天天氣如何？" data-i18n="quickAction.weather">
                                 ☀️ 天氣查詢
                             </button>
-                            <button class="quick-btn" onclick="window.location.href='medications.html'" data-i18n="quickAction.medication">
+                            <button class="quick-btn elder-only" onclick="window.location.href='medications.html'" data-i18n="quickAction.medication" style="display: none;">
                                 💊 用藥管理
+                            </button>
+                            <button class="quick-btn family-only" onclick="window.location.href='family-dashboard.html'" data-i18n="quickAction.familyDashboard" style="display: none;">
+                                👨‍👩‍👧 家屬監控
                             </button>
                             <button class="quick-btn" data-message="講個笑話給我聽" data-i18n="quickAction.joke">
                                 😄 聽笑話
@@ -566,6 +569,22 @@
 
                 userInfoDiv.style.display = 'flex';
                 logoutBtn.style.display = 'block';
+
+                // 根據角色顯示對應的快捷按鈕
+                const elderButtons = document.querySelectorAll('.elder-only');
+                const familyButtons = document.querySelectorAll('.family-only');
+
+                if (userProfile.role === 'elder') {
+                    elderButtons.forEach(btn => btn.style.display = 'block');
+                    familyButtons.forEach(btn => btn.style.display = 'none');
+                } else if (userProfile.role === 'family_member') {
+                    elderButtons.forEach(btn => btn.style.display = 'none');
+                    familyButtons.forEach(btn => btn.style.display = 'block');
+                } else {
+                    // 其他角色或未知角色，都隱藏
+                    elderButtons.forEach(btn => btn.style.display = 'none');
+                    familyButtons.forEach(btn => btn.style.display = 'none');
+                }
             }
         }
 

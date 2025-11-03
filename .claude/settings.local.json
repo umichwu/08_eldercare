@@ -24,7 +24,8 @@
       "WebFetch(domain:www.spacex.com)",
       "WebFetch(domain:www.dropbox.com)",
       "WebSearch",
-      "WebFetch(domain:resend.com)"
+      "WebFetch(domain:resend.com)",
+      "Bash(npm run dev)"
     ],
     "deny": [],
     "ask": []

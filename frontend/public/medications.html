@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用藥管理 - ElderCare</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles-modern.css">
+    <link rel="stylesheet" href="mobile-modern.css">
+    <link rel="stylesheet" href="medications.css">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <nav class="top-nav">
+        <button class="nav-back" onclick="window.location.href='index.html'">
+            ← 返回
+        </button>
+        <h1 class="nav-title">💊 用藥管理</h1>
+        <button class="nav-settings" onclick="showSettings()">
+            ⚙️
+        </button>
+    </nav>
+
+    <!-- 主要內容 -->
+    <div class="medication-container">
+        <!-- 標籤切換 -->
+        <div class="tab-container">
+            <button class="tab-btn active" data-tab="medications" onclick="switchTab('medications')">
+                📋 藥物列表
+            </button>
+            <button class="tab-btn" data-tab="today" onclick="switchTab('today')">
+                📅 今日用藥
+            </button>
+            <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')">
+                📊 統計
+            </button>
+        </div>
+
+        <!-- 藥物列表標籤 -->
+        <div id="medications-tab" class="tab-content active">
+            <!-- 搜尋和新增 -->
+            <div class="action-bar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 搜尋藥物名稱..."
+                           oninput="searchMedications(this.value)">
+                </div>
+                <button class="btn-primary" onclick="showAddMedicationForm()">
+                    ➕ 新增藥物
+                </button>
+            </div>
+
+            <!-- 藥物卡片列表 -->
+            <div id="medicationsList" class="medications-list">
+                <!-- 載入中 -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>載入中...</p>
+                </div>
+            </div>
+
+            <!-- 空狀態 -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">💊</div>
+                <h3>還沒有藥物記錄</h3>
+                <p>點擊上方「新增藥物」按鈕開始管理您的用藥</p>
+                <button class="btn-primary" onclick="showAddMedicationForm()">
+                    ➕ 新增第一個藥物
+                </button>
+            </div>
+        </div>
+
+        <!-- 今日用藥標籤 -->
+        <div id="today-tab" class="tab-content">
+            <div class="today-header">
+                <h2>📅 今日用藥計劃</h2>
+                <p class="today-date" id="todayDate"></p>
+            </div>
+
+            <!-- 今日統計 -->
+            <div class="today-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="todayTotal">0</div>
+                    <div class="stat-label">總計</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value" id="todayTaken">0</div>
+                    <div class="stat-label">已服用</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value" id="todayPending">0</div>
+                    <div class="stat-label">待服用</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-value" id="todayMissed">0</div>
+                    <div class="stat-label">已錯過</div>
+                </div>
+            </div>
+
+            <!-- 今日時間軸 -->
+            <div id="todayTimeline" class="today-timeline">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>載入今日用藥...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計標籤 -->
+        <div id="stats-tab" class="tab-content">
+            <div class="stats-header">
+                <h2>📊 用藥統計</h2>
+                <select id="statsPeriod" onchange="loadStatistics(this.value)">
+                    <option value="7">過去 7 天</option>
+                    <option value="14">過去 14 天</option>
+                    <option value="30">過去 30 天</option>
+                </select>
+            </div>
+
+            <!-- 統計卡片 -->
+            <div id="statisticsCards" class="statistics-cards">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>載入統計資料...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增/編輯藥物 Modal -->
+    <div id="medicationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">➕ 新增藥物</h2>
+                <button class="modal-close" onclick="closeMedicationModal()">&times;</button>
+            </div>
+            <form id="medicationForm" onsubmit="saveMedication(event)">
+                <div class="form-group">
+                    <label for="medicationName">藥物名稱 *</label>
+                    <input type="text" id="medicationName" required placeholder="例如：降血壓藥">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dosage">劑量</label>
+                        <input type="text" id="dosage" placeholder="例如：1 顆">
+                    </div>
+                    <div class="form-group">
+                        <label for="medicationType">類型</label>
+                        <select id="medicationType">
+                            <option value="">請選擇</option>
+                            <option value="tablet">藥片</option>
+                            <option value="capsule">膠囊</option>
+                            <option value="liquid">藥水</option>
+                            <option value="injection">注射</option>
+                            <option value="topical">外用</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="purpose">用藥目的</label>
+                    <input type="text" id="purpose" placeholder="例如：降血壓">
+                </div>
+
+                <div class="form-group">
+                    <label for="instructions">服用說明</label>
+                    <textarea id="instructions" rows="3" placeholder="例如：飯後服用，配溫開水"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="sideEffects">副作用</label>
+                    <textarea id="sideEffects" rows="2" placeholder="例如：可能會頭暈"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prescribingDoctor">處方醫師</label>
+                        <input type="text" id="prescribingDoctor" placeholder="例如：王醫師">
+                    </div>
+                    <div class="form-group">
+                        <label for="stockQuantity">庫存數量</label>
+                        <input type="number" id="stockQuantity" value="0" min="0">
+                    </div>
+                </div>
+
+                <input type="hidden" id="medicationId">
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeMedicationModal()">
+                        取消
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 提醒設定 Modal -->
+    <div id="reminderModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>⏰ 提醒設定</h2>
+                <button class="modal-close" onclick="closeReminderModal()">&times;</button>
+            </div>
+            <div id="reminderContent">
+                <!-- 動態載入 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Email 設定 Modal -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📧 Email 通知設定</h2>
+                <button class="modal-close" onclick="closeEmailModal()">&times;</button>
+            </div>
+            <form id="emailForm" onsubmit="saveEmailSettings(event)">
+                <div class="form-group">
+                    <label for="userEmail">Email 地址</label>
+                    <input type="email" id="userEmail" placeholder="your.email@example.com">
+                    <small>設定後將會收到用藥提醒郵件</small>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn-secondary" onclick="testEmail()">
+                        📧 發送測試郵件
+                    </button>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeEmailModal()">
+                        取消
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Scripts -->
+    <script src="medications.js"></script>
+</body>
+</html>

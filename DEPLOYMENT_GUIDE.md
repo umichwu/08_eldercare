@@ -250,7 +250,131 @@ https://your-backend-url.onrender.com/api/health
   4. 點擊 **"Save Changes"**
   5. 手動重新部署：**"Manual Deploy"** → **"Deploy latest commit"**
 
-#### 2.7 重要提醒：Render 免費層限制
+#### 2.7 設定 Firebase Cloud Messaging（FCM 推播通知）- 選用
+
+Firebase Cloud Messaging 用於發送用藥提醒的推播通知。這是**完全免費**的服務。
+
+##### 2.7.1 建立 Firebase 專案
+
+1. 前往 [Firebase Console](https://console.firebase.google.com/)
+2. 點擊 "Add project" 或 "建立專案"
+3. 輸入專案名稱：`eldercare-app`
+4. 關閉 Google Analytics（可選）
+5. 點擊 "Create project"
+
+##### 2.7.2 啟用 Cloud Messaging
+
+1. 在 Firebase Console，點擊左側 ⚙️ "Project settings"
+2. 點擊 "Cloud Messaging" 標籤
+3. 如果看到 "Cloud Messaging API (Legacy) is disabled"：
+   - 點擊旁邊的三點選單
+   - 點擊 "Manage API in Google Cloud Console"
+   - 點擊 "Enable" 啟用 API
+4. 複製 **Server Key**（用於後端發送推播）
+
+##### 2.7.3 新增 Web App
+
+1. 回到 Firebase Console 首頁
+2. 點擊 "Add app" → 選擇 Web 圖示 `</>`
+3. 輸入 App nickname：`eldercare-web`
+4. 點擊 "Register app"
+5. 複製 `firebaseConfig` 物件並保存
+
+##### 2.7.4 取得 Service Account Key
+
+1. 在 Firebase Console，點擊 ⚙️ "Project settings"
+2. 點擊 "Service accounts" 標籤
+3. 點擊 "Generate new private key"
+4. 確認並下載 JSON 檔案
+
+從 JSON 檔案中取得以下資訊並設定到 Render 環境變數：
+
+```env
+FIREBASE_PROJECT_ID=your-project-id               # 從 JSON 的 "project_id"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk@...       # 從 JSON 的 "client_email"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+⚠️ **重要**：
+- `FIREBASE_PRIVATE_KEY` 必須用雙引號包住
+- 保持 `\n` 換行符號
+- 不要移除 `-----BEGIN PRIVATE KEY-----` 和 `-----END PRIVATE KEY-----`
+
+詳細設定請參考：[MEDICATION_REMINDER_SETUP.md](MEDICATION_REMINDER_SETUP.md)
+
+##### 2.7.5 更新前端 Firebase 設定
+
+編輯 `frontend/public/firebase-messaging-sw.js`，將 firebaseConfig 替換成你的設定：
+
+```javascript
+const firebaseConfig = {
+  apiKey: "你的 apiKey",
+  authDomain: "你的 authDomain",
+  projectId: "你的 projectId",
+  storageBucket: "你的 storageBucket",
+  messagingSenderId: "你的 messagingSenderId",
+  appId: "你的 appId"
+};
+```
+
+#### 2.8 設定 Resend（Email 通知）- 選用
+
+Resend 用於發送用藥提醒的 Email 通知。免費方案提供每月 3,000 封郵件。
+
+##### 2.8.1 註冊 Resend 帳號
+
+1. 前往 [Resend.com](https://resend.com/)
+2. 點擊 "Sign Up"
+3. 使用 GitHub 或 Email 註冊
+
+##### 2.8.2 取得 API Key
+
+1. 登入 Resend Dashboard
+2. 點擊左側 "API Keys"
+3. 點擊 "Create API Key"
+4. 輸入名稱：`eldercare-production`
+5. 選擇權限：✅ "Sending access"
+6. 點擊 "Create"
+7. **立即複製 API Key**（只會顯示一次！）
+
+格式：`re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+##### 2.8.3 設定發件人 Email
+
+**選項 A：驗證域名（推薦）**
+
+如果你有自己的域名：
+
+1. 在 Resend Dashboard，點擊 "Domains"
+2. 點擊 "Add Domain"
+3. 輸入域名並按照指示設定 DNS 記錄（SPF、DKIM、DMARC）
+4. 驗證成功後，使用：
+   ```env
+   RESEND_FROM_EMAIL=ElderCare <noreply@yourdomain.com>
+   ```
+
+**選項 B：使用測試域名（開發測試）**
+
+```env
+RESEND_FROM_EMAIL=ElderCare <onboarding@resend.dev>
+```
+
+⚠️ 限制：只能發送給已驗證的收件人
+
+詳細設定請參考：[MEDICATION_REMINDER_SETUP.md](MEDICATION_REMINDER_SETUP.md)
+
+##### 2.8.4 在 Render 設定環境變數
+
+在 Render Dashboard 的環境變數中新增：
+
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=ElderCare <onboarding@resend.dev>
+```
+
+然後點擊 "Save Changes" 並重新部署。
+
+#### 2.9 重要提醒：Render 免費層限制
 
 ⚠️ **Render Free Plan 特性：**
 - ✅ 每月 750 小時免費（約 31 天）
@@ -876,6 +1000,15 @@ OPENAI_MODEL=gpt-4o-mini
 
 # Deepseek (選用)
 DEEPSEEK_API_KEY=sk-...                # 從 https://platform.deepseek.com/api_keys 獲取
+
+# Firebase Cloud Messaging (FCM) - 用藥提醒推播通知（選用）
+FIREBASE_PROJECT_ID=your-firebase-project
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk@your-project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour\nPrivate\nKey\nHere\n-----END PRIVATE KEY-----\n"
+
+# Resend Email 服務 - 用藥提醒 Email 通知（選用）
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=ElderCare <noreply@yourdomain.com>
 
 # 前端 CORS 設定
 FRONTEND_URL=https://08-eldercare.vercel.app

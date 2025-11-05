@@ -49,7 +49,8 @@ async function loadCurrentUser() {
 
         if (profileError) {
             console.error('載入 profile 失敗:', profileError);
-            showToast('載入使用者資料失敗', 'error');
+            // 如果沒有 profile，自動建立一個預設的
+            await createDefaultProfile();
             return;
         }
 
@@ -60,20 +61,106 @@ async function loadCurrentUser() {
                 .eq('user_profile_id', profile.id)
                 .single();
 
-            if (elderError) {
-                console.error('載入 elder 失敗:', elderError);
-                showToast('找不到長輩資料', 'error');
+            if (elderError || !elder) {
+                console.log('沒有長輩資料，自動建立...');
+                // 自動建立預設的長輩資料
+                await createDefaultElder(profile.id);
                 return;
             }
 
             currentElderId = elder?.id;
             console.log('✅ 當前長輩 ID:', currentElderId);
+        } else if (!profile.role) {
+            // 如果沒有設定角色，預設為長輩並建立資料
+            await updateProfileAndCreateElder(profile.id);
         } else {
             showToast('此功能僅供長輩使用', 'warning');
         }
     } catch (error) {
         console.error('載入使用者失敗:', error);
         showToast('載入使用者資料失敗', 'error');
+    }
+}
+
+// 建立預設的 user profile
+async function createDefaultProfile() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('user_profiles')
+            .insert([{
+                auth_user_id: currentUser.id,
+                username: currentUser.email.split('@')[0],
+                role: 'elder',
+                contact_email: currentUser.email
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('建立 profile 失敗:', error);
+            showToast('初始化使用者資料失敗', 'error');
+            return;
+        }
+
+        console.log('✅ Profile 建立成功:', data);
+        // 繼續建立長輩資料
+        await createDefaultElder(data.id);
+    } catch (error) {
+        console.error('建立預設 profile 失敗:', error);
+        showToast('初始化失敗', 'error');
+    }
+}
+
+// 建立預設的長輩資料
+async function createDefaultElder(profileId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('elders')
+            .insert([{
+                user_profile_id: profileId,
+                name: currentUser.email.split('@')[0],
+                gender: 'prefer_not_to_say',
+                health_status: 'good'
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('建立 elder 失敗:', error);
+            showToast('初始化長輩資料失敗', 'error');
+            return;
+        }
+
+        currentElderId = data.id;
+        console.log('✅ Elder 資料建立成功:', currentElderId);
+        showToast('✅ 個人資料初始化完成', 'success');
+
+        // 重新載入頁面資料
+        await loadMedications();
+    } catch (error) {
+        console.error('建立預設 elder 失敗:', error);
+        showToast('初始化失敗', 'error');
+    }
+}
+
+// 更新 profile 並建立長輩資料
+async function updateProfileAndCreateElder(profileId) {
+    try {
+        // 更新 role 為 elder
+        const { error: updateError } = await supabaseClient
+            .from('user_profiles')
+            .update({ role: 'elder' })
+            .eq('id', profileId);
+
+        if (updateError) {
+            console.error('更新 role 失敗:', updateError);
+            return;
+        }
+
+        // 建立長輩資料
+        await createDefaultElder(profileId);
+    } catch (error) {
+        console.error('更新 profile 失敗:', error);
     }
 }
 
@@ -218,26 +305,151 @@ function searchMedications(query) {
 // ==================== 新增/編輯藥物 ====================
 
 function showAddMedicationForm() {
-    document.getElementById('modalTitle').textContent = '➕ 新增藥物';
+    document.getElementById('modalTitle').textContent = '➕ 快速新增用藥提醒';
     document.getElementById('medicationForm').reset();
     document.getElementById('medicationId').value = '';
+
+    // 重置提醒時間容器，只保留一個空的時間輸入
+    const container = document.getElementById('reminderTimesContainer');
+    container.innerHTML = `
+        <div class="time-input-group">
+            <input type="time" class="reminder-time" required>
+            <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)" style="display: none;">
+                ❌
+            </button>
+        </div>
+    `;
+
+    // 收起進階設定
+    const collapsibleContent = document.querySelector('.collapsible-content');
+    if (collapsibleContent) {
+        collapsibleContent.style.display = 'none';
+    }
+
     document.getElementById('medicationModal').classList.add('show');
 }
+
+// 切換進階設定區塊
+function toggleSection(header) {
+    const content = header.nextElementSibling;
+    const isHidden = content.style.display === 'none';
+    content.style.display = isHidden ? 'block' : 'none';
+    header.textContent = isHidden ? '🔼 進階設定（選填）' : '🔽 進階設定（選填）';
+}
+
+// 在表單中新增提醒時間
+function addReminderTimeInForm() {
+    const container = document.getElementById('reminderTimesContainer');
+    const div = document.createElement('div');
+    div.className = 'time-input-group';
+    div.innerHTML = `
+        <input type="time" class="reminder-time" required>
+        <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)">
+            ❌
+        </button>
+    `;
+    container.appendChild(div);
+
+    // 顯示所有刪除按鈕（當有多個時間時）
+    updateRemoveButtons();
+}
+
+// 更新刪除按鈕的顯示狀態
+function updateRemoveButtons() {
+    const container = document.getElementById('reminderTimesContainer');
+    const groups = container.querySelectorAll('.time-input-group');
+    groups.forEach((group, index) => {
+        const btn = group.querySelector('.btn-icon');
+        // 如果只有一個時間，隱藏刪除按鈕
+        btn.style.display = groups.length > 1 ? 'inline-block' : 'none';
+    });
+}
+
+// 監聽藥物類型變化，顯示/隱藏抗生素療程天數
+document.addEventListener('DOMContentLoaded', () => {
+    const typeSelect = document.getElementById('medicationType');
+    if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+            const antibioticGroup = document.getElementById('antibioticDaysGroup');
+            if (this.value === 'antibiotic') {
+                antibioticGroup.style.display = 'block';
+            } else {
+                antibioticGroup.style.display = 'none';
+            }
+        });
+    }
+});
 
 async function editMedication(id) {
     const med = medications.find(m => m.id === id);
     if (!med) return;
 
-    document.getElementById('modalTitle').textContent = '✏️ 編輯藥物';
+    document.getElementById('modalTitle').textContent = '✏️ 編輯藥物與提醒';
     document.getElementById('medicationId').value = med.id;
     document.getElementById('medicationName').value = med.medication_name;
     document.getElementById('dosage').value = med.dosage || '';
     document.getElementById('medicationType').value = med.medication_type || '';
     document.getElementById('purpose').value = med.purpose || '';
-    document.getElementById('instructions').value = med.instructions || '';
+
+    // 從 instructions 中提取用藥時機
+    const instructions = med.instructions || '';
+    let mealTiming = '';
+    let cleanedInstructions = instructions;
+
+    if (instructions.includes('飯前')) {
+        mealTiming = 'before_meal';
+        cleanedInstructions = instructions.replace('飯前30分鐘服用。', '').trim();
+    } else if (instructions.includes('飯中') || instructions.includes('隨餐')) {
+        mealTiming = 'with_meal';
+        cleanedInstructions = instructions.replace('隨餐服用。', '').trim();
+    } else if (instructions.includes('飯後')) {
+        mealTiming = 'after_meal';
+        cleanedInstructions = instructions.replace('飯後30分鐘服用。', '').trim();
+    } else if (instructions.includes('睡前')) {
+        mealTiming = 'bedtime';
+        cleanedInstructions = instructions.replace('睡前服用。', '').trim();
+    } else {
+        mealTiming = 'anytime';
+    }
+
+    document.getElementById('mealTiming').value = mealTiming;
+    document.getElementById('instructions').value = cleanedInstructions;
     document.getElementById('sideEffects').value = med.side_effects || '';
     document.getElementById('prescribingDoctor').value = med.prescribing_doctor || '';
-    document.getElementById('stockQuantity').value = med.stock_quantity || 0;
+    document.getElementById('stockQuantity').value = med.stock_quantity || 30;
+
+    // 載入提醒時間
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/medication-reminders/elder/${currentElderId}`);
+        const result = await response.json();
+        const reminder = result.data?.find(r => r.medication_id === id);
+
+        if (reminder && reminder.reminder_times) {
+            const container = document.getElementById('reminderTimesContainer');
+            container.innerHTML = reminder.reminder_times.map((time, index) => `
+                <div class="time-input-group">
+                    <input type="time" class="reminder-time" value="${time}" required>
+                    <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)"
+                            style="display: ${reminder.reminder_times.length > 1 ? 'inline-block' : 'none'};">
+                        ❌
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            // 如果沒有提醒設定，顯示空的時間輸入
+            const container = document.getElementById('reminderTimesContainer');
+            container.innerHTML = `
+                <div class="time-input-group">
+                    <input type="time" class="reminder-time" required>
+                    <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)" style="display: none;">
+                        ❌
+                    </button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('載入提醒設定失敗:', error);
+    }
 
     document.getElementById('medicationModal').classList.add('show');
 }
@@ -245,31 +457,59 @@ async function editMedication(id) {
 async function saveMedication(event) {
     event.preventDefault();
 
+    // 收集提醒時間
+    const times = Array.from(document.querySelectorAll('#reminderTimesContainer .reminder-time'))
+        .map(input => input.value)
+        .filter(t => t);
+
+    if (times.length === 0) {
+        showToast('請至少設定一個提醒時間', 'warning');
+        return;
+    }
+
     const id = document.getElementById('medicationId').value;
+
+    // 組合用藥時機和說明
+    const mealTiming = document.getElementById('mealTiming').value;
+    const mealTimingText = {
+        'before_meal': '飯前30分鐘服用',
+        'with_meal': '隨餐服用',
+        'after_meal': '飯後30分鐘服用',
+        'anytime': '不限時間',
+        'bedtime': '睡前服用'
+    }[mealTiming] || '';
+
+    const existingInstructions = document.getElementById('instructions').value;
+    const combinedInstructions = existingInstructions
+        ? `${mealTimingText}。${existingInstructions}`
+        : mealTimingText;
+
     const data = {
         elderId: currentElderId,
         medicationName: document.getElementById('medicationName').value,
         dosage: document.getElementById('dosage').value,
-        medicationType: document.getElementById('medicationType').value,
+        medicationType: document.getElementById('medicationType').value || 'tablet',
         purpose: document.getElementById('purpose').value,
-        instructions: document.getElementById('instructions').value,
+        instructions: combinedInstructions,
         sideEffects: document.getElementById('sideEffects').value,
         prescribingDoctor: document.getElementById('prescribingDoctor').value,
-        stockQuantity: parseInt(document.getElementById('stockQuantity').value) || 0,
+        stockQuantity: parseInt(document.getElementById('stockQuantity').value) || 30,
         status: 'active'
     };
 
     try {
         let response;
+        let medicationId = id;
+
         if (id) {
-            // 更新
+            // 更新藥物
             response = await fetch(`${API_BASE_URL}/api/medications/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
         } else {
-            // 新增
+            // 新增藥物
             response = await fetch(`${API_BASE_URL}/api/medications`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -279,13 +519,39 @@ async function saveMedication(event) {
 
         const result = await response.json();
 
-        if (response.ok) {
-            showToast(id ? '藥物更新成功' : '藥物新增成功', 'success');
-            closeMedicationModal();
-            await loadMedications();
-        } else {
-            showToast(result.message || '儲存失敗', 'error');
+        if (!response.ok) {
+            showToast(result.message || '儲存藥物失敗', 'error');
+            return;
         }
+
+        // 取得藥物 ID
+        medicationId = result.data?.id || id;
+
+        // 儲存提醒設定
+        const cronSchedule = timesToCron(times);
+        const reminderData = {
+            medicationId: medicationId,
+            elderId: currentElderId,
+            cronSchedule: cronSchedule,
+            reminderTimes: times,
+            isEnabled: true,
+            autoMarkMissedAfterMinutes: 30,
+            notifyFamilyIfMissed: true
+        };
+
+        const reminderResponse = await fetch(`${API_BASE_URL}/api/medication-reminders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reminderData)
+        });
+
+        if (!reminderResponse.ok) {
+            console.warn('提醒設定儲存失敗，但藥物已新增');
+        }
+
+        showToast('✅ 用藥提醒設定完成！', 'success');
+        closeMedicationModal();
+        await loadMedications();
     } catch (error) {
         console.error('儲存藥物失敗:', error);
         showToast('儲存失敗，請稍後再試', 'error');
@@ -430,6 +696,8 @@ function addReminderTime() {
 
 function removeReminderTime(btn) {
     btn.parentElement.remove();
+    // 更新刪除按鈕的顯示狀態
+    updateRemoveButtons();
 }
 
 async function saveReminder(event, medicationId) {

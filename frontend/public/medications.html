@@ -130,60 +130,108 @@
         </div>
     </div>
 
-    <!-- 新增/編輯藥物 Modal -->
+    <!-- 新增/編輯藥物 Modal (快速設定模式) -->
     <div id="medicationModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2 id="modalTitle">➕ 新增藥物</h2>
+                <h2 id="modalTitle">➕ 快速新增用藥提醒</h2>
                 <button class="modal-close" onclick="closeMedicationModal()">&times;</button>
             </div>
             <form id="medicationForm" onsubmit="saveMedication(event)">
-                <div class="form-group">
-                    <label for="medicationName">藥物名稱 *</label>
-                    <input type="text" id="medicationName" required placeholder="例如：降血壓藥">
-                </div>
-
-                <div class="form-row">
+                <!-- 基本資訊 (必填) -->
+                <div class="form-section">
+                    <h3>📋 基本資訊</h3>
                     <div class="form-group">
-                        <label for="dosage">劑量</label>
-                        <input type="text" id="dosage" placeholder="例如：1 顆">
+                        <label for="medicationName">藥物名稱 *</label>
+                        <input type="text" id="medicationName" required placeholder="例如：降血壓藥、阿斯匹靈">
                     </div>
-                    <div class="form-group">
-                        <label for="medicationType">類型</label>
-                        <select id="medicationType">
-                            <option value="">請選擇</option>
-                            <option value="tablet">藥片</option>
-                            <option value="capsule">膠囊</option>
-                            <option value="liquid">藥水</option>
-                            <option value="injection">注射</option>
-                            <option value="topical">外用</option>
-                        </select>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dosage">每次劑量 *</label>
+                            <input type="text" id="dosage" required placeholder="例如：1 顆、5ml">
+                        </div>
+                        <div class="form-group">
+                            <label for="mealTiming">用藥時機 *</label>
+                            <select id="mealTiming" required>
+                                <option value="">請選擇</option>
+                                <option value="before_meal">飯前（30分鐘前）</option>
+                                <option value="with_meal">飯中（隨餐）</option>
+                                <option value="after_meal">飯後（30分鐘後）</option>
+                                <option value="anytime">不限時間</option>
+                                <option value="bedtime">睡前</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="purpose">用藥目的</label>
-                    <input type="text" id="purpose" placeholder="例如：降血壓">
-                </div>
-
-                <div class="form-group">
-                    <label for="instructions">服用說明</label>
-                    <textarea id="instructions" rows="3" placeholder="例如：飯後服用，配溫開水"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="sideEffects">副作用</label>
-                    <textarea id="sideEffects" rows="2" placeholder="例如：可能會頭暈"></textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="prescribingDoctor">處方醫師</label>
-                        <input type="text" id="prescribingDoctor" placeholder="例如：王醫師">
+                <!-- 提醒時間 (必填) -->
+                <div class="form-section">
+                    <h3>⏰ 提醒時間 *</h3>
+                    <div id="reminderTimesContainer">
+                        <div class="time-input-group">
+                            <input type="time" class="reminder-time" required>
+                            <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)" style="display: none;">
+                                ❌
+                            </button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="stockQuantity">庫存數量</label>
-                        <input type="number" id="stockQuantity" value="0" min="0">
+                    <button type="button" class="btn-secondary btn-small" onclick="addReminderTimeInForm()">
+                        ➕ 新增時間
+                    </button>
+                    <p class="help-text">💡 例如：早上 8:00、中午 12:00、晚上 18:00</p>
+                </div>
+
+                <!-- 進階設定 (選填，可展開) -->
+                <div class="form-section collapsible">
+                    <h3 onclick="toggleSection(this)">
+                        🔽 進階設定（選填）
+                    </h3>
+                    <div class="collapsible-content" style="display: none;">
+                        <div class="form-group">
+                            <label for="medicationType">藥物類型</label>
+                            <select id="medicationType">
+                                <option value="">請選擇</option>
+                                <option value="tablet">藥片/錠劑</option>
+                                <option value="capsule">膠囊</option>
+                                <option value="liquid">藥水/糖漿</option>
+                                <option value="injection">注射劑</option>
+                                <option value="topical">外用藥</option>
+                                <option value="antibiotic">抗生素</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="antibioticDaysGroup" style="display: none;">
+                            <label for="antibioticDays">抗生素療程天數</label>
+                            <input type="number" id="antibioticDays" min="1" max="30" placeholder="例如：7">
+                            <small>⚠️ 抗生素需按時服用完整療程</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="purpose">用藥目的</label>
+                            <input type="text" id="purpose" placeholder="例如：降血壓、控制血糖">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="instructions">服用說明</label>
+                            <textarea id="instructions" rows="2" placeholder="例如：配溫開水服用、需要整顆吞服"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sideEffects">可能副作用</label>
+                            <textarea id="sideEffects" rows="2" placeholder="例如：可能會頭暈、嗜睡"></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="prescribingDoctor">處方醫師</label>
+                                <input type="text" id="prescribingDoctor" placeholder="例如：王大明醫師">
+                            </div>
+                            <div class="form-group">
+                                <label for="stockQuantity">藥物庫存</label>
+                                <input type="number" id="stockQuantity" value="30" min="0">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -194,7 +242,7 @@
                         取消
                     </button>
                     <button type="submit" class="btn-primary">
-                        儲存
+                        💾 儲存並啟用提醒
                     </button>
                 </div>
             </form>

@@ -784,11 +784,24 @@ function setTodayDate() {
 }
 
 async function loadTodayMedications() {
-    if (!currentElderId) return;
+    if (!currentElderId) {
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#today-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
+        return;
+    }
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/medication-logs/pending?elderId=${currentElderId}`);
         const result = await response.json();
+
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#today-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
 
         todayLogs = result.data || [];
 
@@ -802,6 +815,11 @@ async function loadTodayMedications() {
         updateTodayStats(todayLogs);
     } catch (error) {
         console.error('載入今日用藥失敗:', error);
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#today-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
         showToast('載入失敗', 'error');
     }
 }
@@ -894,16 +912,34 @@ async function confirmMedication(logId) {
 // ==================== 統計 ====================
 
 async function loadStatistics(days) {
-    if (!currentElderId) return;
+    if (!currentElderId) {
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#stats-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
+        return;
+    }
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/medication-logs/statistics/${currentElderId}?days=${days}`);
         const result = await response.json();
 
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#stats-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
+
         const stats = result.data;
         renderStatistics(stats, days);
     } catch (error) {
         console.error('載入統計失敗:', error);
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#stats-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
         showToast('載入統計失敗', 'error');
     }
 }
@@ -965,7 +1001,7 @@ function showSettings() {
 
 async function loadEmailSettings() {
     try {
-        const { data: elder } = await supabase
+        const { data: elder } = await supabaseClient
             .from('elders')
             .select('email')
             .eq('id', currentElderId)

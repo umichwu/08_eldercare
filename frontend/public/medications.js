@@ -112,17 +112,27 @@ async function loadMedications() {
         const response = await fetch(`${API_BASE_URL}/api/medications/elder/${currentElderId}`);
         const result = await response.json();
 
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#medications-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
+
         if (result.data && result.data.length > 0) {
             medications = result.data;
             renderMedications(medications);
             document.getElementById('emptyState').style.display = 'none';
         } else {
             medications = [];
-            document.querySelector('.loading-state').style.display = 'none';
             document.getElementById('emptyState').style.display = 'flex';
         }
     } catch (error) {
         console.error('載入藥物失敗:', error);
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#medications-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
         showToast('載入藥物列表失敗', 'error');
     }
 }

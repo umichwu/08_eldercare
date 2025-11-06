@@ -190,6 +190,9 @@ function switchTab(tabName) {
 // ==================== 藥物列表 ====================
 
 async function loadMedications() {
+// Guard: ensure loading spinner is hidden when elder id not ready
+/* removed bare early-return to prevent endless loading */
+
     if (!currentElderId) {
         showToast('請先完成個人資料設定', 'warning');
         return;

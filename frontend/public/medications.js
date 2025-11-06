@@ -75,11 +75,30 @@ async function loadCurrentUser() {
             await updateProfileAndCreateElder(profile.id);
         } else {
             showToast('此功能僅供長輩使用', 'warning');
+            // 隱藏所有載入狀態（非長輩用戶）
+            hideAllLoadingStates();
         }
     } catch (error) {
         console.error('載入使用者失敗:', error);
         showToast('載入使用者資料失敗', 'error');
+        // 隱藏所有載入狀態
+        hideAllLoadingStates();
     }
+}
+
+// 隱藏所有標籤的載入狀態
+function hideAllLoadingStates() {
+    const loadingStates = [
+        document.querySelector('#medications-tab .loading-state'),
+        document.querySelector('#today-tab .loading-state'),
+        document.querySelector('#stats-tab .loading-state')
+    ];
+
+    loadingStates.forEach(state => {
+        if (state) {
+            state.style.display = 'none';
+        }
+    });
 }
 
 // 建立預設的 user profile
@@ -99,6 +118,8 @@ async function createDefaultProfile() {
         if (error) {
             console.error('建立 profile 失敗:', error);
             showToast('初始化使用者資料失敗', 'error');
+            // 隱藏所有載入狀態
+            hideAllLoadingStates();
             return;
         }
 
@@ -108,6 +129,8 @@ async function createDefaultProfile() {
     } catch (error) {
         console.error('建立預設 profile 失敗:', error);
         showToast('初始化失敗', 'error');
+        // 隱藏所有載入狀態
+        hideAllLoadingStates();
     }
 }
 
@@ -128,6 +151,8 @@ async function createDefaultElder(profileId) {
         if (error) {
             console.error('建立 elder 失敗:', error);
             showToast('初始化長輩資料失敗', 'error');
+            // 隱藏所有載入狀態
+            hideAllLoadingStates();
             return;
         }
 
@@ -140,6 +165,8 @@ async function createDefaultElder(profileId) {
     } catch (error) {
         console.error('建立預設 elder 失敗:', error);
         showToast('初始化失敗', 'error');
+        // 隱藏所有載入狀態
+        hideAllLoadingStates();
     }
 }
 
@@ -190,11 +217,15 @@ function switchTab(tabName) {
 // ==================== 藥物列表 ====================
 
 async function loadMedications() {
-// Guard: ensure loading spinner is hidden when elder id not ready
-/* removed bare early-return to prevent endless loading */
-
     if (!currentElderId) {
+        // 隱藏載入狀態
+        const loadingState = document.querySelector('#medications-tab .loading-state');
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
         showToast('請先完成個人資料設定', 'warning');
+        // 顯示空狀態
+        document.getElementById('emptyState').style.display = 'flex';
         return;
     }
 

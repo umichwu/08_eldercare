@@ -680,14 +680,44 @@ body {
     font-weight: 500;
 }
 
-.status-badge.success {
+.status-badge.success,
+.status-badge.completed {
     background: #e8f5e9;
     color: #4caf50;
 }
 
-.status-badge.danger {
+.status-badge.danger,
+.status-badge.missed {
     background: #ffebee;
     color: #f44336;
+}
+
+.status-badge.pending {
+    background: #e3f2fd;
+    color: #2196f3;
+}
+
+.status-badge.overdue {
+    background: #fff3e0;
+    color: #ff9800;
+}
+
+/* 時間軸動作按鈕 */
+.timeline-actions {
+    margin-top: 10px;
+}
+
+.dosage-info {
+    color: #667eea;
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.notes-info {
+    color: #999;
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 5px;
 }
 
 /* ==================== 統計 ==================== */

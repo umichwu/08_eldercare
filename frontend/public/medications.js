@@ -828,7 +828,23 @@ async function loadTodayMedications() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/medication-logs/pending?elderId=${currentElderId}`);
+        // 先嘗試生成今日用藥記錄（如果還沒生成的話）
+        try {
+            await fetch(`${API_BASE_URL}/api/scheduler/generate-today-logs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ elderId: currentElderId })
+            });
+        } catch (genError) {
+            console.warn('生成今日記錄失敗（可能已存在）:', genError);
+        }
+
+        // 查詢今日的用藥記錄（包含所有狀態）
+        const today = new Date();
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+        const response = await fetch(`${API_BASE_URL}/api/medication-logs/elder/${currentElderId}?days=1`);
         const result = await response.json();
 
         // 隱藏載入狀態
@@ -837,13 +853,18 @@ async function loadTodayMedications() {
             loadingState.style.display = 'none';
         }
 
-        todayLogs = result.data || [];
+        if (!result.success && !result.data) {
+            todayLogs = [];
+            renderTodayTimeline(todayLogs);
+            updateTodayStats(todayLogs);
+            return;
+        }
 
         // 過濾今日的記錄
-        const today = new Date().toDateString();
-        todayLogs = todayLogs.filter(log =>
-            new Date(log.scheduled_time).toDateString() === today
-        );
+        todayLogs = (result.data || []).filter(log => {
+            const logDate = new Date(log.scheduled_time);
+            return logDate >= todayStart && logDate <= todayEnd;
+        });
 
         renderTodayTimeline(todayLogs);
         updateTodayStats(todayLogs);
@@ -878,9 +899,11 @@ function renderTodayTimeline(logs) {
     if (logs.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <p>今天沒有排定的用藥計劃</p>
+                <div class="empty-icon">📅</div>
+                <h3>今天沒有排定的用藥計劃</h3>
+                <p>請先在「藥物列表」中新增藥物並設定提醒時間</p>
                 <button class="btn-primary" onclick="switchTab('medications')">
-                    前往設定提醒
+                    ➕ 前往設定提醒
                 </button>
             </div>
         `;
@@ -893,27 +916,56 @@ function renderTodayTimeline(logs) {
     container.innerHTML = logs.map(log => {
         const time = new Date(log.scheduled_time);
         const timeStr = time.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
-        const statusClass = log.status === 'taken' ? 'completed' :
-                          log.status === 'missed' ? 'missed' :
-                          new Date() > time ? 'overdue' : 'pending';
+        const now = new Date();
+
+        // 判斷狀態類別
+        let statusClass = '';
+        let statusText = '';
+        let showConfirmButton = false;
+
+        if (log.status === 'taken') {
+            statusClass = 'completed';
+            statusText = '✓ 已服用';
+            if (log.taken_at) {
+                const takenTime = new Date(log.taken_at);
+                const takenStr = takenTime.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+                statusText += ` (${takenStr})`;
+            }
+        } else if (log.status === 'missed') {
+            statusClass = 'missed';
+            statusText = '✗ 已錯過';
+        } else if (log.status === 'pending') {
+            if (now > time) {
+                statusClass = 'overdue';
+                statusText = '⚠️ 逾時';
+                showConfirmButton = true;
+            } else {
+                statusClass = 'pending';
+                statusText = '⏰ 待服用';
+                showConfirmButton = true;
+            }
+        }
+
+        // 取得藥物資訊
+        const medName = log.medication_name || log.medications?.medication_name || '藥物';
+        const dosage = log.dosage || log.medications?.dosage || '';
 
         return `
             <div class="timeline-item ${statusClass}">
                 <div class="timeline-time">${timeStr}</div>
                 <div class="timeline-content">
-                    <h4>${log.medications?.medication_name || '藥物'}</h4>
-                    <p>${log.medications?.dosage || ''}</p>
-                    ${log.status === 'pending' && new Date() <= time ? `
-                        <button class="btn-small btn-primary" onclick="confirmMedication('${log.id}')">
-                            ✓ 已服用
-                        </button>
-                    ` : ''}
-                    ${log.status === 'taken' ? `
-                        <span class="status-badge success">✓ 已服用</span>
-                    ` : ''}
-                    ${log.status === 'missed' ? `
-                        <span class="status-badge danger">✗ 已錯過</span>
-                    ` : ''}
+                    <h4>💊 ${medName}</h4>
+                    ${dosage ? `<p class="dosage-info">劑量：${dosage}</p>` : ''}
+                    ${log.notes ? `<p class="notes-info">📝 ${log.notes}</p>` : ''}
+                    <div class="timeline-actions">
+                        ${showConfirmButton ? `
+                            <button class="btn-small btn-primary" onclick="confirmMedication('${log.id}')">
+                                ✓ 確認已服用
+                            </button>
+                        ` : `
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        `}
+                    </div>
                 </div>
             </div>
         `;
@@ -922,24 +974,33 @@ function renderTodayTimeline(logs) {
 
 async function confirmMedication(logId) {
     try {
+        // 顯示確認對話框
+        if (!confirm('確認已服用此藥物？')) {
+            return;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/medication-logs/${logId}/confirm`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 confirmedBy: currentUser.id,
-                confirmationMethod: 'app'
+                confirmationMethod: 'app',
+                takenAt: new Date().toISOString()
             })
         });
 
+        const result = await response.json();
+
         if (response.ok) {
-            showToast('已標記為已服用', 'success');
+            showToast('✅ 已標記為已服用', 'success');
+            // 重新載入今日用藥資料
             await loadTodayMedications();
         } else {
-            showToast('標記失敗', 'error');
+            showToast(result.message || '標記失敗', 'error');
         }
     } catch (error) {
         console.error('確認服藥失敗:', error);
-        showToast('操作失敗', 'error');
+        showToast('操作失敗，請稍後再試', 'error');
     }
 }
 

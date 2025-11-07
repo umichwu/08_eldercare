@@ -9,6 +9,7 @@
  */
 
 import admin from 'firebase-admin';
+import admin from '../config/firebase.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -423,6 +424,54 @@ export async function removeFCMToken(userId, userType) {
     return { success: true };
   } catch (error) {
     console.error('❌ 移除 FCM Token 失敗:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+
+
+/**
+ * 發送 FCM 推播通知
+ */
+export async function sendFCMNotification({ token, title, body, data = {} }) {
+  try {
+    const message = {
+      notification: { title, body },
+      data: data,
+      token: token
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('✅ FCM 通知發送成功:', response);
+
+    return { success: true, messageId: response };
+  } catch (error) {
+    console.error('❌ FCM 通知發送失敗:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 批量發送 FCM 通知
+ */
+export async function sendBatchFCMNotifications({ tokens, title, body, data = {} }) {
+  try {
+    const message = {
+      notification: { title, body },
+      data: data,
+      tokens: tokens
+    };
+
+    const response = await admin.messaging().sendMulticast(message);
+    console.log(`✅ 批量發送完成: ${response.successCount}/${tokens.length}`);
+
+    return {
+      success: true,
+      successCount: response.successCount,
+      failureCount: response.failureCount
+    };
+  } catch (error) {
+    console.error('❌ 批量發送失敗:', error);
     return { success: false, error: error.message };
   }
 }

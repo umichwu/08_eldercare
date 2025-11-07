@@ -700,5 +700,36 @@
 
     <!-- Main App Logic -->
     <script src="app.js"></script>
+
+    <!-- Firebase 配置 -->
+    <script src="firebase-config.js"></script>
+    <script src="fcm-register.js"></script>
+
+    <script>
+    // 初始化 FCM
+    (async function() {
+        const initialized = await window.FCM.init();
+
+        if (initialized) {
+        // 請求通知權限
+        const token = await window.FCM.requestPermission();
+
+        if (token) {
+            // 將 Token 儲存到 localStorage
+            localStorage.setItem('fcm_token', token);
+
+            // TODO: 將 Token 發送到後端儲存
+            console.log('FCM Token:', token);
+        }
+
+        // 監聽前景訊息
+        window.FCM.listenToMessages((payload) => {
+            console.log('收到通知:', payload);
+        });
+        }
+    })();
+    </script>
+
+
 </body>
 </html>

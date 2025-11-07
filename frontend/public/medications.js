@@ -1173,3 +1173,53 @@ function showToast(message, type = 'info') {
         toast.classList.remove('show');
     }, 3000);
 }
+
+
+// 在初始化時註冊 FCM Token
+async function registerFCMToken() {
+  const token = localStorage.getItem('fcm_token');
+
+  if (!token) {
+    console.warn('⚠️ 未取得 FCM Token');
+    return;
+  }
+
+  try {
+    const { data: elder } = await supabase
+      .from('elders')
+      .select('id')
+      .eq('user_profile_id', currentUserId)
+      .single();
+
+    if (!elder) {
+      console.error('❌ 找不到長輩資料');
+      return;
+    }
+
+    // 發送到後端 API
+    const response = await fetch(`${API_BASE_URL}/api/fcm/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        elderId: elder.id,
+        token: token,
+        deviceType: 'web'
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log('✅ FCM Token 註冊成功');
+    }
+  } catch (error) {
+    console.error('❌ FCM Token 註冊失敗:', error);
+  }
+}
+
+// 在頁面載入時執行
+window.addEventListener('DOMContentLoaded', () => {
+  // ... 其他初始化代碼 ...
+
+  registerFCMToken();
+});

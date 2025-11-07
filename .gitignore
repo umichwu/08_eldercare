@@ -52,3 +52,7 @@ database/supabase_complete_schema_with_auth.sql
 *.md
 !README.md
 !database/README.md
+
+# Firebase Service Account Key
+firebase-service-account.json
+

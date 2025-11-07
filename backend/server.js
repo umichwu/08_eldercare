@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
 import medicationRouter from './routes/medicationApi.js';
+import spiritualCareRouter from './routes/spiritualCareApi.js';
 import { initializeFirebase } from './services/fcmService.js';
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 
@@ -70,6 +71,7 @@ app.use((req, res, next) => {
 // API 路由
 app.use('/api', apiRouter);
 app.use('/api', medicationRouter);
+app.use('/api/spiritual', spiritualCareRouter);
 
 // 根路由
 app.get('/', (req, res) => {

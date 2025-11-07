@@ -1,5 +1,7 @@
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { defaultLLMService, createLLMService } from '../config/llm.js';
+import spiritualCareService from './spiritualCareService.js';
+import agenticRAGService from './agenticRAGService.js';
 import dotenv from 'dotenv';
 
 // 載入環境變數
@@ -155,13 +157,6 @@ class MessageService {
    */
   async generateAIResponse(conversationId, authUserId, userMessage, llmProvider = null) {
     try {
-      // 根據用戶選擇的提供商創建LLM服務
-      const llmService = llmProvider ? createLLMService(llmProvider) : defaultLLMService;
-
-      if (!llmService.isAvailable()) {
-        throw new Error(`LLM API 未配置: ${llmProvider || '默認提供商'}`);
-      }
-
       // 取得對話歷史
       const messagesResult = await this.getMessages(conversationId, authUserId, 20);
       if (!messagesResult.success) {
@@ -169,6 +164,61 @@ class MessageService {
       }
 
       const history = messagesResult.data || [];
+
+      // 🙏 新增：檢查是否啟用心靈陪伴功能
+      let useAgenticRAG = false;
+      let userProfile = null;
+
+      try {
+        const preferencesResult = await spiritualCareService.getSpiritualPreferences(authUserId);
+        if (preferencesResult.success && preferencesResult.data) {
+          userProfile = preferencesResult.data;
+          // 如果啟用心靈陪伴且有設定宗教偏好，使用 Agentic RAG
+          useAgenticRAG = userProfile.mindfulness_enabled &&
+                         userProfile.spiritual_preference;
+
+          if (useAgenticRAG) {
+            console.log('🙏 使用 Agentic RAG (心靈陪伴模式)');
+          }
+        }
+      } catch (prefError) {
+        console.warn('⚠️ 無法取得心靈偏好，使用一般模式:', prefError.message);
+      }
+
+      // 🧠 如果啟用心靈陪伴，使用 Agentic RAG 處理
+      if (useAgenticRAG && userProfile) {
+        const agenticResult = await agenticRAGService.processWithMindCompanion(
+          userMessage,
+          history,
+          userProfile
+        );
+
+        if (agenticResult.success) {
+          return {
+            success: true,
+            data: {
+              content: agenticResult.data.response,
+              model: defaultLLMService.getModelName(),
+              provider: defaultLLMService.getProviderName(),
+              tokens: 0,
+              // 心靈照護相關資訊
+              emotion: agenticResult.data.emotion,
+              spiritualContentUsed: agenticResult.data.spiritualContentUsed,
+              needsJournalPrompt: agenticResult.data.needsJournalPrompt,
+              mindfulnessMode: true
+            }
+          };
+        } else {
+          console.warn('⚠️ Agentic RAG 處理失敗，降級使用一般模式');
+        }
+      }
+
+      // 一般模式：使用原有邏輯
+      const llmService = llmProvider ? createLLMService(llmProvider) : defaultLLMService;
+
+      if (!llmService.isAvailable()) {
+        throw new Error(`LLM API 未配置: ${llmProvider || '默認提供商'}`);
+      }
 
       // 建立對話上下文（包含系統提示詞）
       const messages = [

@@ -1,403 +1,367 @@
-# 🏥 ElderCare AI 陪伴助手
+# 🏥 ElderCare Companion System
 
-> 專為老年人設計的智能對話陪伴系統
+> AI 驅動的智慧長輩陪伴系統 - 整合對話陪伴、用藥管理、心靈照護的全方位照護平台
 
 **線上體驗**: https://08-eldercare.vercel.app/
 
----
-
-## ✨ 主要特色
-
-### 🎯 老年人友善設計
-- 超大字體（18-40px 可調）
-- 高對比色彩
-- 語音輸入/播報
-- 簡潔直覺介面
-
-### 🤖 智能 AI 對話
-- Google Gemini 2.0 / OpenAI / Deepseek
-- 溫暖陪伴語氣
-- 自動對話總結
-- 完整歷史記錄
-
-### 🌍 多語言支援
-- 繁體中文 / 簡體中文 / English / 日本語 / 한국어
-
-### 🆘 安全關懷
-- 快捷功能按鈕（緊急聯絡、用藥提醒、健康記錄）
-- 智能健康關注
-
-### 💊 用藥提醒系統（NEW!）
-- 📧 Email 自動通知（Resend，免費 3000 封/月）
-- 📱 FCM 推播通知（完全免費）
-- ⏰ Cron 排程自動提醒
-- 👨‍👩‍👧 未服藥時通知家屬
-- 📊 用藥記錄追蹤與統計
-- 🌏 多語言 Email 模板（繁中、簡中、英文）
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/yourusername/eldercare-app)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 
 ---
 
-## 🚀 快速開始
+## 📋 目錄
 
-### 線上體驗（無需配置）
-
-訪問 https://08-eldercare.vercel.app/ 立即開始！
-
-### 本地開發
-
-```bash
-# 1. 安裝依賴
-npm install
-cd backend && npm install && cd ..
-
-# 2. 設定環境變數
-cp .env.example .env
-# 編輯 .env，填入你的 API Keys
-
-# 3. 啟動服務
-npm run dev
-
-# 4. 訪問
-http://localhost:8080
-```
-
-### 環境變數設定
-
-```env
-# Supabase
-SUPABASE_URL=你的 Supabase URL
-SUPABASE_ANON_KEY=你的 Anon Key
-SUPABASE_SERVICE_ROLE_KEY=你的 Service Role Key
-
-# LLM (至少配置一個)
-LLM_PROVIDER=gemini  # 或 openai, deepseek
-GEMINI_API_KEY=你的 Gemini Key  # 推薦！免費額度充足
-# OPENAI_API_KEY=你的 OpenAI Key
-
-# Email 通知（用藥提醒功能，可選）
-RESEND_API_KEY=re_your_api_key  # Resend API Key
-RESEND_FROM_EMAIL=ElderCare <noreply@yourdomain.com>
-```
-
-**如何取得 API Keys?**
-- **Gemini**: https://aistudio.google.com/app/apikey（推薦，免費）
-- **OpenAI**: https://platform.openai.com/api-keys（需付費）
-- **Supabase**: https://supabase.com/dashboard（免費）
-- **Resend**: https://resend.com/（Email 通知，免費 3000 封/月）
+- [系統概述](#-系統概述)
+- [核心功能](#-核心功能)
+- [技術架構](#-技術架構)
+- [快速開始](#-快速開始)
+- [功能模組](#-功能模組)
+- [專案結構](#-專案結構)
+- [部署指南](#-部署指南)
+- [文件索引](#-文件索引)
 
 ---
 
-## 📚 文件
+## 🎯 系統概述
 
-| 文件 | 說明 |
+ElderCare Companion 是一個專為長輩設計的 AI 智慧陪伴系統，整合了多項創新功能，提供全方位的照護支援。
+
+### 設計理念
+
+- **🤖 AI 驅動** - 使用 Google Gemini 2.0 Flash 與 OpenAI GPT-4，提供自然、溫暖的對話體驗
+- **👵 長輩友善** - 大字體、高對比、語音輸入輸出、直覺操作
+- **🏠 家庭連結** - 家屬可遠端關心長輩狀況，即時接收重要通知
+- **🙏 全人照護** - 不只是對話，更關注心靈、情緒與用藥安全
+
+### 系統特色
+
+| 特色 | 說明 |
 |------|------|
-| **[COMPLETE_DOCUMENTATION.md](COMPLETE_DOCUMENTATION.md)** | 📖 完整文件（系統架構、API、部署） |
-| **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** | 🚀 詳細部署指南（Vercel + Render + FCM） |
-| **[MEDICATION_REMINDER_SETUP.md](MEDICATION_REMINDER_SETUP.md)** | 💊 用藥提醒設定指南（Email 通知） |
-| **[QUICKSTART.md](QUICKSTART.md)** | ⚡ 5分鐘快速啟動 |
+| **多語言支援** | 繁體中文、簡體中文、英文、日文 |
+| **跨平台** | Web（桌面/平板/手機）、PWA 支援 |
+| **離線優先** | 關鍵功能可離線使用 |
+| **即時同步** | Supabase Realtime 即時資料同步 |
+| **智慧推送** | Firebase Cloud Messaging 推送通知 |
+
+---
+
+## ✨ 核心功能
+
+### 1. 🤖 AI 對話陪伴
+
+- **自然語言對話** - 像家人一樣聊天，簡單、親切、自然
+- **對話摘要** - 自動生成對話摘要，方便家屬了解互動內容
+- **語音互動** - 支援語音輸入與語音播放
+- **多輪對話** - 保持上下文，理解複雜對話
+- **情緒感知** - AI 主動偵測長輩情緒狀態
+- **地理位置整合** - 自動獲取位置，提供在地化服務（天氣、附近設施）
+
+**技術亮點:**
+- Gemini 2.0 Flash (主要) + OpenAI GPT-4 (備用)
+- 對話歷史管理與智慧摘要
+- Web Speech API 語音互動
+
+### 2. 💊 用藥提醒系統
+
+- **智慧提醒** - 依照用藥時間自動推送通知
+- **服藥記錄** - 一鍵確認服藥，自動記錄
+- **遺漏追蹤** - 自動標記未服藥記錄
+- **統計分析** - 視覺化用藥遵從度
+- **家屬監控** - 家人可遠端查看服藥狀況
+
+**技術亮點:**
+- Firebase Cloud Messaging (FCM) 推送
+- Node-cron 排程引擎
+- 自動化日誌生成
+
+📖 **詳細指南**: [用藥提醒設定](docs/medication-setup.md) | [Firebase 設定](docs/firebase-setup.md)
+
+### 3. 🙏 心靈照護模組（Agentic RAG）
+
+- **心靈陪伴** - AI 自動偵測情緒，提供適合的經文、故事、智慧
+- **多宗教支援** - 佛教、基督教、天主教、道教、民間信仰、普世智慧
+- **心情日記** - 每日心情記錄、感恩練習、AI 心靈小語
+- **趨勢分析** - 30 天心情趨勢圖表，了解情緒變化
+- **隱私保護** - 三級隱私設定（私人、家人可見趨勢、完全分享）
+
+**技術亮點:**
+- Agentic RAG 架構（情緒分析 → 內容檢索 → 智慧融合）
+- 情緒偵測引擎（6 種情緒分類）
+- 100+ 條心靈語料初始資料
+- Chart.js 視覺化趨勢
+
+📖 **詳細指南**: [心靈照護快速開始](docs/spiritual-care-quickstart.md) | [Agentic RAG 架構](docs/spiritual-care-agentic-rag-design.md) | [UI 設計](docs/spiritual-care-ui-design.md)
+
+### 4. 📍 地理位置整合
+
+- **智慧定位** - GPS 自動定位，提供在地化服務
+- **天氣查詢** - 即時天氣資訊與生活建議
+- **附近服務** - 推薦附近醫院、藥局、活動中心
+
+📖 **詳細指南**: [地理位置功能](docs/geolocation-feature.md) | [設計文件](docs/geo-location-prompt-design.md)
 
 ---
 
 ## 🏗️ 技術架構
 
+### 系統架構圖
+
 ```
-前端 (Vercel)           後端 (Render)         資料庫 (Supabase)
-┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│ Vanilla JS   │ ────> │ Node.js      │ ────> │ PostgreSQL   │
-│ HTML/CSS     │       │ Express      │       │ + RLS        │
-└──────────────┘       └──────────────┘       └──────────────┘
-                              │
-                              ↓
-                       ┌──────────────┐
-                       │ Gemini API   │
-                       │ / OpenAI     │
-                       └──────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                  Frontend (Web/PWA)                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
+│  │ 對話介面  │  │ 用藥管理  │  │ 心靈照護  │  │ 設定頁  │ │
+│  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
+└────────────────────┬────────────────────────────────────┘
+                     │ REST API
+┌────────────────────▼────────────────────────────────────┐
+│                Backend (Node.js/Express)                  │
+│  ┌────────────┐  ┌────────────┐  ┌───────────────────┐ │
+│  │ API Routes │  │  Services  │  │  Scheduler        │ │
+│  │            │  │  (邏輯層)   │  │  (Node-cron)      │ │
+│  └────────────┘  └────────────┘  └───────────────────┘ │
+│  ┌────────────┐  ┌────────────┐  ┌───────────────────┐ │
+│  │ LLM 整合   │  │ Agentic    │  │  FCM 推送         │ │
+│  │ (Gemini/   │  │ RAG 引擎   │  │  (Firebase)       │ │
+│  │  OpenAI)   │  │            │  │                   │ │
+│  └────────────┘  └────────────┘  └───────────────────┘ │
+└────────────────────┬────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│            Database (Supabase/PostgreSQL)                 │
+│  - user_profiles (使用者檔案)                             │
+│  - conversations & messages (對話記錄)                    │
+│  - medications & medication_logs (用藥管理)              │
+│  - emotional_journals (心情日記)                         │
+│  - spiritual_contents (心靈語料庫)                       │
+└─────────────────────────────────────────────────────────┘
 ```
+
+### 技術棧
+
+#### 前端
+- **框架**: Vanilla JavaScript
+- **樣式**: CSS3 + 響應式設計
+- **圖表**: Chart.js
+- **PWA**: Service Worker + Manifest
+- **多語言**: 自建 i18n 系統
+
+#### 後端
+- **Runtime**: Node.js 18+
+- **框架**: Express.js
+- **LLM**: Google Gemini 2.0 Flash + OpenAI GPT-4
+- **排程**: Node-cron
+- **推送**: Firebase Admin SDK
+
+#### 資料庫
+- **平台**: Supabase (PostgreSQL 15+)
+- **認證**: Supabase Auth
+- **安全**: Row Level Security (RLS)
 
 ---
 
-## 📁 專案結構
+## 🚀 快速開始
+
+### 前置需求
+
+- Node.js 18.0.0+
+- PostgreSQL 15+ (或 Supabase 帳號)
+- Firebase 專案 (用於推送通知)
+- Google Gemini API Key
+- OpenAI API Key (可選)
+
+### 1. 複製專案
+
+```bash
+git clone https://github.com/yourusername/eldercare-app.git
+cd eldercare-app
+```
+
+### 2. 環境設定
+
+```bash
+cp .env.example .env
+# 編輯 .env，填入你的 API 金鑰
+```
+
+必填環境變數請參考 `.env.example`
+
+### 3. 安裝依賴
+
+```bash
+cd backend
+npm install
+```
+
+### 4. 資料庫初始化
+
+```bash
+# 連接到 Supabase 資料庫
+psql "your_database_connection_string"
+
+# 執行完整 schema（包含所有功能）
+\i database/supabase_complete_schema_with_auth.sql
+```
+
+### 5. 啟動服務
+
+```bash
+# 後端
+cd backend
+npm start
+
+# 前端（開發環境）
+cd public
+python -m http.server 8080
+```
+
+### 6. 開始使用
+
+開啟瀏覽器，前往 `http://localhost:8080`
+
+---
+
+## 📦 功能模組
+
+| 模組 | 狀態 | 快速開始文件 |
+|------|------|--------------|
+| AI 對話 | ✅ 完成 | - |
+| 用藥提醒 | ✅ 完成 | [用藥設定](docs/medication-setup.md) |
+| 心靈照護 | ✅ 完成 | [心靈照護](docs/spiritual-care-quickstart.md) |
+| 地理位置 | ✅ 完成 | [地理位置](docs/geolocation-feature.md) |
+| 家屬儀表板 | 🚧 規劃中 | - |
+
+---
+
+## 🗂️ 專案結構
 
 ```
 eldercare-app/
-├── backend/                # Node.js 後端
-│   ├── services/          # 業務邏輯
-│   ├── routes/            # API 路由
-│   └── config/            # 配置
-├── frontend/public/        # 前端靜態檔案
-│   ├── index.html         # 主頁面
-│   ├── app.js             # 主要邏輯
-│   ├── i18n.js            # 多語言
-│   └── settings.js        # 設定管理
-├── database/              # 資料庫腳本
-│   └── migrations/        # Migration
-├── docs_archive/          # 歷史文件
-├── .env                   # 環境變數
-└── package.json           # 專案設定
+├── backend/                    # 後端 API
+│   ├── config/                 # 設定（LLM、Supabase）
+│   ├── routes/                 # API 路由
+│   ├── services/               # 業務邏輯
+│   └── server.js
+│
+├── public/                     # 前端
+│   ├── index.html              # 主頁面
+│   ├── app.js                  # 主邏輯
+│   ├── spiritual-settings.html # 心靈設定
+│   ├── emotional-journal.html  # 心情日記
+│   └── styles.css
+│
+├── database/                   # 資料庫
+│   └── supabase_complete_schema_with_auth.sql
+│
+├── docs/                       # 文件
+│   ├── deployment-guide.md
+│   ├── medication-setup.md
+│   ├── spiritual-care-quickstart.md
+│   ├── firebase-setup.md
+│   └── ...
+│
+└── README.md                   # 本文件
 ```
 
 ---
 
-## 🔧 常用指令
+## 🌐 部署指南
 
-```bash
-# 開發模式（同時啟動前後端）
-npm run dev
+詳細部署指南請參考 [部署指南](docs/deployment-guide.md)
 
-# 只啟動後端
-npm run dev:backend
+### 推薦方案
 
-# 只啟動前端
-npm run dev:frontend
-
-# 生產模式
-npm run backend
-```
+- **前端**: Vercel (免費)
+- **後端**: Render (免費)
+- **資料庫**: Supabase (免費)
 
 ---
 
-## 🌐 部署
+## 📚 文件索引
 
-### 快速部署到雲端
+### 核心文件
 
-1. **後端**: Render.com（免費）
-2. **前端**: Vercel（免費）
-3. **資料庫**: Supabase（免費）
+| 文件 | 說明 |
+|------|------|
+| [README.md](README.md) | 專案總覽（本文件） |
+| [部署指南](docs/deployment-guide.md) | 完整部署流程 |
+| [Schema](database/supabase_complete_schema_with_auth.sql) | 資料庫結構 |
 
-詳細步驟請參考 **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**
+### 功能文件
 
-### 成本
+| 文件 | 說明 |
+|------|------|
+| [用藥提醒](docs/medication-setup.md) | 用藥提醒功能設定 |
+| [Firebase 設定](docs/firebase-setup.md) | FCM 推送通知設定 |
+| [心靈照護快速開始](docs/spiritual-care-quickstart.md) | 心靈照護使用指南 |
+| [Agentic RAG 架構](docs/spiritual-care-agentic-rag-design.md) | 技術設計文件 |
+| [心靈照護 UI](docs/spiritual-care-ui-design.md) | UI/UX 設計 |
+| [地理位置功能](docs/geolocation-feature.md) | GPS 與天氣整合 |
+| [地理位置設計](docs/geo-location-prompt-design.md) | Prompt 設計 |
 
-- **開發/測試**: 完全免費（使用 Gemini API）
-- **生產環境**: $0-7/月（Render 免費層有休眠限制）
+### 開發文件
 
----
-
-## 💡 常見問題
-
-### 如何切換 AI 模型？
-
-在設定頁面選擇 Gemini、OpenAI 或 Deepseek
-
-### 支援哪些語言？
-
-繁中、簡中、英文、日文、韓文
-
-### 如何調整字體大小？
-
-設定 → 字體大小 → 選擇 18-40px
-
-### 語音功能如何使用？
-
-點擊麥克風按鈕（需使用 Chrome/Edge 瀏覽器）
+| 文件 | 說明 |
+|------|------|
+| [下一步計畫](docs/_Next_Step.md) | 未來功能規劃 |
 
 ---
 
-## 🎯 適用場景
+## 📝 變更日誌
 
-- 👴 **獨居長輩**: 日常陪伴與關懷
-- 🏥 **長照機構**: 輔助照護人員
-- 👨‍👩‍👧 **家庭照顧**: 遠距關懷長輩
-- 🏢 **醫療展示**: 創新長照解決方案
+### v3.0.0 (2025-01-XX) - 最新版本
+- ✨ 新增心靈照護模組（Agentic RAG）
+- ✨ 整合 Gemini 2.0 Flash
+- ✨ 心情日記與趨勢分析
+- 🐛 修正用藥提醒問題
+- 📚 重組文件結構
 
----
+### v2.0.0 (2024-10-28)
+- ✨ 新增用藥提醒系統
+- ✨ Firebase Cloud Messaging 整合
+- 🔐 完整認證系統
 
-## 📊 功能清單
-
-- ✅ AI 智能對話
-- ✅ 自動對話總結
-- ✅ 多語言支援
-- ✅ 語音輸入/播報
-- ✅ 字體大小調整
-- ✅ 淺色/深色主題
-- ✅ 快捷功能按鈕
-- ✅ 對話歷史記錄
-- ✅ 跨裝置同步
-- ✅ 用藥提醒系統（Email + FCM 推播）
-- ✅ 未服藥家屬通知
-- ✅ 用藥記錄追蹤
-
----
-
-## 🚀 未來規劃
-
-### 短期目標（1-3 個月）
-
-#### 🏥 健康管理功能
-- [ ] **健康數據整合**
-  - 血壓、血糖、心率記錄
-  - 數據趨勢圖表顯示
-  - 異常數值警示
-
-- [x] **用藥提醒系統** ✅ 已完成
-  - ✅ Email 自動通知（Resend）
-  - ✅ FCM 推播通知
-  - ✅ Cron 排程自動提醒
-  - ✅ 用藥記錄追蹤
-  - ✅ 未服藥時通知家屬
-  - ✅ 多語言 Email 模板
-
-- [ ] **語音功能強化**
-  - 離線語音辨識
-  - 多方言支援（台語、客語）
-  - 語音指令快捷操作
-
-#### 👨‍👩‍👧 家屬端功能
-- [ ] **家屬監控面板**
-  - 查看長輩對話記錄
-  - 健康數據儀表板
-  - 異常行為提醒
-
-- [ ] **遠程關懷**
-  - 家屬可發送關懷訊息
-  - 設定提醒事項
-  - 查看活動狀態
-
-### 中期目標（3-6 個月）
-
-#### 🤖 AI 智能升級
-- [ ] **情緒識別與關懷**
-  - 分析對話中的情緒變化
-  - 主動提供情緒支持
-  - 異常情緒警示通知家屬
-
-- [ ] **個性化建議系統**
-  - 根據歷史對話學習偏好
-  - 主動推薦適合的活動
-  - 個人化健康建議
-
-- [ ] **多模態互動**
-  - 圖片分享與辨識
-  - 語音留言功能
-  - 視訊通話整合
-
-#### 📱 行動應用
-- [ ] **原生 APP 開發**
-  - iOS / Android 雙平台
-  - 推播通知功能
-  - 離線使用支援
-
-- [ ] **PWA 完整支援**
-  - 桌面圖示安裝
-  - 離線快取機制
-  - 背景同步功能
-
-### 長期目標（6-12 個月）
-
-#### 🏢 機構版功能
-- [ ] **長照機構管理系統**
-  - 多位長輩管理
-  - 照護人員協作平台
-  - 機構數據統計分析
-
-- [ ] **專業醫療整合**
-  - 醫療院所系統對接
-  - 遠距醫療諮詢
-  - 電子病歷整合
-
-#### ⌚ 智能設備整合
-- [ ] **穿戴式裝置連接**
-  - 智慧手錶/手環數據同步
-  - 即時健康監測
-  - 跌倒偵測警報
-
-- [ ] **智慧家居整合**
-  - 語音控制家電
-  - 環境感測器連動
-  - 居家安全監控
-
-#### 🆘 緊急救護系統
-- [ ] **智能緊急通報**
-  - 一鍵撥打 119
-  - 自動發送位置資訊
-  - 通知緊急聯絡人
-
-- [ ] **跌倒檢測與通報**
-  - 整合穿戴裝置
-  - 自動偵測異常狀況
-  - 即時通報家屬/救護單位
-
-### 研究方向
-
-#### 🧠 AI 技術研發
-- [ ] **本地化 LLM 部署**
-  - 降低 API 成本
-  - 提升回應速度
-  - 保護隱私數據
-
-- [ ] **語音合成優化**
-  - 更自然的 TTS 語音
-  - 台灣腔調優化
-  - 情感語音表達
-
-#### 🔐 安全與隱私
-- [ ] **醫療級資料加密**
-  - 符合 HIPAA 標準
-  - 端對端加密通訊
-  - 定期安全稽核
-
-- [ ] **隱私保護機制**
-  - 敏感資料匿名化
-  - 使用者資料控制權
-  - 符合 GDPR 規範
-
-### 商業化規劃
-
-#### 💰 營收模式
-- [ ] **免費版 + 進階版**
-  - 基礎功能永久免費
-  - 進階功能訂閱制
-  - 機構版企業授權
-
-- [ ] **B2B 合作**
-  - 長照機構合作方案
-  - 醫療院所整合
-  - 保險公司合作
-
----
-
-### 📊 優先順序評估
-
-| 功能 | 優先級 | 預估工時 | 狀態 |
-|------|--------|----------|------|
-| 用藥提醒系統 | 🔴 高 | 2 週 | ✅ 已完成 |
-| 家屬監控面板 | 🔴 高 | 3 週 | 🔄 進行中 |
-| 健康數據整合 | 🟡 中 | 3 週 | 資料庫擴充 |
-| 語音功能強化 | 🟡 中 | 4 週 | 語音引擎 |
-| 原生 APP 開發 | 🟢 低 | 8 週 | React Native |
-| 智能設備整合 | 🟢 低 | 12 週 | 硬體合作 |
-
----
-
-### 🎯 2025 年度目標
-
-**Q2**: 完成家屬端功能 + 用藥提醒系統
-**Q3**: 推出 iOS/Android APP
-**Q4**: 開始機構版試點合作
-
----
-
-**我們歡迎社群貢獻！如果您對任何功能有興趣，歡迎聯繫我們討論合作。** 🤝
+### v1.0.0 (2024-10-21)
+- 🎉 初始版本
+- 🤖 AI 對話陪伴
+- 💬 對話摘要
+- 🌍 多語言支援
 
 ---
 
 ## 🤝 貢獻
 
-歡迎提交 Issue 和 Pull Request！
+歡迎貢獻！請遵循以下步驟：
+
+1. Fork 本專案
+2. 建立功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交變更 (`git commit -m '新增某功能'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 開啟 Pull Request
 
 ---
 
 ## 📄 授權
 
-MIT License
+本專案採用 MIT 授權條款
 
 ---
 
-## 👥 聯絡
+## 🙏 致謝
 
-- **線上體驗**: https://08-eldercare.vercel.app/
-- **問題回報**: GitHub Issues
+- **Google Gemini** - 強大的 LLM 能力
+- **OpenAI** - GPT-4 備用方案
+- **Supabase** - Backend-as-a-Service
+- **Firebase** - 推送通知服務
+- **Chart.js** - 圖表庫
 
 ---
 
-**用心陪伴每一位長輩 ❤️**
+<div align="center">
+
+**用 ❤️ 打造，為長輩照護而生**
+
+[⬆ 回到頂部](#-eldercare-companion-system)
+
+</div>

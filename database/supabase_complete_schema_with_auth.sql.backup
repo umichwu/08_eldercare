@@ -1,0 +1,707 @@
+-- ============================================================================
+-- ElderCare Companion - Complete Database Schema with Authentication
+-- ============================================================================
+-- 版本: 2.0
+-- 日期: 2025-10-21
+-- 更新: 加入完整使用者認證系統（本地帳號 + Google OAuth）
+-- 角色: 長輩和家屬都可以與 AI 聊天
+-- ============================================================================
+
+-- ============================================================================
+-- STEP 1: 清理舊資料（如果存在）
+-- ============================================================================
+
+
+-- 刪除視圖
+DROP VIEW IF EXISTS public.elder_daily_stats;
+DROP VIEW IF EXISTS public.elder_full_info;
+
+-- **[修改] 刪除 auth.users 上的觸發器 (必須在 auth.users 才能刪除)**
+-- 由於 auth.users 不在 public schema 內，且無法 DROP TABLE，只能 DROP TRIGGER。
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users; 
+
+-- 刪除表格（依相依性順序）
+DROP TABLE IF EXISTS public.notifications CASCADE;
+-- ... (保持現有的 DROP TABLE) ...
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
+
+-- 關閉 RLS（避免刪除時權限問題）
+ALTER TABLE IF EXISTS public.notifications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.activity_participations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.emergency_alerts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.appointments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.medication_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.medications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.conversations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.conversation_summaries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.elder_family_relations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.family_members DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.elders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.user_profiles DISABLE ROW LEVEL SECURITY;
+
+-- 刪除視圖
+DROP VIEW IF EXISTS public.elder_daily_stats;
+DROP VIEW IF EXISTS public.elder_full_info;
+
+-- 刪除表格（依相依性順序）
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.activity_participations CASCADE;
+DROP TABLE IF EXISTS public.activities CASCADE;
+DROP TABLE IF EXISTS public.emergency_alerts CASCADE;
+DROP TABLE IF EXISTS public.appointments CASCADE;
+DROP TABLE IF EXISTS public.medication_logs CASCADE;
+DROP TABLE IF EXISTS public.medications CASCADE;
+DROP TABLE IF EXISTS public.messages CASCADE;
+DROP TABLE IF EXISTS public.conversations CASCADE;
+DROP TABLE IF EXISTS public.conversation_summaries CASCADE;
+DROP TABLE IF EXISTS public.elder_family_relations CASCADE;
+DROP TABLE IF EXISTS public.family_members CASCADE;
+DROP TABLE IF EXISTS public.elders CASCADE;
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
+
+-- ============================================================================
+-- STEP 2: 啟用擴展功能
+-- ============================================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "vector";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "postgis";
+
+-- ============================================================================
+-- STEP 3: 使用者認證系統
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 3.1 使用者檔案表 (user_profiles)
+-- ----------------------------------------------------------------------------
+-- 說明: 統一管理所有使用者，連結到 Supabase Auth
+CREATE TABLE public.user_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 關聯到 Supabase Auth
+    auth_user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    -- 基本資料
+    email VARCHAR(255) NOT NULL,
+    display_name VARCHAR(100),
+    avatar_url TEXT,
+    phone VARCHAR(20),
+
+    -- 使用者角色
+    role VARCHAR(20) NOT NULL CHECK (role IN ('elder', 'family', 'both')),
+
+    -- 關聯到角色表（會在角色建立後填入）
+    elder_id UUID,  -- 稍後加 REFERENCES
+    family_member_id UUID,  -- 稍後加 REFERENCES
+
+    -- OAuth 資訊
+    oauth_provider VARCHAR(50), -- google, facebook, line, email
+    oauth_provider_id TEXT,
+
+    -- 偏好設定
+    language VARCHAR(10) DEFAULT 'zh-TW',
+    theme VARCHAR(20) DEFAULT 'light',
+    font_size INTEGER DEFAULT 24,
+
+    -- 狀態
+    onboarding_completed BOOLEAN DEFAULT false,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    last_login_at TIMESTAMPTZ
+);
+
+-- 索引
+CREATE INDEX idx_user_profiles_auth_user_id ON public.user_profiles(auth_user_id);
+CREATE INDEX idx_user_profiles_email ON public.user_profiles(email);
+CREATE INDEX idx_user_profiles_role ON public.user_profiles(role);
+
+-- RLS
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own profile"
+    ON public.user_profiles FOR SELECT
+    USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can update own profile"
+    ON public.user_profiles FOR UPDATE
+    USING (auth.uid() = auth_user_id);
+
+  CREATE POLICY "Users can insert their own profile"
+    ON public.user_profiles
+    FOR INSERT
+    WITH CHECK (auth.uid() = auth_user_id);
+
+  CREATE POLICY "Users can update their own profile"
+    ON public.user_profiles
+    FOR UPDATE
+    USING (auth.uid() = auth_user_id);
+
+  CREATE POLICY "Users can view their own profile"
+    ON public.user_profiles
+    FOR SELECT
+    USING (auth.uid() = auth_user_id);
+
+COMMENT ON TABLE public.user_profiles IS '使用者檔案表 - 統一管理所有使用者';
+
+-- ----------------------------------------------------------------------------
+-- 3.2 長輩資料表 (elders)
+-- ----------------------------------------------------------------------------
+CREATE TABLE public.elders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 關聯到使用者檔案
+    user_profile_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    -- 基本資料
+    name VARCHAR(100) NOT NULL,
+    nickname VARCHAR(50),
+    gender VARCHAR(10) CHECK (gender IN ('male', 'female', 'other')),
+    birth_date DATE,
+    age INTEGER,
+
+    -- 聯絡資訊
+    phone VARCHAR(20),
+    email VARCHAR(255),
+    address TEXT,
+    location GEOGRAPHY(POINT),
+
+    -- 健康資訊
+    blood_type VARCHAR(5),
+    allergies TEXT[],
+    chronic_diseases TEXT[],
+    emergency_contacts JSONB,
+
+    -- 個人化設定
+    language VARCHAR(10) DEFAULT 'zh-TW',
+    voice_type VARCHAR(20) DEFAULT 'female',
+    font_size INTEGER DEFAULT 24,
+    theme VARCHAR(20) DEFAULT 'light',
+
+    -- AI 個人化設定
+    personality_profile JSONB,
+    interests TEXT[],
+    conversation_style VARCHAR(20) DEFAULT 'friendly',
+
+    -- 安全設定
+    fall_detection_enabled BOOLEAN DEFAULT true,
+    sos_enabled BOOLEAN DEFAULT true,
+    geofence_enabled BOOLEAN DEFAULT false,
+    geofence_radius INTEGER DEFAULT 1000,
+
+    -- 狀態
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+    last_active_at TIMESTAMPTZ,
+
+    -- 元資料
+    metadata JSONB DEFAULT '{}',
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
+);
+
+-- 自動計算年齡函數
+CREATE OR REPLACE FUNCTION public.calculate_elder_age()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.birth_date IS NOT NULL THEN
+        NEW.age = EXTRACT(YEAR FROM AGE(NOW(), NEW.birth_date));
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER elder_age_calculation
+BEFORE INSERT OR UPDATE OF birth_date ON public.elders
+FOR EACH ROW EXECUTE FUNCTION public.calculate_elder_age();
+
+-- 索引
+CREATE INDEX idx_elders_user_profile_id ON public.elders(user_profile_id);
+CREATE INDEX idx_elders_auth_user_id ON public.elders(auth_user_id);
+CREATE INDEX idx_elders_status ON public.elders(status) WHERE deleted_at IS NULL;
+
+-- RLS
+ALTER TABLE public.elders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own elder profile"
+    ON public.elders FOR SELECT
+    USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can update own elder profile"
+    ON public.elders FOR UPDATE
+    USING (auth.uid() = auth_user_id);
+
+COMMENT ON TABLE public.elders IS '長輩資料表';
+
+-- ----------------------------------------------------------------------------
+-- 3.3 家屬資料表 (family_members)
+-- ----------------------------------------------------------------------------
+CREATE TABLE public.family_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 關聯到使用者檔案
+    user_profile_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    -- 基本資料
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(255),
+
+    -- 關係設定
+    role VARCHAR(20) DEFAULT 'family' CHECK (role IN ('family', 'caregiver', 'admin')),
+
+    -- 通知設定
+    notification_settings JSONB DEFAULT '{
+        "push_enabled": true,
+        "email_enabled": true,
+        "sms_enabled": false,
+        "emergency_only": false,
+        "daily_summary": true,
+        "weekly_summary": true
+    }',
+
+    -- 狀態
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+    last_active_at TIMESTAMPTZ,
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ
+);
+
+-- 索引
+CREATE INDEX idx_family_members_user_profile_id ON public.family_members(user_profile_id);
+CREATE INDEX idx_family_members_auth_user_id ON public.family_members(auth_user_id);
+
+-- RLS
+ALTER TABLE public.family_members ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own family profile"
+    ON public.family_members FOR SELECT
+    USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can update own family profile"
+    ON public.family_members FOR UPDATE
+    USING (auth.uid() = auth_user_id);
+
+COMMENT ON TABLE public.family_members IS '家屬資料表';
+
+-- 現在可以加入外鍵約束到 user_profiles
+ALTER TABLE public.user_profiles
+ADD CONSTRAINT fk_user_profiles_elder_id
+FOREIGN KEY (elder_id) REFERENCES public.elders(id) ON DELETE SET NULL;
+
+ALTER TABLE public.user_profiles
+ADD CONSTRAINT fk_user_profiles_family_member_id
+FOREIGN KEY (family_member_id) REFERENCES public.family_members(id) ON DELETE SET NULL;
+
+-- ----------------------------------------------------------------------------
+-- 3.4 家屬-長輩關聯表 (elder_family_relations)
+-- ----------------------------------------------------------------------------
+CREATE TABLE public.elder_family_relations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 關聯
+    elder_id UUID NOT NULL REFERENCES public.elders(id) ON DELETE CASCADE,
+    family_member_id UUID NOT NULL REFERENCES public.family_members(id) ON DELETE CASCADE,
+
+    -- 關係
+    relationship VARCHAR(50) NOT NULL,
+    is_primary_contact BOOLEAN DEFAULT false,
+    is_emergency_contact BOOLEAN DEFAULT false,
+
+    -- 權限
+    can_view_conversations BOOLEAN DEFAULT true,
+    can_view_health_records BOOLEAN DEFAULT true,
+    can_receive_alerts BOOLEAN DEFAULT true,
+    can_manage_settings BOOLEAN DEFAULT false,
+
+    -- 狀態
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'pending')),
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(elder_id, family_member_id)
+);
+
+-- 索引
+CREATE INDEX idx_elder_family_elder_id ON public.elder_family_relations(elder_id);
+CREATE INDEX idx_elder_family_family_id ON public.elder_family_relations(family_member_id);
+
+-- RLS
+ALTER TABLE public.elder_family_relations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Elders can view own family relations"
+    ON public.elder_family_relations FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.elders
+            WHERE id = elder_family_relations.elder_id
+            AND auth_user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Family can view own elder relations"
+    ON public.elder_family_relations FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.family_members
+            WHERE id = elder_family_relations.family_member_id
+            AND auth_user_id = auth.uid()
+        )
+    );
+
+-- ============================================================================
+-- STEP 4: 對話系統（修改版 - 長輩和家屬都可以聊天）
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 4.1 對話會話表 (conversations)
+-- ----------------------------------------------------------------------------
+CREATE TABLE public.conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 關聯（支援長輩和家屬）
+    user_profile_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    -- 如果是長輩，記錄 elder_id（方便查詢）
+    elder_id UUID REFERENCES public.elders(id) ON DELETE CASCADE,
+    -- 如果是家屬，記錄 family_member_id
+    family_member_id UUID REFERENCES public.family_members(id) ON DELETE CASCADE,
+
+    -- 會話資訊
+    title VARCHAR(255),
+    session_start_at TIMESTAMPTZ DEFAULT NOW(),
+    session_end_at TIMESTAMPTZ,
+    duration_seconds INTEGER,
+
+    -- 統計
+    message_count INTEGER DEFAULT 0,
+    user_message_count INTEGER DEFAULT 0,
+    ai_message_count INTEGER DEFAULT 0,
+
+    -- 分析
+    primary_topic VARCHAR(100),
+    topics TEXT[],
+    emotions TEXT[],
+    sentiment VARCHAR(20),
+    sentiment_score DECIMAL(3,2),
+
+    -- AI 總結（每 20 次對話後生成）
+    needs_summary BOOLEAN DEFAULT false,
+    summary_generated BOOLEAN DEFAULT false,
+    summary_id UUID,  -- 稍後加 REFERENCES
+
+    -- 狀態
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'ended', 'archived')),
+
+    -- 元資料
+    metadata JSONB DEFAULT '{}',
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 索引
+CREATE INDEX idx_conversations_user_profile_id ON public.conversations(user_profile_id);
+CREATE INDEX idx_conversations_auth_user_id ON public.conversations(auth_user_id);
+CREATE INDEX idx_conversations_elder_id ON public.conversations(elder_id);
+CREATE INDEX idx_conversations_family_id ON public.conversations(family_member_id);
+CREATE INDEX idx_conversations_status ON public.conversations(status);
+CREATE INDEX idx_conversations_date ON public.conversations(session_start_at DESC);
+
+-- RLS
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own conversations"
+    ON public.conversations FOR SELECT
+    USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can create own conversations"
+    ON public.conversations FOR INSERT
+    WITH CHECK (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can update own conversations"
+    ON public.conversations FOR UPDATE
+    USING (auth.uid() = auth_user_id);
+
+-- 家屬可以查看關聯長輩的對話
+CREATE POLICY "Family can view elder conversations"
+    ON public.conversations FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.elder_family_relations efr
+            JOIN public.family_members fm ON fm.id = efr.family_member_id
+            WHERE efr.elder_id = conversations.elder_id
+            AND fm.auth_user_id = auth.uid()
+            AND efr.can_view_conversations = true
+            AND efr.status = 'active'
+        )
+    );
+
+COMMENT ON TABLE public.conversations IS '對話會話表 - 長輩和家屬都可以與 AI 聊天';
+
+-- ----------------------------------------------------------------------------
+-- 4.2 對話訊息表 (messages)
+-- ----------------------------------------------------------------------------
+CREATE TABLE public.messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 關聯
+    conversation_id UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+    user_profile_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    auth_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    -- 訊息內容
+    role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content TEXT NOT NULL,
+    content_type VARCHAR(20) DEFAULT 'text' CHECK (content_type IN ('text', 'voice', 'image', 'video')),
+
+    -- 語音訊息
+    audio_url TEXT,
+    audio_duration_seconds INTEGER,
+    transcription TEXT,
+
+    -- AI 分析
+    intent VARCHAR(100),
+    emotion VARCHAR(50),
+    emotion_score DECIMAL(3,2),
+    entities JSONB,
+    keywords TEXT[],
+
+    -- 健康相關標記
+    health_mentioned BOOLEAN DEFAULT false,
+    pain_mentioned BOOLEAN DEFAULT false,
+    medication_mentioned BOOLEAN DEFAULT false,
+    emergency_detected BOOLEAN DEFAULT false,
+
+    -- AI 設定
+    model VARCHAR(50),
+    temperature DECIMAL(2,1),
+    tokens_used INTEGER,
+
+    -- 元資料
+    metadata JSONB DEFAULT '{}',
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- 向量嵌入
+    embedding vector(1536)
+);
+
+-- 索引
+CREATE INDEX idx_messages_conversation_id ON public.messages(conversation_id);
+CREATE INDEX idx_messages_user_profile_id ON public.messages(user_profile_id);
+CREATE INDEX idx_messages_created_at ON public.messages(created_at DESC);
+CREATE INDEX idx_messages_role ON public.messages(role);
+
+-- RLS
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own messages"
+    ON public.messages FOR SELECT
+    USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can create own messages"
+    ON public.messages FOR INSERT
+    WITH CHECK (auth.uid() = auth_user_id);
+
+-- 家屬可以查看關聯長輩的訊息
+CREATE POLICY "Family can view elder messages"
+    ON public.messages FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.conversations c
+            JOIN public.elder_family_relations efr ON efr.elder_id = c.elder_id
+            JOIN public.family_members fm ON fm.id = efr.family_member_id
+            WHERE c.id = messages.conversation_id
+            AND fm.auth_user_id = auth.uid()
+            AND efr.can_view_conversations = true
+            AND efr.status = 'active'
+        )
+    );
+
+COMMENT ON TABLE public.messages IS '對話訊息表';
+
+-- ----------------------------------------------------------------------------
+-- 4.3 對話總結表 (conversation_summaries)
+-- ----------------------------------------------------------------------------
+CREATE TABLE public.conversation_summaries (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- 關聯
+    user_profile_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    conversation_ids UUID[] NOT NULL,
+
+    -- 時間範圍
+    time_range_start TIMESTAMPTZ NOT NULL,
+    time_range_end TIMESTAMPTZ NOT NULL,
+
+    -- 統計
+    total_conversations INTEGER NOT NULL,
+    total_messages INTEGER NOT NULL,
+
+    -- AI 總結內容
+    overview TEXT NOT NULL,
+    health_summary JSONB DEFAULT '{}',
+    social_summary JSONB DEFAULT '{}',
+    medication_summary JSONB DEFAULT '{}',
+    appointments_summary JSONB DEFAULT '{}',
+    key_moments JSONB DEFAULT '[]',
+    alerts JSONB DEFAULT '[]',
+    family_message TEXT,
+    ai_insights JSONB DEFAULT '{}',
+
+    -- 情緒分析
+    emotion_distribution JSONB DEFAULT '{}',
+    overall_sentiment VARCHAR(20),
+    sentiment_trend VARCHAR(20),
+
+    -- 話題分佈
+    topic_distribution JSONB DEFAULT '{}',
+
+    -- AI 模型資訊
+    model_used VARCHAR(50),
+    generation_quality_score DECIMAL(3,2),
+
+    -- 家屬已讀狀態
+    read_by_family JSONB DEFAULT '{}',
+
+    -- 狀態
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 索引
+CREATE INDEX idx_summaries_user_profile_id ON public.conversation_summaries(user_profile_id);
+CREATE INDEX idx_summaries_created_at ON public.conversation_summaries(created_at DESC);
+
+-- RLS
+ALTER TABLE public.conversation_summaries ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own summaries"
+    ON public.conversation_summaries FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.user_profiles
+            WHERE id = conversation_summaries.user_profile_id
+            AND auth_user_id = auth.uid()
+        )
+    );
+
+COMMENT ON TABLE public.conversation_summaries IS '對話總結表';
+
+-- 加入外鍵約束
+ALTER TABLE public.conversations
+ADD CONSTRAINT fk_conversations_summary_id
+FOREIGN KEY (summary_id) REFERENCES public.conversation_summaries(id) ON DELETE SET NULL;
+
+-- ============================================================================
+-- STEP 5: 觸發器與自動化
+-- ============================================================================
+
+-- 更新 updated_at 時間戳記
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_profiles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_elders_updated_at BEFORE UPDATE ON public.elders
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_family_members_updated_at BEFORE UPDATE ON public.family_members
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON public.conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_conversation_summaries_updated_at BEFORE UPDATE ON public.conversation_summaries
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- 對話計數更新觸發器
+CREATE OR REPLACE FUNCTION update_conversation_message_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE public.conversations
+    SET
+        message_count = message_count + 1,
+        user_message_count = CASE WHEN NEW.role = 'user' THEN user_message_count + 1 ELSE user_message_count END,
+        ai_message_count = CASE WHEN NEW.role = 'assistant' THEN ai_message_count + 1 ELSE ai_message_count END
+    WHERE id = NEW.conversation_id;
+
+    -- 檢查是否需要觸發總結（每 20 次對話）
+    UPDATE public.conversations
+    SET needs_summary = true
+    WHERE id = NEW.conversation_id
+    AND message_count % 20 = 0
+    AND needs_summary = false;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_conversation_count AFTER INSERT ON public.messages
+    FOR EACH ROW EXECUTE FUNCTION update_conversation_message_count();
+
+-- 自動建立 user_profile 觸發器（當新使用者註冊時）
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+    _display_name TEXT;
+    _role TEXT;
+BEGIN
+    _display_name := NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'display_name', '')), '');
+    IF _display_name IS NULL THEN
+        _display_name := SPLIT_PART(NEW.email, '@', 1);
+    END IF;
+
+    _role := NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'role', '')), '');
+    IF _role IS NULL OR _role NOT IN ('elder', 'family', 'both') THEN
+        _role := 'family';
+    END IF;
+
+    INSERT INTO public.user_profiles (auth_user_id, email, oauth_provider, display_name, role)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_app_meta_data->>'provider', 'email'),
+        _display_name,
+        _role
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================================
+-- 結束
+-- ============================================================================
+
+COMMENT ON SCHEMA public IS 'ElderCare Companion v2.0 - 含完整認證系統';

@@ -8,7 +8,6 @@
  * - 發送用藥提醒和家屬通知
  */
 
-import admin from 'firebase-admin';
 import admin from '../config/firebase.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
@@ -29,47 +28,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Firebase Admin 初始化狀態
-let firebaseInitialized = false;
-
 /**
- * 初始化 Firebase Admin SDK
- *
- * 需要環境變數：
- * - FIREBASE_PROJECT_ID
- * - FIREBASE_CLIENT_EMAIL
- * - FIREBASE_PRIVATE_KEY (記得將 \n 轉換成換行)
+ * 檢查 Firebase 是否已初始化
  */
-export function initializeFirebase() {
-  if (firebaseInitialized) {
-    console.log('⚠️  Firebase Admin 已經初始化');
-    return;
-  }
-
+function isFirebaseInitialized() {
   try {
-    // 檢查必要的環境變數
-    if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PRIVATE_KEY) {
-      console.warn('⚠️  Firebase 環境變數未設定，FCM 功能將無法使用');
-      console.warn('需要設定: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY');
-      return;
-    }
-
-    // 將環境變數中的 \n 轉換為實際換行符
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
-
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey,
-      }),
-    });
-
-    firebaseInitialized = true;
-    console.log('✅ Firebase Admin SDK 初始化成功');
-  } catch (error) {
-    console.error('❌ Firebase Admin SDK 初始化失敗:', error.message);
-    throw error;
+    return admin.apps.length > 0;
+  } catch {
+    return false;
   }
 }
 
@@ -84,7 +50,7 @@ export function initializeFirebase() {
  * @returns {Promise<Object>} - 發送結果
  */
 export async function sendPushNotification(fcmToken, notification, data = {}) {
-  if (!firebaseInitialized) {
+  if (!isFirebaseInitialized()) {
     console.warn('⚠️  Firebase 未初始化，無法發送推送通知');
     return { success: false, error: 'Firebase not initialized' };
   }
@@ -151,7 +117,7 @@ export async function sendPushNotification(fcmToken, notification, data = {}) {
  * @returns {Promise<Object>} - 發送結果統計
  */
 export async function sendMulticastPushNotification(fcmTokens, notification, data = {}) {
-  if (!firebaseInitialized) {
+  if (!isFirebaseInitialized()) {
     console.warn('⚠️  Firebase 未初始化，無法發送推送通知');
     return { successCount: 0, failureCount: fcmTokens.length };
   }
@@ -477,11 +443,12 @@ export async function sendBatchFCMNotifications({ tokens, title, body, data = {}
 }
 
 export default {
-  initializeFirebase,
   sendPushNotification,
   sendMulticastPushNotification,
   sendMedicationReminder,
   notifyFamilyMissedMedication,
   registerFCMToken,
   removeFCMToken,
+  sendFCMNotification,
+  sendBatchFCMNotifications,
 };

@@ -140,6 +140,7 @@ async function createDefaultElder(profileId) {
         const { data, error } = await supabaseClient
             .from('elders')
             .insert([{
+                auth_user_id: currentUser.id,
                 user_profile_id: profileId,
                 name: currentUser.email.split('@')[0],
                 gender: 'prefer_not_to_say',

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用藥管理系統診斷工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #667eea; }
+        h2 { color: #333; font-size: 18px; margin-top: 0; }
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #5568d3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 用藥管理系統診斷工具</h1>
+
+    <div class="card">
+        <h2>步驟 1: 檢查後端連線</h2>
+        <button onclick="checkBackend()">檢查後端 API</button>
+        <div id="backend-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>步驟 2: 檢查登入狀態</h2>
+        <button onclick="checkAuth()">檢查登入</button>
+        <div id="auth-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>步驟 3: 檢查長輩資料</h2>
+        <button onclick="checkElderData()" id="check-elder-btn" disabled>檢查長輩資料</button>
+        <button onclick="createTestElder()" id="create-elder-btn" disabled>建立測試長輩資料</button>
+        <div id="elder-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>步驟 4: 測試新增藥物</h2>
+        <button onclick="testCreateMedication()" id="test-med-btn" disabled>測試新增藥物</button>
+        <div id="medication-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>快速操作</h2>
+        <button onclick="window.location.href='login.html'">前往登入頁面</button>
+        <button onclick="window.location.href='medications.html'">前往用藥管理</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+        const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let currentProfile = null;
+        let currentElder = null;
+
+        async function checkBackend() {
+            const statusDiv = document.getElementById('backend-status');
+            statusDiv.innerHTML = '<div class="status info">檢查中...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ 後端連線正常<br>
+                            狀態: ${data.status}<br>
+                            時間: ${data.timestamp}
+                        </div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `<div class="status error">❌ 後端回應異常: ${response.status}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ 無法連線到後端<br>錯誤: ${error.message}<br><br>請確認後端是否已啟動（npm start）</div>`;
+            }
+        }
+
+        async function checkAuth() {
+            const statusDiv = document.getElementById('auth-status');
+            statusDiv.innerHTML = '<div class="status info">檢查中...</div>';
+
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+                if (error) throw error;
+
+                if (!session) {
+                    statusDiv.innerHTML = `
+                        <div class="status warning">
+                            ⚠️ 尚未登入<br>
+                            請先登入再使用用藥管理功能
+                        </div>
+                    `;
+                    return;
+                }
+
+                currentUser = session.user;
+
+                // 檢查 user_profile
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('auth_user_id', currentUser.id)
+                    .single();
+
+                if (profileError && profileError.code !== 'PGRST116') {
+                    throw profileError;
+                }
+
+                currentProfile = profile;
+
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ 已登入<br>
+                        Email: ${currentUser.email}<br>
+                        User ID: ${currentUser.id}
+                        ${profile ? `<br>Profile ID: ${profile.id}<br>角色: ${profile.role || '未設定'}` : '<br><span style="color: orange;">⚠️ 未建立 Profile</span>'}
+                    </div>
+                    <pre>${JSON.stringify({ user: currentUser, profile }, null, 2)}</pre>
+                `;
+
+                // 啟用下一步按鈕
+                document.getElementById('check-elder-btn').disabled = false;
+                document.getElementById('create-elder-btn').disabled = false;
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ 檢查登入失敗<br>錯誤: ${error.message}</div>`;
+            }
+        }
+
+        async function checkElderData() {
+            const statusDiv = document.getElementById('elder-status');
+            statusDiv.innerHTML = '<div class="status info">檢查中...</div>';
+
+            if (!currentProfile) {
+                statusDiv.innerHTML = '<div class="status error">❌ 請先執行步驟 2: 檢查登入</div>';
+                return;
+            }
+
+            try {
+                const { data: elder, error } = await supabaseClient
+                    .from('elders')
+                    .select('*')
+                    .eq('user_profile_id', currentProfile.id)
+                    .maybeSingle();
+
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+
+                if (!elder) {
+                    statusDiv.innerHTML = `
+                        <div class="status warning">
+                            ⚠️ 沒有長輩資料<br>
+                            請點擊「建立測試長輩資料」按鈕
+                        </div>
+                    `;
+                    return;
+                }
+
+                currentElder = elder;
+
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ 找到長輩資料<br>
+                        長輩 ID: ${elder.id}<br>
+                        姓名: ${elder.name}<br>
+                        Email: ${elder.email || '未設定'}<br>
+                        生日: ${elder.birth_date || '未設定'}
+                    </div>
+                    <pre>${JSON.stringify(elder, null, 2)}</pre>
+                `;
+
+                // 啟用測試按鈕
+                document.getElementById('test-med-btn').disabled = false;
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ 檢查長輩資料失敗<br>錯誤: ${error.message}</div>`;
+            }
+        }
+
+        async function createTestElder() {
+            const statusDiv = document.getElementById('elder-status');
+            statusDiv.innerHTML = '<div class="status info">建立中...</div>';
+
+            if (!currentProfile) {
+                statusDiv.innerHTML = '<div class="status error">❌ 請先執行步驟 2: 檢查登入</div>';
+                return;
+            }
+
+            try {
+                // 先更新 profile 的 role
+                await supabaseClient
+                    .from('user_profiles')
+                    .update({ role: 'elder' })
+                    .eq('id', currentProfile.id);
+
+                // 建立長輩資料（包含 auth_user_id）
+                const { data: elder, error } = await supabaseClient
+                    .from('elders')
+                    .insert({
+                        auth_user_id: currentUser.id,
+                        user_profile_id: currentProfile.id,
+                        name: '測試長輩',
+                        birth_date: '1950-01-01',
+                        email: currentUser.email
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                currentElder = elder;
+
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ 測試長輩資料建立成功！<br>
+                        長輩 ID: ${elder.id}<br>
+                        姓名: ${elder.name}<br>
+                        Email: ${elder.email}
+                    </div>
+                    <pre>${JSON.stringify(elder, null, 2)}</pre>
+                `;
+
+                // 啟用測試按鈕
+                document.getElementById('test-med-btn').disabled = false;
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ 建立長輩資料失敗<br>錯誤: ${error.message}</div>`;
+            }
+        }
+
+        async function testCreateMedication() {
+            const statusDiv = document.getElementById('medication-status');
+            statusDiv.innerHTML = '<div class="status info">測試中...</div>';
+
+            if (!currentElder) {
+                statusDiv.innerHTML = '<div class="status error">❌ 請先執行步驟 3: 檢查長輩資料</div>';
+                return;
+            }
+
+            try {
+                const testMedication = {
+                    elder_id: currentElder.id,
+                    medication_name: '測試用降血壓藥',
+                    dosage: '5mg, 1顆',
+                    frequency: 'daily',
+                    time_of_day: 'morning',
+                    start_date: new Date().toISOString().split('T')[0],
+                    instructions: '飯後服用，多喝水',
+                    status: 'active'
+                };
+
+                const response = await fetch(`${API_BASE_URL}/api/medications`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testMedication)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '新增失敗');
+                }
+
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ 測試藥物新增成功！<br>
+                        藥物 ID: ${result.data.id}<br>
+                        藥物名稱: ${result.data.medication_name}<br>
+                        <br>
+                        現在可以前往用藥管理頁面設定提醒時間了！
+                    </div>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ 測試新增藥物失敗<br>錯誤: ${error.message}</div>`;
+            }
+        }
+
+        // 頁面載入時自動執行檢查
+        window.onload = async () => {
+            await checkBackend();
+        };
+    </script>
+</body>
+</html>

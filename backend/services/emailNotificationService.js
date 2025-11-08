@@ -9,10 +9,16 @@
 
 import { Resend } from 'resend';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// 載入環境變數
+// 取得當前檔案的目錄
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 載入環境變數（從專案根目錄的 .env）
 if (process.env.NODE_ENV !== 'production') {
-  dotenv.config();
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 } else {
   dotenv.config();
 }
@@ -70,7 +76,7 @@ export async function sendMedicationReminderEmail(reminderData) {
       html: content.html
     });
 
-    console.log('✅ Email 發送成功:', result.id);
+    console.log('✅ Email 發送成功:', result?.data?.id || result?.id || 'success');
     return { success: true, data: result };
   } catch (error) {
     console.error('❌ Email 發送失敗:', error.message);

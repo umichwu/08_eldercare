@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(cat firebase-service-account.json)",
-      "Bash(python3 -c \"import sys, json; print(json.dumps(json.load(sys.stdin)))\")"
+      "Bash(python3 -c \"import sys, json; print(json.dumps(json.load(sys.stdin)))\")",
+      "Bash(npm start)",
+      "Bash(node test-email.js)",
+      "Bash(python3 -m http.server 8080 --directory public)",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill -9)",
+      "Bash(netstat -tulpn)",
+      "Bash(ss -tulpn)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(kill -9 3560 3561)",
+      "Bash(chmod +x start.sh)"
     ],
     "deny": [],
     "ask": []

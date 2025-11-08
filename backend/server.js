@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
 import medicationRouter from './routes/medicationApi.js';
 import spiritualCareRouter from './routes/spiritualCareApi.js';
-import { initializeFirebase } from './services/fcmService.js';
+import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 
 // 取得當前檔案的目錄（ES Module 需要）
@@ -23,12 +23,7 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config(); // 嘗試載入，但不強制要求檔案存在
 }
 
-// 初始化 Firebase Admin SDK (用於 FCM 推送通知)
-try {
-  initializeFirebase();
-} catch (error) {
-  console.warn('⚠️  Firebase 初始化失敗，FCM 功能將無法使用');
-}
+// Firebase Admin SDK 已在 config/firebase.js 中初始化
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000;

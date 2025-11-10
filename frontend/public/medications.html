@@ -20,17 +20,35 @@
             ← 返回
         </button>
         <h1 class="nav-title">💊 用藥管理</h1>
-        <button class="nav-settings" onclick="showSettings()">
-            ⚙️
-        </button>
+        <div style="display: flex; gap: 8px;">
+            <button class="nav-notification-test" onclick="testNotification()" title="測試推送通知">
+                🔔
+            </button>
+            <button class="nav-settings" onclick="showSettings()">
+                ⚙️
+            </button>
+        </div>
     </nav>
+
+    <!-- 通知權限提示橫幅 -->
+    <div id="notificationBanner" class="notification-banner" style="display: none;">
+        <div class="banner-content">
+            <span class="banner-icon">🔔</span>
+            <div class="banner-text">
+                <strong>開啟通知權限</strong>
+                <p>請允許瀏覽器通知，以便在用藥時間收到提醒</p>
+            </div>
+            <button class="banner-btn" onclick="requestNotificationPermission()">立即開啟</button>
+            <button class="banner-close" onclick="closeBanner()">✕</button>
+        </div>
+    </div>
 
     <!-- 主要內容 -->
     <div class="medication-container">
         <!-- 標籤切換 -->
         <div class="tab-container">
             <button class="tab-btn active" data-tab="medications" onclick="switchTab('medications')">
-                📋 藥物列表
+                ⏰ 設定用藥時間
             </button>
             <button class="tab-btn" data-tab="today" onclick="switchTab('today')">
                 📅 今日用藥
@@ -42,14 +60,53 @@
 
         <!-- 藥物列表標籤 -->
         <div id="medications-tab" class="tab-content active">
+            <!-- 快速新增區域 -->
+            <div class="quick-add-section">
+                <h3 class="section-title">🎯 快速新增常用藥物</h3>
+                <div class="quick-templates">
+                    <button class="template-btn" onclick="useTemplate('blood_pressure')">
+                        <span class="template-icon">❤️</span>
+                        <span class="template-text">降血壓藥</span>
+                    </button>
+                    <button class="template-btn" onclick="useTemplate('diabetes')">
+                        <span class="template-icon">🩸</span>
+                        <span class="template-text">糖尿病藥</span>
+                    </button>
+                    <button class="template-btn" onclick="useTemplate('heart')">
+                        <span class="template-icon">💓</span>
+                        <span class="template-text">心臟病藥</span>
+                    </button>
+                    <button class="template-btn" onclick="useTemplate('pain')">
+                        <span class="template-icon">💊</span>
+                        <span class="template-text">止痛藥</span>
+                    </button>
+                    <button class="template-btn" onclick="useTemplate('cold')">
+                        <span class="template-icon">🤧</span>
+                        <span class="template-text">感冒藥</span>
+                    </button>
+                    <button class="template-btn" onclick="useTemplate('stomach')">
+                        <span class="template-icon">🫃</span>
+                        <span class="template-text">胃腸藥</span>
+                    </button>
+                    <button class="template-btn" onclick="useTemplate('sleep')">
+                        <span class="template-icon">😴</span>
+                        <span class="template-text">助眠藥</span>
+                    </button>
+                    <button class="template-btn" onclick="useTemplate('custom')">
+                        <span class="template-icon">✏️</span>
+                        <span class="template-text">自訂藥物</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- 搜尋和新增 -->
             <div class="action-bar">
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="🔍 搜尋藥物名稱..."
                            oninput="searchMedications(this.value)">
                 </div>
-                <button class="btn-primary" onclick="showAddMedicationForm()">
-                    ➕ 新增藥物
+                <button class="btn-primary btn-large" onclick="showAddMedicationForm()">
+                    ➕ 新增用藥時間
                 </button>
             </div>
 
@@ -64,11 +121,11 @@
 
             <!-- 空狀態 -->
             <div id="emptyState" class="empty-state" style="display: none;">
-                <div class="empty-icon">💊</div>
-                <h3>還沒有藥物記錄</h3>
-                <p>點擊上方「新增藥物」按鈕開始管理您的用藥</p>
-                <button class="btn-primary" onclick="showAddMedicationForm()">
-                    ➕ 新增第一個藥物
+                <div class="empty-icon">⏰</div>
+                <h3 class="large-text">還沒有設定用藥時間</h3>
+                <p class="large-text">請選擇上方常用藥物，或點擊「新增用藥時間」按鈕</p>
+                <button class="btn-primary btn-extra-large" onclick="showAddMedicationForm()">
+                    ➕ 開始設定用藥時間
                 </button>
             </div>
         </div>
@@ -130,56 +187,318 @@
         </div>
     </div>
 
-    <!-- 新增/編輯藥物 Modal (快速設定模式) -->
+    <!-- 新增/編輯藥物 Modal (老人家友善版) -->
     <div id="medicationModal" class="modal">
-        <div class="modal-content modal-large">
+        <div class="modal-content modal-large elder-friendly">
             <div class="modal-header">
-                <h2 id="modalTitle">➕ 快速新增用藥提醒</h2>
-                <button class="modal-close" onclick="closeMedicationModal()">&times;</button>
+                <h2 id="modalTitle" class="large-text">➕ 新增用藥時間</h2>
+                <button class="modal-close large-btn" onclick="closeMedicationModal()">&times;</button>
             </div>
             <form id="medicationForm" onsubmit="saveMedication(event)">
-                <!-- 基本資訊 (必填) -->
-                <div class="form-section">
-                    <h3>📋 基本資訊</h3>
-                    <div class="form-group">
-                        <label for="medicationName">藥物名稱 *</label>
-                        <input type="text" id="medicationName" required placeholder="例如：降血壓藥、阿斯匹靈">
+                <!-- 基本資訊 (簡化版) -->
+                <div class="form-section elder-form">
+                    <h3 class="section-title">📋 藥物資訊</h3>
+
+                    <!-- 藥物名稱 -->
+                    <div class="form-group-large">
+                        <label for="medicationName" class="large-label">
+                            <span class="label-icon">💊</span>
+                            <span>藥物名稱</span>
+                        </label>
+                        <select id="medicationNameSelect" class="large-select" onchange="selectMedicationName(this.value)">
+                            <option value="">請選擇常用藥物</option>
+                            <optgroup label="慢性病藥物">
+                                <option value="降血壓藥">降血壓藥</option>
+                                <option value="降血糖藥">降血糖藥</option>
+                                <option value="心臟病藥">心臟病藥</option>
+                                <option value="降血脂藥">降血脂藥</option>
+                                <option value="抗凝血藥">抗凝血藥</option>
+                            </optgroup>
+                            <optgroup label="常見藥物">
+                                <option value="感冒藥">感冒藥</option>
+                                <option value="止痛藥">止痛藥</option>
+                                <option value="消炎藥">消炎藥</option>
+                                <option value="胃藥">胃藥</option>
+                                <option value="止瀉藥">止瀉藥</option>
+                                <option value="助眠藥">助眠藥</option>
+                            </optgroup>
+                            <optgroup label="中藥">
+                                <option value="科學中藥">科學中藥</option>
+                                <option value="水藥">水藥</option>
+                            </optgroup>
+                            <optgroup label="其他">
+                                <option value="維他命">維他命</option>
+                                <option value="保健食品">保健食品</option>
+                                <option value="custom">自行輸入...</option>
+                            </optgroup>
+                        </select>
+                        <input type="text" id="medicationName" class="large-input"
+                               style="display: none; margin-top: 12px;"
+                               placeholder="請輸入藥名">
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="dosage">每次劑量 *</label>
-                            <input type="text" id="dosage" required placeholder="例如：1 顆、5ml">
+                    <!-- 劑量和時機 -->
+                    <div class="form-group-large">
+                        <label for="dosage" class="large-label">
+                            <span class="label-icon">💧</span>
+                            <span>每次吃幾顆？</span>
+                        </label>
+                        <div class="dosage-quick-select">
+                            <button type="button" class="dosage-btn" onclick="setDosage('1顆')">1顆</button>
+                            <button type="button" class="dosage-btn" onclick="setDosage('2顆')">2顆</button>
+                            <button type="button" class="dosage-btn" onclick="setDosage('3顆')">3顆</button>
+                            <button type="button" class="dosage-btn" onclick="setDosage('半顆')">半顆</button>
+                            <input type="text" id="dosage" class="large-input dosage-custom"
+                                   placeholder="或自行輸入">
                         </div>
-                        <div class="form-group">
-                            <label for="mealTiming">用藥時機 *</label>
-                            <select id="mealTiming" required>
-                                <option value="">請選擇</option>
-                                <option value="before_meal">飯前（30分鐘前）</option>
-                                <option value="with_meal">飯中（隨餐）</option>
-                                <option value="after_meal">飯後（30分鐘後）</option>
-                                <option value="anytime">不限時間</option>
-                                <option value="bedtime">睡前</option>
-                            </select>
-                        </div>
+                    </div>
+
+                    <div class="form-group-large">
+                        <label for="mealTiming" class="large-label">
+                            <span class="label-icon">🍚</span>
+                            <span>什麼時候吃？</span>
+                        </label>
+                        <select id="mealTiming" class="large-select" required>
+                            <option value="">請選擇</option>
+                            <option value="before_meal">🍽️ 飯前吃（飯前30分鐘）</option>
+                            <option value="with_meal">🍚 飯中吃（隨餐服用）</option>
+                            <option value="after_meal">☕ 飯後吃（飯後30分鐘）</option>
+                            <option value="anytime">⏰ 任何時間都可以</option>
+                            <option value="bedtime">🌙 睡前吃</option>
+                        </select>
                     </div>
                 </div>
 
-                <!-- 提醒時間 (必填) -->
-                <div class="form-section">
-                    <h3>⏰ 提醒時間 *</h3>
-                    <div id="reminderTimesContainer">
-                        <div class="time-input-group">
-                            <input type="time" class="reminder-time" required>
-                            <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)" style="display: none;">
-                                ❌
+                <!-- 用藥類型選擇 -->
+                <div class="form-section elder-form">
+                    <h3 class="section-title">📅 用藥類型</h3>
+                    <div class="medication-type-select">
+                        <button type="button" class="type-option-btn active" data-type="chronic" onclick="selectMedicationType('chronic')">
+                            <span class="type-icon">💊</span>
+                            <span class="type-text">長期用藥</span>
+                            <span class="type-desc">每天固定時間</span>
+                        </button>
+                        <button type="button" class="type-option-btn" data-type="shortterm" onclick="selectMedicationType('shortterm')">
+                            <span class="type-icon">🤧</span>
+                            <span class="type-text">短期用藥</span>
+                            <span class="type-desc">吃幾天就好</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="medicationDurationType" value="chronic">
+                </div>
+
+                <!-- 長期用藥時間設定 -->
+                <div id="chronicTimeSettings" class="form-section elder-form">
+                    <h3 class="section-title">⏰ 設定提醒時間</h3>
+
+                    <!-- 快速時間選擇 -->
+                    <div class="time-quick-select">
+                        <h4 class="quick-select-title">常用時間：</h4>
+                        <div class="time-preset-buttons">
+                            <button type="button" class="time-preset-btn" onclick="addPresetTime('08:00')">
+                                ☀️ 早上 8:00
+                            </button>
+                            <button type="button" class="time-preset-btn" onclick="addPresetTime('12:00')">
+                                🌤️ 中午 12:00
+                            </button>
+                            <button type="button" class="time-preset-btn" onclick="addPresetTime('18:00')">
+                                🌆 晚上 6:00
+                            </button>
+                            <button type="button" class="time-preset-btn" onclick="addPresetTime('21:00')">
+                                🌙 睡前 9:00
                             </button>
                         </div>
                     </div>
-                    <button type="button" class="btn-secondary btn-small" onclick="addReminderTimeInForm()">
-                        ➕ 新增時間
+
+                    <!-- 已選擇的時間 -->
+                    <div id="reminderTimesContainer" class="selected-times-container">
+                        <div class="time-input-group-large">
+                            <label class="time-label">提醒時間：</label>
+                            <input type="time" class="reminder-time large-time-input" required>
+                            <button type="button" class="btn-icon-large danger" onclick="removeReminderTime(this)" style="display: none;">
+                                ❌ 刪除
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-secondary btn-large" onclick="addReminderTimeInForm()">
+                        ➕ 新增其他時間
                     </button>
-                    <p class="help-text">💡 例如：早上 8:00、中午 12:00、晚上 18:00</p>
+
+                    <p class="help-text-large">💡 提示：可以設定多個提醒時間</p>
+                </div>
+
+                <!-- 短期用藥時間設定 (NEW - 使用預設時段) -->
+                <div id="shorttermTimeSettings" class="form-section elder-form" style="display: none;">
+                    <h3 class="section-title">⏰ 短期用藥設定</h3>
+
+                    <!-- 用藥頻率 -->
+                    <div class="form-group-large">
+                        <label class="large-label">
+                            <span class="label-icon">💊</span>
+                            <span>一天吃幾次？</span>
+                        </label>
+                        <div class="frequency-select">
+                            <button type="button" class="frequency-btn" data-frequency="2" onclick="setFrequency(2, this)">
+                                一日兩次
+                            </button>
+                            <button type="button" class="frequency-btn active" data-frequency="3" onclick="setFrequency(3, this)">
+                                一日三次
+                            </button>
+                            <button type="button" class="frequency-btn" data-frequency="4" onclick="setFrequency(4, this)">
+                                一日四次
+                            </button>
+                        </div>
+                        <input type="hidden" id="dosesPerDay" value="3">
+                    </div>
+
+                    <!-- 時段方案 -->
+                    <div class="form-group-large">
+                        <label class="large-label">
+                            <span class="label-icon">🕐</span>
+                            <span>選擇用藥時段</span>
+                        </label>
+
+                        <!-- 一日三次的方案 -->
+                        <div id="plan-3-times" class="timing-plans">
+                            <button type="button" class="timing-plan-btn active" data-plan="plan1" onclick="setTimingPlan('plan1', this)">
+                                <div class="plan-header">方案一</div>
+                                <div class="plan-times">08:00 · 12:00 · 17:00</div>
+                                <div class="plan-desc">早餐 · 午餐 · 晚餐</div>
+                            </button>
+                            <button type="button" class="timing-plan-btn" data-plan="plan2" onclick="setTimingPlan('plan2', this)">
+                                <div class="plan-header">方案二</div>
+                                <div class="plan-times">09:00 · 13:00 · 18:00</div>
+                                <div class="plan-desc">早餐 · 午餐 · 晚餐</div>
+                            </button>
+                            <button type="button" class="timing-plan-btn" data-plan="custom" onclick="setTimingPlan('custom', this)">
+                                <div class="plan-header">✏️ 自訂時間</div>
+                                <div class="plan-desc">自己設定時間</div>
+                            </button>
+                        </div>
+
+                        <!-- 一日兩次的方案 -->
+                        <div id="plan-2-times" class="timing-plans" style="display: none;">
+                            <button type="button" class="timing-plan-btn active" data-plan="plan1" onclick="setTimingPlan('plan1', this)">
+                                <div class="plan-header">方案一</div>
+                                <div class="plan-times">08:00 · 18:00</div>
+                                <div class="plan-desc">早餐 · 晚餐</div>
+                            </button>
+                            <button type="button" class="timing-plan-btn" data-plan="plan2" onclick="setTimingPlan('plan2', this)">
+                                <div class="plan-header">方案二</div>
+                                <div class="plan-times">09:00 · 19:00</div>
+                                <div class="plan-desc">早餐 · 晚餐</div>
+                            </button>
+                            <button type="button" class="timing-plan-btn" data-plan="custom" onclick="setTimingPlan('custom', this)">
+                                <div class="plan-header">✏️ 自訂時間</div>
+                                <div class="plan-desc">自己設定時間</div>
+                            </button>
+                        </div>
+
+                        <!-- 一日四次的方案 -->
+                        <div id="plan-4-times" class="timing-plans" style="display: none;">
+                            <button type="button" class="timing-plan-btn active" data-plan="plan1" onclick="setTimingPlan('plan1', this)">
+                                <div class="plan-header">方案一</div>
+                                <div class="plan-times">08:00 · 12:00 · 17:00 · 21:00</div>
+                                <div class="plan-desc">早 · 午 · 晚 · 睡前</div>
+                            </button>
+                            <button type="button" class="timing-plan-btn" data-plan="plan2" onclick="setTimingPlan('plan2', this)">
+                                <div class="plan-header">方案二</div>
+                                <div class="plan-times">09:00 · 13:00 · 18:00 · 22:00</div>
+                                <div class="plan-desc">早 · 午 · 晚 · 睡前</div>
+                            </button>
+                            <button type="button" class="timing-plan-btn" data-plan="custom" onclick="setTimingPlan('custom', this)">
+                                <div class="plan-header">✏️ 自訂時間</div>
+                                <div class="plan-desc">自己設定時間</div>
+                            </button>
+                        </div>
+
+                        <input type="hidden" id="timingPlan" value="plan1">
+                    </div>
+
+                    <!-- 自訂時間輸入 (只在選擇自訂時顯示) -->
+                    <div id="customTimesInput" class="form-group-large" style="display: none;">
+                        <label class="large-label">
+                            <span class="label-icon">⏰</span>
+                            <span>設定用藥時間</span>
+                        </label>
+                        <div id="customTimesList" class="custom-times-list">
+                            <div class="custom-time-input">
+                                <span class="time-label">第 1 次：</span>
+                                <input type="time" class="custom-time-field" value="08:00">
+                            </div>
+                            <div class="custom-time-input">
+                                <span class="time-label">第 2 次：</span>
+                                <input type="time" class="custom-time-field" value="13:00">
+                            </div>
+                            <div class="custom-time-input">
+                                <span class="time-label">第 3 次：</span>
+                                <input type="time" class="custom-time-field" value="18:00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 療程天數 -->
+                    <div class="form-group-large">
+                        <label class="large-label">
+                            <span class="label-icon">📆</span>
+                            <span>要吃幾天？</span>
+                        </label>
+                        <div class="duration-quick-select">
+                            <button type="button" class="duration-btn active" onclick="setDuration(3, this)">3天</button>
+                            <button type="button" class="duration-btn" onclick="setDuration(5, this)">5天</button>
+                            <button type="button" class="duration-btn" onclick="setDuration(7, this)">7天</button>
+                            <button type="button" class="duration-btn" onclick="setDuration(14, this)">14天</button>
+                            <input type="number" id="treatmentDays" class="large-input"
+                                   placeholder="或輸入天數" min="1" max="90" value="3" style="margin-top: 12px;">
+                        </div>
+                    </div>
+
+                    <!-- 開始日期 -->
+                    <div class="form-group-large">
+                        <label class="large-label">
+                            <span class="label-icon">📅</span>
+                            <span>什麼時候開始吃？</span>
+                        </label>
+                        <div class="start-date-select">
+                            <button type="button" class="start-date-btn active" onclick="setStartDate('today', this)">
+                                今天開始
+                            </button>
+                            <button type="button" class="start-date-btn" onclick="setStartDate('tomorrow', this)">
+                                明天開始
+                            </button>
+                            <button type="button" class="start-date-btn" onclick="setStartDate('custom', this)">
+                                自選日期
+                            </button>
+                        </div>
+                        <input type="date" id="startDateInput" class="large-input" style="display: none; margin-top: 12px;">
+                        <input type="hidden" id="startDate" value="today">
+                    </div>
+
+                    <!-- 是否為抗生素 -->
+                    <div class="form-group-large">
+                        <label class="large-label">
+                            <span class="label-icon">💉</span>
+                            <span>是否為抗生素？</span>
+                        </label>
+                        <div class="antibiotic-select">
+                            <button type="button" class="antibiotic-btn" data-value="yes" onclick="setAntibiotic('yes', this)">
+                                ✅ 是抗生素
+                            </button>
+                            <button type="button" class="antibiotic-btn active" data-value="no" onclick="setAntibiotic('no', this)">
+                                ❌ 不是
+                            </button>
+                        </div>
+                        <input type="hidden" id="isAntibiotic" value="no">
+                        <p class="help-text-large" id="antibioticWarning" style="display: none; color: #d97706; margin-top: 8px;">
+                            ⚠️ 抗生素需要嚴格按時服用，將使用每隔固定小時的排程
+                        </p>
+                    </div>
+
+                    <!-- 預覽按鈕 -->
+                    <button type="button" class="preview-schedule-btn" onclick="previewShortTermSchedule()">
+                        👁️ 預覽 3 天用藥計畫
+                    </button>
                 </div>
 
                 <!-- 進階設定 (選填，可展開) -->

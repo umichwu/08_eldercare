@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
 import medicationRouter from './routes/medicationApi.js';
 import spiritualCareRouter from './routes/spiritualCareApi.js';
+import googleCalendarRouter from './routes/googleCalendarApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 
@@ -67,6 +68,7 @@ app.use((req, res, next) => {
 app.use('/api', apiRouter);
 app.use('/api', medicationRouter);
 app.use('/api/spiritual', spiritualCareRouter);
+app.use('/api/google-calendar', googleCalendarRouter);
 
 // 根路由
 app.get('/', (req, res) => {

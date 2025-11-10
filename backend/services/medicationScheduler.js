@@ -115,14 +115,22 @@ export function stopMedicationScheduler() {
  *
  * 流程：
  * 1. 獲取所有啟用的提醒排程
- * 2. 根據 cron 表達式判斷是否需要發送
+ * 2. 根據 cron 表達式判斷是否需要發送（包含補償機制）
  * 3. 檢查今日是否已有記錄，沒有則建立
  * 4. 發送 FCM 推送通知
+ *
+ * 補償機制：
+ * - 檢查過去 5 分鐘內應該發送但未發送的提醒
+ * - 避免因系統繁忙而錯過提醒
  */
 async function checkAndSendReminders() {
   try {
     const now = new Date();
     const currentMinute = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    // 補償機制：檢查過去 5 分鐘
+    const compensationWindow = 5; // 分鐘
+    const checkStart = new Date(now.getTime() - compensationWindow * 60 * 1000);
 
     // 獲取所有啟用的提醒排程
     const { data: reminders, error } = await supabase
@@ -149,23 +157,65 @@ async function checkAndSendReminders() {
       return;
     }
 
-    console.log(`🔍 [${currentMinute}] 檢查 ${reminders.length} 個提醒排程...`);
+    console.log(`🔍 [${currentMinute}] 檢查 ${reminders.length} 個提醒排程 (含過去 ${compensationWindow} 分鐘補償)...`);
+
+    const processedTimes = new Set();
 
     for (const reminder of reminders) {
       try {
+        // 檢查是否為短期用藥且已超過結束日期
+        if (reminder.reminder_times?.endDate) {
+          const endDate = new Date(reminder.reminder_times.endDate);
+          endDate.setHours(23, 59, 59, 999); // 設定為當天結束
+
+          if (now > endDate) {
+            console.log(`⏭️  跳過已結束的短期用藥: ${reminder.medications.medication_name} (結束日期: ${reminder.reminder_times.endDate})`);
+
+            // 自動停用已結束的提醒
+            await supabase
+              .from('medication_reminders')
+              .update({ is_enabled: false })
+              .eq('id', reminder.id);
+
+            continue;
+          }
+        }
+
         // 解析 cron 表達式
         const cronExpression = parseExpression(reminder.cron_schedule, {
-          currentDate: now,
+          currentDate: checkStart,
+          endDate: new Date(now.getTime() + 60 * 1000), // 當前時間 + 1 分鐘
           tz: reminder.timezone || 'Asia/Taipei',
         });
 
-        // 獲取下一次執行時間
-        const nextTime = cronExpression.next().toDate();
-        const timeDiff = Math.abs(nextTime - now) / 1000 / 60; // 分鐘差距
+        // 收集過去 5 分鐘內應該執行的所有時間點
+        const missedTimes = [];
+        while (true) {
+          try {
+            const next = cronExpression.next();
+            const nextDate = next.toDate();
 
-        // 如果時間差小於 1 分鐘，表示這是當前應該執行的時間
-        if (timeDiff < 1) {
-          await processReminder(reminder, now);
+            if (nextDate > now) break;
+
+            const timeKey = `${reminder.id}-${nextDate.getTime()}`;
+            if (!processedTimes.has(timeKey)) {
+              missedTimes.push(nextDate);
+              processedTimes.add(timeKey);
+            }
+          } catch {
+            break;
+          }
+        }
+
+        // 處理錯過的提醒
+        for (const missedTime of missedTimes) {
+          const minutesAgo = Math.floor((now - missedTime) / 1000 / 60);
+          if (minutesAgo === 0) {
+            console.log(`  ⏰ 處理當前提醒: ${reminder.medications.medication_name}`);
+          } else {
+            console.log(`  🔄 補償處理 ${minutesAgo} 分鐘前錯過的提醒: ${reminder.medications.medication_name}`);
+          }
+          await processReminder(reminder, missedTime);
         }
       } catch (cronError) {
         console.error(`❌ 處理提醒 ${reminder.id} 失敗:`, cronError.message);
@@ -470,6 +520,7 @@ export async function generateTodayMedicationLogs(elderId = null) {
       return { success: true, count: 0 };
     }
 
+    const now = new Date(); // 當前時間
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -479,6 +530,17 @@ export async function generateTodayMedicationLogs(elderId = null) {
 
     for (const reminder of reminders) {
       try {
+        // 檢查是否為短期用藥且已超過結束日期
+        if (reminder.reminder_times?.endDate) {
+          const endDate = new Date(reminder.reminder_times.endDate);
+          endDate.setHours(23, 59, 59, 999);
+
+          if (now > endDate) {
+            console.log(`⏭️  跳過已結束的短期用藥: ${reminder.medications.medication_name}`);
+            continue;
+          }
+        }
+
         // 解析 cron 表達式，獲取今天的所有執行時間
         const cronExpression = parseExpression(reminder.cron_schedule, {
           currentDate: today,
@@ -492,7 +554,11 @@ export async function generateTodayMedicationLogs(elderId = null) {
             const next = cronExpression.next();
             const nextDate = next.toDate();
             if (nextDate >= tomorrow) break;
-            todayTimes.push(nextDate);
+
+            // 只加入未來的時間點（不建立已經過去的記錄）
+            if (nextDate >= now) {
+              todayTimes.push(nextDate);
+            }
           } catch {
             break;
           }

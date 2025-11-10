@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Calendar 整合設定</title>
+    <link rel="stylesheet" href="medications.css">
+    <style>
+        .setup-container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .setup-header h1 {
+            font-size: 24px;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .setup-header p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .setup-step {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .setup-step h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #374151;
+        }
+
+        .setup-step p {
+            margin: 0;
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 12px;
+        }
+
+        .google-btn:hover {
+            background: #f9fafb;
+            border-color: #667eea;
+        }
+
+        .google-btn.connected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-color: #10b981;
+        }
+
+        .google-btn.connected:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .info-box {
+            padding: 16px;
+            background: #eff6ff;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            margin: 20px 0;
+        }
+
+        .info-box h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #1e40af;
+        }
+
+        .info-box ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #3b82f6;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <h1>📅 Google Calendar 整合設定</h1>
+            <p>將用藥提醒同步到您的 Google Calendar</p>
+        </div>
+
+        <div class="setup-step">
+            <h3>📱 目前狀態</h3>
+            <div id="connectionStatus">
+                <span class="status-badge warning">
+                    ⚠️ 尚未連接 Google Calendar
+                </span>
+            </div>
+            <button id="connectBtn" class="google-btn" onclick="connectGoogleCalendar()">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                    <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+                    <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/>
+                    <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18z"/>
+                    <path fill="#EA4335" d="M8.98 3.58c1.32 0 2.5.45 3.43 1.34l2.57-2.57A8 8 0 001.83 5.41l2.67 2.07c.63-1.89 2.4-3.9 4.48-3.9z"/>
+                </svg>
+                連接 Google Calendar
+            </button>
+        </div>
+
+        <div class="setup-step">
+            <h3>✨ 同步功能</h3>
+            <p>連接後，您可以選擇將現有或新的用藥提醒同步到 Google Calendar。系統會自動建立提醒事件，並設定適當的通知時間。</p>
+        </div>
+
+        <div class="info-box">
+            <h4>💡 使用說明</h4>
+            <ul>
+                <li>點擊「連接 Google Calendar」按鈕</li>
+                <li>使用您的 Google 帳號登入並授權</li>
+                <li>授權完成後即可同步用藥提醒</li>
+                <li>您可以隨時在用藥管理頁面選擇同步或取消同步</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="medications.html" style="color: #667eea; text-decoration: none; font-size: 14px;">
+                ← 返回用藥管理
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000'
+            : 'https://your-backend-url.com';
+
+        // Google OAuth 設定
+        const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // 需要從 Google Cloud Console 取得
+        const GOOGLE_REDIRECT_URI = `${window.location.origin}/google-calendar-callback.html`;
+        const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar';
+
+        // 檢查連接狀態
+        function checkConnectionStatus() {
+            const accessToken = localStorage.getItem('google_calendar_access_token');
+            const statusDiv = document.getElementById('connectionStatus');
+            const connectBtn = document.getElementById('connectBtn');
+
+            if (accessToken) {
+                // 測試 token 是否仍然有效
+                testAccessToken(accessToken);
+            }
+        }
+
+        // 測試 Access Token
+        async function testAccessToken(accessToken) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/google-calendar/test-auth`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accessToken })
+                });
+
+                const result = await response.json();
+
+                const statusDiv = document.getElementById('connectionStatus');
+                const connectBtn = document.getElementById('connectBtn');
+
+                if (result.success) {
+                    statusDiv.innerHTML = '<span class="status-badge success">✅ 已連接 Google Calendar</span>';
+                    connectBtn.classList.add('connected');
+                    connectBtn.innerHTML = `
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        已連接
+                    `;
+                } else {
+                    // Token 無效，清除並顯示未連接
+                    localStorage.removeItem('google_calendar_access_token');
+                    statusDiv.innerHTML = '<span class="status-badge warning">⚠️ 尚未連接 Google Calendar</span>';
+                }
+            } catch (error) {
+                console.error('測試授權失敗:', error);
+            }
+        }
+
+        // 連接 Google Calendar
+        function connectGoogleCalendar() {
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${GOOGLE_CLIENT_ID}&` +
+                `redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}&` +
+                `response_type=token&` +
+                `scope=${encodeURIComponent(GOOGLE_SCOPE)}&` +
+                `access_type=online`;
+
+            // 開啟授權視窗
+            const width = 500;
+            const height = 600;
+            const left = (window.screen.width / 2) - (width / 2);
+            const top = (window.screen.height / 2) - (height / 2);
+
+            const authWindow = window.open(
+                authUrl,
+                'Google Calendar 授權',
+                `width=${width},height=${height},left=${left},top=${top}`
+            );
+
+            // 監聽訊息（從 callback 頁面傳回）
+            window.addEventListener('message', function(event) {
+                if (event.data.type === 'google_auth_success') {
+                    const accessToken = event.data.accessToken;
+                    localStorage.setItem('google_calendar_access_token', accessToken);
+                    checkConnectionStatus();
+                    authWindow.close();
+                }
+            }, { once: true });
+        }
+
+        // 頁面載入時檢查狀態
+        checkConnectionStatus();
+    </script>
+</body>
+</html>

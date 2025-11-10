@@ -50,10 +50,10 @@ export async function createMedication(medicationData) {
         side_effects: medicationData.sideEffects || null,
         stock_quantity: medicationData.stockQuantity || 0,
         stock_alert_threshold: medicationData.stockAlertThreshold || 7,
-        start_date: medicationData.startDate || new Date().toISOString(),
-        end_date: medicationData.endDate || null,
-        prescribing_doctor: medicationData.prescribingDoctor || null,
+        // 使用正確的欄位名稱（與資料庫 schema 一致）
+        prescribed_by: medicationData.prescribingDoctor || null,  // 注意：欄位名是 prescribed_by
         prescription_number: medicationData.prescriptionNumber || null,
+        prescription_date: medicationData.prescriptionDate || null,
         status: medicationData.status || 'active',
       }])
       .select()
@@ -109,9 +109,14 @@ export async function updateMedication(medicationId, updates) {
  */
 export async function deleteMedication(medicationId) {
   try {
+    // 注意：medications 表格的 status 限制為 'active', 'discontinued', 'expired', 'temporary'
+    // 使用 'discontinued' 來代表已刪除的藥物
     const { data, error } = await supabase
       .from('medications')
-      .update({ status: 'deleted', updated_at: new Date().toISOString() })
+      .update({
+        status: 'discontinued',
+        updated_at: new Date().toISOString()
+      })
       .eq('id', medicationId)
       .select()
       .single();
@@ -121,7 +126,23 @@ export async function deleteMedication(medicationId) {
       return { success: false, error: error.message };
     }
 
-    console.log('✅ 藥物刪除成功:', medicationId);
+    // 同時停用該藥物的所有提醒
+    const { error: reminderError } = await supabase
+      .from('medication_reminders')
+      .update({
+        is_enabled: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('medication_id', medicationId);
+
+    if (reminderError) {
+      console.error('⚠️ 停用提醒失敗:', reminderError.message);
+      // 不返回錯誤，因為藥物已經刪除成功
+    } else {
+      console.log('✅ 已停用該藥物的所有提醒');
+    }
+
+    console.log('✅ 藥物刪除成功 (標記為 discontinued):', medicationId);
     return { success: true, data };
   } catch (error) {
     console.error('❌ 刪除藥物異常:', error.message);
@@ -216,7 +237,6 @@ export async function createMedicationReminder(reminderData) {
         notify_family_if_missed: reminderData.notifyFamilyIfMissed !== false,
         family_fcm_tokens: familyTokens,
         is_enabled: reminderData.isEnabled !== false,
-        notes: reminderData.notes || null,
       }])
       .select()
       .single();

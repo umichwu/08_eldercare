@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCM 推送通知測試工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status-box {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+            border-left: 5px solid;
+        }
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: #dc3545;
+        }
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-color: #ffc107;
+        }
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-color: #17a2b8;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #00ff00;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .log-entry {
+            margin: 3px 0;
+            padding: 3px 0;
+        }
+        .log-success { color: #00ff00; }
+        .log-error { color: #ff4444; }
+        .log-warning { color: #ffaa00; }
+        .log-info { color: #00aaff; }
+        .token-display {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .elder-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 FCM 推送通知完整測試工具</h1>
+
+        <!-- 系統狀態檢查 -->
+        <div class="section">
+            <h3>📋 系統狀態檢查</h3>
+            <div id="browserSupport"></div>
+            <div id="notificationPermission"></div>
+            <div id="serviceWorkerStatus"></div>
+            <div id="fcmInitStatus"></div>
+        </div>
+
+        <!-- 長輩資訊 -->
+        <div class="section">
+            <h3>👴 當前長輩資訊</h3>
+            <div id="elderInfo"></div>
+            <div style="margin-top: 15px;">
+                <label for="elderIdInput" style="display: block; margin-bottom: 5px; font-weight: bold;">手動輸入長輩 ID：</label>
+                <input type="text" id="elderIdInput" placeholder="例如: fe50db48-6d33-4777-803b-8b335625c9c2" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace;">
+                <button class="btn" onclick="setElderId()" style="margin-top: 10px;">設定長輩 ID</button>
+            </div>
+        </div>
+
+        <!-- FCM Token 資訊 -->
+        <div class="section">
+            <h3>🔑 FCM Token 狀態</h3>
+            <div id="tokenStatus"></div>
+            <div id="tokenDisplay"></div>
+            <button class="btn" id="btnGetToken">1️⃣ 請求通知權限 & 取得 FCM Token</button>
+            <button class="btn" id="btnRegisterToken" disabled>2️⃣ 註冊 Token 到資料庫</button>
+        </div>
+
+        <!-- 測試推送 -->
+        <div class="section">
+            <h3>🚀 測試推送通知</h3>
+            <button class="btn" id="btnTestFCM" disabled>3️⃣ 發送測試 FCM 推送</button>
+            <button class="btn" id="btnTestMedicationReminder" disabled>4️⃣ 模擬用藥提醒推送</button>
+        </div>
+
+        <!-- 診斷日誌 -->
+        <div class="section">
+            <h3>📝 診斷日誌</h3>
+            <button class="btn" onclick="clearLog()">清除日誌</button>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- 載入 Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
+
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyAD1k65QMjmbar0N78ako9o9zI8TcbQAgc",
+            authDomain: "eldercare-companion-6d4ef.firebaseapp.com",
+            projectId: "eldercare-companion-6d4ef",
+            storageBucket: "eldercare-companion-6d4ef.firebasestorage.app",
+            messagingSenderId: "642412075428",
+            appId: "1:642412075428:web:719d07acbc1fa76ba0c931",
+            measurementId: "G-2KYT49V9P0"
+        };
+
+        // VAPID Key (從 Firebase Console 取得)
+        // Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
+        const VAPID_KEY = 'BNVdBNLwYovRVSWmdrzEubJVdyLxeUxodYkMg1mTboke-34vjS4Ud2-dH3XgTqY8qOw0rihx6WEHVc4OQA404wo';
+
+        // 默認長輩 ID（測試用）
+        const DEFAULT_ELDER_ID = 'fe50db48-6d33-4777-803b-8b335625c9c2';
+
+        let messaging = null;
+        let currentToken = null;
+        let currentElderId = DEFAULT_ELDER_ID;
+
+        // 日誌函數
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+        };
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(elementId, message, statusType) {
+            const el = document.getElementById(elementId);
+            el.className = `status-box status-${statusType}`;
+            el.innerHTML = message;
+        }
+
+        // 1. 檢查瀏覽器支援
+        function checkBrowserSupport() {
+            if (!('serviceWorker' in navigator)) {
+                updateStatus('browserSupport', '❌ 此瀏覽器不支援 Service Worker', 'error');
+                log('瀏覽器不支援 Service Worker', 'error');
+                return false;
+            }
+            if (!('PushManager' in window)) {
+                updateStatus('browserSupport', '❌ 此瀏覽器不支援推送通知', 'error');
+                log('瀏覽器不支援推送通知', 'error');
+                return false;
+            }
+            if (!('Notification' in window)) {
+                updateStatus('browserSupport', '❌ 此瀏覽器不支援 Notification API', 'error');
+                log('瀏覽器不支援 Notification API', 'error');
+                return false;
+            }
+
+            updateStatus('browserSupport', '✅ 瀏覽器支援所有必要功能', 'success');
+            log('瀏覽器檢查通過', 'success');
+            return true;
+        }
+
+        // 2. 檢查通知權限
+        function checkNotificationPermission() {
+            const permission = Notification.permission;
+            log(`當前通知權限: ${permission}`, 'info');
+
+            if (permission === 'granted') {
+                updateStatus('notificationPermission', '✅ 通知權限已授予', 'success');
+                return true;
+            } else if (permission === 'denied') {
+                updateStatus('notificationPermission', '❌ 通知權限被拒絕（請手動開啟）', 'error');
+                return false;
+            } else {
+                updateStatus('notificationPermission', '⚠️ 通知權限尚未詢問', 'warning');
+                return false;
+            }
+        }
+
+        // 3. 初始化 Firebase Messaging
+        async function initFirebase() {
+            try {
+                log('正在初始化 Firebase...', 'info');
+                const app = initializeApp(firebaseConfig);
+                messaging = getMessaging(app);
+
+                updateStatus('fcmInitStatus', '✅ Firebase Messaging 初始化成功', 'success');
+                log('Firebase Messaging 初始化成功', 'success');
+
+                // 監聽前景訊息
+                onMessage(messaging, (payload) => {
+                    log('📩 收到前景訊息: ' + JSON.stringify(payload), 'success');
+                    alert('收到推送通知！\n' + payload.notification?.title + '\n' + payload.notification?.body);
+                });
+
+                return true;
+            } catch (error) {
+                updateStatus('fcmInitStatus', '❌ Firebase 初始化失敗: ' + error.message, 'error');
+                log('Firebase 初始化失敗: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // 4. 檢查 Service Worker
+        async function checkServiceWorker() {
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                log(`找到 ${registrations.length} 個 Service Worker`, 'info');
+
+                if (registrations.length > 0) {
+                    updateStatus('serviceWorkerStatus', `✅ Service Worker 已註冊 (${registrations.length} 個)`, 'success');
+                    registrations.forEach((reg, i) => {
+                        log(`  SW ${i+1}: ${reg.active?.scriptURL || 'pending'}`, 'info');
+                    });
+                } else {
+                    updateStatus('serviceWorkerStatus', '⚠️ 尚未註冊 Service Worker', 'warning');
+                }
+            } catch (error) {
+                updateStatus('serviceWorkerStatus', '❌ 檢查 Service Worker 失敗', 'error');
+                log('檢查 Service Worker 失敗: ' + error.message, 'error');
+            }
+        }
+
+        // 手動設定長輩 ID
+        window.setElderId = async function() {
+            const input = document.getElementById('elderIdInput');
+            const elderId = input.value.trim();
+
+            if (!elderId) {
+                alert('請輸入長輩 ID');
+                return;
+            }
+
+            log(`設定長輩 ID: ${elderId}`, 'info');
+            localStorage.setItem('currentElderId', elderId);
+            currentElderId = elderId;
+
+            // 重新獲取長輩資訊
+            const elder = await getElderInfo();
+
+            // 提供用戶反饋
+            if (elder) {
+                alert(`✅ 長輩 ID 設定成功！\n\n姓名: ${elder.name}\nID: ${elder.id}\nFCM Token: ${elder.fcm_token ? '已註冊' : '未註冊'}`);
+                log(`✅ 長輩 ID 設定成功: ${elder.name}`, 'success');
+            } else {
+                alert('❌ 無法取得長輩資訊，請檢查 ID 是否正確或後端是否運行');
+                log('❌ 設定長輩 ID 失敗', 'error');
+            }
+        };
+
+        // 5. 取得長輩資訊
+        async function getElderInfo() {
+            try {
+                log('正在獲取長輩資訊...', 'info');
+
+                // 優先使用默認長輩 ID
+                let elderId = currentElderId || DEFAULT_ELDER_ID;
+
+                // 嘗試從輸入框取得（如果用戶手動輸入了）
+                const input = document.getElementById('elderIdInput');
+                if (input && input.value.trim()) {
+                    elderId = input.value.trim();
+                }
+
+                currentElderId = elderId;
+                localStorage.setItem('currentElderId', elderId);
+
+                // 從後端 API 取得長輩資料
+                const response = await fetch(`http://localhost:3000/api/elders/${elderId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const elder = await response.json();
+                log(`成功取得長輩資料: ${elder.name}`, 'success');
+
+                updateStatus('elderInfo', `
+                    <div class="elder-info">
+                        <strong>姓名:</strong> ${elder.name}<br>
+                        <strong>ID:</strong> ${elder.id}<br>
+                        <strong>FCM Token:</strong> ${elder.fcm_token ? '✅ 已註冊' : '❌ 未註冊'}
+                    </div>
+                `, 'info');
+
+                return elder;
+            } catch (error) {
+                updateStatus('elderInfo', '❌ 無法取得長輩資訊: ' + error.message, 'error');
+                log('取得長輩資訊失敗: ' + error.message, 'error');
+                return null;
+            }
+        }
+
+        // 6. 取得 FCM Token
+        async function getFCMToken() {
+            try {
+                log('正在請求通知權限...', 'info');
+
+                // 請求通知權限
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    updateStatus('tokenStatus', '❌ 使用者拒絕通知權限', 'error');
+                    log('使用者拒絕通知權限', 'error');
+                    return null;
+                }
+
+                log('通知權限已授予，正在註冊 Service Worker...', 'success');
+
+                // 註冊 Service Worker
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                await navigator.serviceWorker.ready;
+                log('Service Worker 註冊成功', 'success');
+
+                updateStatus('serviceWorkerStatus', '✅ Service Worker 已註冊並就緒', 'success');
+
+                log('正在取得 FCM Token...', 'info');
+
+                // 取得 FCM Token
+                const token = await getToken(messaging, {
+                    vapidKey: VAPID_KEY,
+                    serviceWorkerRegistration: registration
+                });
+
+                if (!token) {
+                    throw new Error('無法取得 FCM Token');
+                }
+
+                currentToken = token;
+                log('✅ FCM Token 取得成功', 'success');
+                log('Token: ' + token.substring(0, 50) + '...', 'info');
+
+                updateStatus('tokenStatus', '✅ FCM Token 已取得', 'success');
+                document.getElementById('tokenDisplay').innerHTML = `
+                    <div class="token-display">${token}</div>
+                `;
+
+                // 啟用註冊按鈕
+                document.getElementById('btnRegisterToken').disabled = false;
+
+                return token;
+            } catch (error) {
+                updateStatus('tokenStatus', '❌ 取得 FCM Token 失敗: ' + error.message, 'error');
+                log('取得 FCM Token 失敗: ' + error.message, 'error');
+                return null;
+            }
+        }
+
+        // 7. 註冊 Token 到資料庫
+        async function registerTokenToDatabase() {
+            try {
+                if (!currentToken || !currentElderId) {
+                    alert('請先取得 FCM Token 和長輩資訊');
+                    return;
+                }
+
+                log('正在註冊 Token 到資料庫...', 'info');
+
+                const response = await fetch('http://localhost:3000/api/fcm/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentElderId,
+                        userType: 'elder',
+                        fcmToken: currentToken,
+                        deviceInfo: {
+                            userAgent: navigator.userAgent,
+                            platform: navigator.platform,
+                            language: navigator.language
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                log('✅ Token 註冊成功！', 'success');
+                updateStatus('tokenStatus', '✅ FCM Token 已註冊到資料庫', 'success');
+
+                // 啟用測試按鈕
+                document.getElementById('btnTestFCM').disabled = false;
+                document.getElementById('btnTestMedicationReminder').disabled = false;
+
+            } catch (error) {
+                log('註冊 Token 失敗: ' + error.message, 'error');
+                alert('註冊失敗: ' + error.message);
+            }
+        }
+
+        // 8. 測試 FCM 推送
+        async function testFCMPush() {
+            try {
+                if (!currentElderId) {
+                    alert('請先完成前面的步驟');
+                    return;
+                }
+
+                log('正在發送測試推送...', 'info');
+
+                const response = await fetch('http://localhost:3000/api/fcm/test-push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        elderId: currentElderId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                log('✅ 測試推送已發送！請查看通知區域', 'success');
+                alert('✅ 測試推送已發送！\n\n請查看螢幕右下角（Windows）或右上角（Mac）的通知區域');
+
+            } catch (error) {
+                log('發送測試推送失敗: ' + error.message, 'error');
+                alert('發送失敗: ' + error.message);
+            }
+        }
+
+        // 9. 測試用藥提醒推送
+        async function testMedicationReminderPush() {
+            try {
+                if (!currentElderId) {
+                    alert('請先完成前面的步驟');
+                    return;
+                }
+
+                log('正在發送用藥提醒推送...', 'info');
+
+                const response = await fetch('http://localhost:3000/api/fcm/test-medication-reminder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        elderId: currentElderId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                log('✅ 用藥提醒推送已發送！', 'success');
+                alert('✅ 用藥提醒推送已發送！\n\n請查看通知區域');
+
+            } catch (error) {
+                log('發送用藥提醒推送失敗: ' + error.message, 'error');
+                alert('發送失敗: ' + error.message);
+            }
+        }
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', async () => {
+            log('=== FCM 測試工具啟動 ===', 'info');
+
+            // 執行檢查
+            const browserOK = checkBrowserSupport();
+            checkNotificationPermission();
+            await checkServiceWorker();
+            await getElderInfo();
+
+            if (browserOK) {
+                await initFirebase();
+            }
+
+            // 綁定按鈕事件
+            document.getElementById('btnGetToken').addEventListener('click', getFCMToken);
+            document.getElementById('btnRegisterToken').addEventListener('click', registerTokenToDatabase);
+            document.getElementById('btnTestFCM').addEventListener('click', testFCMPush);
+            document.getElementById('btnTestMedicationReminder').addEventListener('click', testMedicationReminderPush);
+
+            log('=== 檢查完成，請依序點擊按鈕進行測試 ===', 'success');
+        });
+    </script>
+</body>
+</html>

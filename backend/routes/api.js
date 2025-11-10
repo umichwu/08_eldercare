@@ -3,8 +3,15 @@ import conversationService from '../services/conversationService.js';
 import messageService from '../services/messageService.js';
 import summaryService from '../services/summaryService.js';
 import userService from '../services/userService.js';
+import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
+
+// Supabase client for elders API
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 // ============================================
 // 對話 API
@@ -467,6 +474,58 @@ router.put('/users/preferences', async (req, res) => {
 router.get('/users/languages', (req, res) => {
   const result = userService.getSupportedLanguages();
   res.json(result.data);
+});
+
+// ============================================
+// 長輩 API
+// ============================================
+
+/**
+ * 取得所有長輩列表
+ * GET /api/elders
+ */
+router.get('/elders', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('elders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    console.error('❌ 取得長輩列表失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 取得單一長輩資訊
+ * GET /api/elders/:id
+ */
+router.get('/elders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await supabase
+      .from('elders')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: '找不到此長輩資料' });
+      }
+      throw error;
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error('❌ 取得長輩資訊失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ============================================

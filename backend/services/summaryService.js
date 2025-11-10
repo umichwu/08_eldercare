@@ -148,10 +148,11 @@ ${conversationText}
    */
   async getSummaries(conversationId, userId) {
     try {
+      // Note: conversation_summaries uses conversation_ids (array), not conversation_id
       const { data, error } = await supabase
         .from('conversation_summaries')
         .select('*')
-        .eq('conversation_id', conversationId)
+        .contains('conversation_ids', [conversationId])
         .eq('user_profile_id', userId)
         .order('created_at', { ascending: false });
 
@@ -169,12 +170,12 @@ ${conversationText}
    */
   async getLatestSummary(conversationId, userId) {
     try {
+      // Note: conversation_summaries uses conversation_ids (array), not conversation_id
       const { data, error } = await supabase
         .from('conversation_summaries')
         .select('*')
-        .eq('conversation_id', conversationId)
+        .contains('conversation_ids', [conversationId])
         .eq('user_profile_id', userId)
-        .eq('is_latest', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

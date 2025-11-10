@@ -54,7 +54,8 @@ async function loadCurrentUser() {
             return;
         }
 
-        if (profile && profile.role === 'elder') {
+        // ✅ 修正：role 為 'elder' 或 'both' 都可以使用用藥管理功能
+        if (profile && (profile.role === 'elder' || profile.role === 'both')) {
             const { data: elder, error: elderError } = await supabaseClient
                 .from('elders')
                 .select('*')
@@ -337,20 +338,613 @@ function searchMedications(query) {
     renderMedications(filtered);
 }
 
+// ==================== 藥物模板 ====================
+
+const medicationTemplates = {
+    blood_pressure: {
+        name: '降血壓藥',
+        dosage: '1顆',
+        mealTiming: 'after_meal',
+        purpose: '控制血壓',
+        times: ['08:00', '20:00'],
+        icon: '❤️'
+    },
+    diabetes: {
+        name: '糖尿病藥',
+        dosage: '1顆',
+        mealTiming: 'with_meal',
+        purpose: '控制血糖',
+        times: ['08:00', '12:00', '18:00'],
+        icon: '🩸'
+    },
+    heart: {
+        name: '心臟病藥',
+        dosage: '1顆',
+        mealTiming: 'after_meal',
+        purpose: '保護心臟',
+        times: ['08:00'],
+        icon: '💓'
+    },
+    pain: {
+        name: '止痛藥',
+        dosage: '1顆',
+        mealTiming: 'anytime',
+        purpose: '緩解疼痛',
+        times: ['08:00'],
+        icon: '💊'
+    },
+    cold: {
+        name: '感冒藥',
+        dosage: '1顆',
+        mealTiming: 'after_meal',
+        purpose: '治療感冒',
+        times: ['08:00', '14:00', '20:00'],
+        icon: '🤧'
+    },
+    stomach: {
+        name: '胃腸藥',
+        dosage: '1顆',
+        mealTiming: 'before_meal',
+        purpose: '改善腸胃',
+        times: ['07:30', '11:30', '17:30'],
+        icon: '🫃'
+    },
+    sleep: {
+        name: '助眠藥',
+        dosage: '1顆',
+        mealTiming: 'bedtime',
+        purpose: '幫助睡眠',
+        times: ['21:00'],
+        icon: '😴'
+    },
+    custom: {
+        name: '',
+        dosage: '1顆',
+        mealTiming: 'anytime',
+        purpose: '',
+        times: ['08:00'],
+        icon: '✏️'
+    }
+};
+
+// 使用模板
+function useTemplate(templateKey) {
+    const template = medicationTemplates[templateKey];
+    if (!template) return;
+
+    showAddMedicationForm();
+
+    // 填入模板資料
+    document.getElementById('medicationName').value = template.name;
+    document.getElementById('dosage').value = template.dosage;
+    document.getElementById('mealTiming').value = template.mealTiming;
+    document.getElementById('purpose').value = template.purpose;
+
+    // 自動設定下拉選單的值
+    const nameSelect = document.getElementById('medicationNameSelect');
+    if (nameSelect) {
+        // 在下拉選單中找到對應的選項
+        const selectOptions = Array.from(nameSelect.options);
+        const matchingOption = selectOptions.find(option => option.value === template.name);
+
+        if (matchingOption) {
+            nameSelect.value = template.name;
+        } else {
+            nameSelect.value = 'custom';
+        }
+
+        // 觸發選擇事件，更新輸入框狀態
+        selectMedicationName(nameSelect.value);
+
+        // 如果是自訂，則設定輸入框的值
+        if (nameSelect.value === 'custom') {
+            document.getElementById('medicationName').value = template.name;
+        }
+    }
+
+    // 設定劑量按鈕的選中狀態
+    document.querySelectorAll('.dosage-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        if (btn.textContent.trim().includes(template.dosage)) {
+            btn.classList.add('selected');
+        }
+    });
+
+    // 設定提醒時間
+    const container = document.getElementById('reminderTimesContainer');
+    container.innerHTML = template.times.map((time, index) => `
+        <div class="time-input-group-large">
+            <label class="time-label">提醒時間：</label>
+            <input type="time" class="reminder-time large-time-input" value="${time}" required>
+            <button type="button" class="btn-icon-large danger" onclick="removeReminderTime(this)"
+                    style="display: ${template.times.length > 1 ? 'inline-block' : 'none'};">
+                ❌ 刪除
+            </button>
+        </div>
+    `).join('');
+
+    // 顯示成功訊息
+    showToast(`✅ 已套用「${template.name}」模板`, 'success');
+}
+
+// 藥物名稱選擇
+function selectMedicationName(value) {
+    const nameInput = document.getElementById('medicationName');
+    const nameSelect = document.getElementById('medicationNameSelect');
+
+    if (value === 'custom') {
+        // 顯示輸入框
+        nameInput.style.display = 'block';
+        nameInput.required = true;
+        nameInput.value = '';
+        nameInput.focus();
+    } else if (value) {
+        // 使用選擇的藥物名稱
+        nameInput.style.display = 'none';
+        nameInput.required = false;
+        nameInput.value = value;
+    } else {
+        // 未選擇
+        nameInput.style.display = 'none';
+        nameInput.required = false;
+        nameInput.value = '';
+    }
+}
+
+// 設定劑量
+function setDosage(value) {
+    document.getElementById('dosage').value = value;
+    // 移除其他按鈕的選中狀態
+    document.querySelectorAll('.dosage-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    // 添加選中狀態到當前按鈕
+    event.target.classList.add('selected');
+}
+
+// 選擇用藥類型（長期/短期）
+function selectMedicationType(type) {
+    const chronicSettings = document.getElementById('chronicTimeSettings');
+    const shorttermSettings = document.getElementById('shorttermTimeSettings');
+    const typeInput = document.getElementById('medicationDurationType');
+
+    // 更新按鈕狀態
+    document.querySelectorAll('.type-option-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.closest('.type-option-btn').classList.add('active');
+
+    // 更新顯示
+    typeInput.value = type;
+    if (type === 'chronic') {
+        chronicSettings.style.display = 'block';
+        shorttermSettings.style.display = 'none';
+        // 長期用藥必填時間
+        document.querySelectorAll('#chronicTimeSettings .reminder-time').forEach(input => {
+            input.required = true;
+        });
+        // 短期用藥欄位改為非必填
+        const firstDoseDate = document.getElementById('firstDoseDate');
+        const firstDoseTime = document.getElementById('firstDoseTime');
+        const doseInterval = document.getElementById('doseInterval');
+        const treatmentDays = document.getElementById('treatmentDays');
+        if (firstDoseDate) firstDoseDate.required = false;
+        if (firstDoseTime) firstDoseTime.required = false;
+        if (doseInterval) doseInterval.required = false;
+        if (treatmentDays) treatmentDays.required = false;
+    } else {
+        chronicSettings.style.display = 'none';
+        shorttermSettings.style.display = 'block';
+        // 短期用藥欄位改為必填
+        const firstDoseDate = document.getElementById('firstDoseDate');
+        const firstDoseTime = document.getElementById('firstDoseTime');
+        const doseInterval = document.getElementById('doseInterval');
+        const treatmentDays = document.getElementById('treatmentDays');
+        if (firstDoseDate) {
+            firstDoseDate.required = true;
+            // 設定預設值為今天
+            firstDoseDate.value = new Date().toISOString().split('T')[0];
+        }
+        if (firstDoseTime) firstDoseTime.required = true;
+        if (doseInterval) doseInterval.required = true;
+        if (treatmentDays) treatmentDays.required = true;
+        // 長期用藥時間改為非必填
+        document.querySelectorAll('#chronicTimeSettings .reminder-time').forEach(input => {
+            input.required = false;
+        });
+    }
+}
+
+// 設定服藥間隔
+function setIntervalHours(hours, buttonElement) {
+    document.getElementById('doseInterval').value = hours;
+    // 移除其他按鈕的選中狀態
+    document.querySelectorAll('.interval-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    // 添加選中狀態到當前按鈕
+    if (buttonElement) {
+        buttonElement.classList.add('selected');
+    }
+}
+
+// 設定療程天數
+function setDuration(days, buttonElement) {
+    document.getElementById('treatmentDays').value = days;
+    // 移除其他按鈕的選中狀態
+    document.querySelectorAll('.duration-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    // 添加選中狀態到當前按鈕
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    }
+}
+
+// 設定是否為抗生素
+function setAntibiotic(value, buttonElement) {
+    document.getElementById('isAntibiotic').value = value;
+    const warning = document.getElementById('antibioticWarning');
+
+    // 更新按鈕狀態
+    document.querySelectorAll('.antibiotic-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    }
+
+    // 顯示/隱藏警告
+    if (value === 'yes') {
+        warning.style.display = 'block';
+    } else {
+        warning.style.display = 'none';
+    }
+}
+
+// ========== 新的短期用藥設定函數 ==========
+
+// 設定用藥頻率（一日幾次）
+function setFrequency(frequency, buttonElement) {
+    document.getElementById('dosesPerDay').value = frequency;
+
+    // 更新按鈕狀態
+    document.querySelectorAll('.frequency-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    }
+
+    // 顯示對應的時段方案
+    document.getElementById('plan-2-times').style.display = 'none';
+    document.getElementById('plan-3-times').style.display = 'none';
+    document.getElementById('plan-4-times').style.display = 'none';
+    document.getElementById(`plan-${frequency}-times`).style.display = 'grid';
+
+    // 重置為 plan1 並隱藏自訂時間
+    document.getElementById('timingPlan').value = 'plan1';
+    document.getElementById('customTimesInput').style.display = 'none';
+
+    // 更新當前顯示的方案中的 active 狀態
+    const currentPlan = document.getElementById(`plan-${frequency}-times`);
+    currentPlan.querySelectorAll('.timing-plan-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    currentPlan.querySelector('[data-plan="plan1"]').classList.add('active');
+
+    // 更新自訂時間輸入欄位數量
+    updateCustomTimesFields(frequency);
+}
+
+// 設定時段方案
+function setTimingPlan(plan, buttonElement) {
+    document.getElementById('timingPlan').value = plan;
+
+    // 更新按鈕狀態（只在當前顯示的 timing-plans 內）
+    const parent = buttonElement.closest('.timing-plans');
+    parent.querySelectorAll('.timing-plan-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    }
+
+    // 顯示/隱藏自訂時間輸入
+    const customInput = document.getElementById('customTimesInput');
+    if (plan === 'custom') {
+        customInput.style.display = 'block';
+    } else {
+        customInput.style.display = 'none';
+    }
+}
+
+// 更新自訂時間輸入欄位
+function updateCustomTimesFields(frequency) {
+    const container = document.getElementById('customTimesList');
+    container.innerHTML = '';
+
+    const defaultTimes = {
+        2: ['08:00', '18:00'],
+        3: ['08:00', '13:00', '18:00'],
+        4: ['08:00', '12:00', '17:00', '21:00']
+    };
+
+    const times = defaultTimes[frequency] || defaultTimes[3];
+
+    times.forEach((time, index) => {
+        const div = document.createElement('div');
+        div.className = 'custom-time-input';
+        div.innerHTML = `
+            <span class="time-label">第 ${index + 1} 次：</span>
+            <input type="time" class="custom-time-field" value="${time}">
+        `;
+        container.appendChild(div);
+    });
+}
+
+// 設定開始日期
+function setStartDate(type, buttonElement) {
+    const input = document.getElementById('startDateInput');
+    const hidden = document.getElementById('startDate');
+
+    // 更新按鈕狀態
+    document.querySelectorAll('.start-date-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    }
+
+    if (type === 'custom') {
+        input.style.display = 'block';
+        // 設定預設值為今天
+        const today = new Date().toISOString().split('T')[0];
+        input.value = today;
+        hidden.value = 'custom';
+    } else {
+        input.style.display = 'none';
+        hidden.value = type;
+    }
+}
+
+// 預覽短期用藥排程
+async function previewShortTermSchedule() {
+    try {
+        // 收集表單資料
+        const dosesPerDay = parseInt(document.getElementById('dosesPerDay').value);
+        const timingPlan = document.getElementById('timingPlan').value;
+        const treatmentDays = parseInt(document.getElementById('treatmentDays').value);
+        const startDateType = document.getElementById('startDate').value;
+        const isAntibiotic = document.getElementById('isAntibiotic').value === 'yes';
+
+        // 計算開始日期
+        let startDate = new Date();
+        if (startDateType === 'tomorrow') {
+            startDate.setDate(startDate.getDate() + 1);
+        } else if (startDateType === 'custom') {
+            const customDate = document.getElementById('startDateInput').value;
+            if (customDate) {
+                startDate = new Date(customDate);
+            }
+        }
+
+        // 收集自訂時間（如果是自訂方案）
+        let customTimes = null;
+        if (timingPlan === 'custom') {
+            customTimes = Array.from(document.querySelectorAll('.custom-time-field'))
+                .map(input => input.value)
+                .filter(time => time);
+
+            if (customTimes.length === 0) {
+                showToast('請設定自訂時間', 'warning');
+                return;
+            }
+        }
+
+        // 驗證
+        if (!treatmentDays || treatmentDays < 1) {
+            showToast('請輸入療程天數', 'warning');
+            return;
+        }
+
+        // 建立預覽資料
+        const previewData = {
+            dosesPerDay,
+            timingPlan: timingPlan === 'custom' ? 'custom' : timingPlan,
+            customTimes,
+            treatmentDays,
+            startDate: startDate.toISOString().split('T')[0],
+            isAntibiotic
+        };
+
+        console.log('預覽資料:', previewData);
+
+        // 顯示預覽彈窗
+        await show3DayPreview(previewData);
+
+    } catch (error) {
+        console.error('預覽失敗:', error);
+        showToast('預覽失敗：' + error.message, 'error');
+    }
+}
+
+// 顯示 3 天預覽彈窗
+async function show3DayPreview(scheduleData) {
+    const modal = document.createElement('div');
+    modal.className = 'preview-modal';
+    modal.innerHTML = `
+        <div class="preview-modal-content">
+            <div class="preview-modal-header">
+                <h2>📅 3 天用藥計畫預覽</h2>
+                <button class="preview-modal-close" onclick="this.closest('.preview-modal').remove()">✕</button>
+            </div>
+            <div class="preview-modal-body">
+                <div class="preview-loading">
+                    <div class="spinner"></div>
+                    <p>正在生成預覽...</p>
+                </div>
+            </div>
+            <div class="preview-modal-footer">
+                <button class="btn-secondary" onclick="this.closest('.preview-modal').remove()">關閉</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 顯示動畫
+    setTimeout(() => modal.classList.add('show'), 10);
+
+    try {
+        // 調用後端預覽 API
+        const response = await fetch(`${API_BASE_URL}/api/medication-reminders/preview?days=3`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                dosesPerDay: scheduleData.dosesPerDay,
+                timingPlan: scheduleData.timingPlan,
+                customTimes: scheduleData.customTimes,
+                treatmentDays: scheduleData.treatmentDays,
+                startDate: scheduleData.startDate,
+                isAntibiotic: scheduleData.isAntibiotic,
+                medicationName: document.getElementById('medicationName')?.value || '預覽藥物'
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || '預覽生成失敗');
+        }
+
+        const { preview, cronSchedule, reminderTimes } = result.data;
+
+        // 顯示預覽結果
+        const body = modal.querySelector('.preview-modal-body');
+        body.innerHTML = `
+            <div class="preview-summary">
+                <div class="preview-info">
+                    <h3>📊 用藥方案</h3>
+                    <ul>
+                        <li><strong>每日次數：</strong>${scheduleData.dosesPerDay} 次</li>
+                        <li><strong>時段方案：</strong>${scheduleData.timingPlan === 'plan1' ? '方案一' : scheduleData.timingPlan === 'plan2' ? '方案二' : '自訂時間'}</li>
+                        ${scheduleData.customTimes ? `<li><strong>自訂時間：</strong>${scheduleData.customTimes.join(', ')}</li>` : ''}
+                        <li><strong>療程天數：</strong>${scheduleData.treatmentDays} 天</li>
+                        <li><strong>開始日期：</strong>${scheduleData.startDate}</li>
+                        <li><strong>提醒時間：</strong>${reminderTimes.join(', ')}</li>
+                    </ul>
+                </div>
+
+                <div class="preview-schedule">
+                    <h3>📆 3 天用藥計畫</h3>
+                    ${preview.map(day => `
+                        <div class="preview-day">
+                            <h4>${day.dayOfWeek} (${day.date})</h4>
+                            <div class="preview-times">
+                                ${day.schedules.map(schedule => `
+                                    <div class="preview-time-item ${schedule.status}">
+                                        <span class="time">${schedule.time}</span>
+                                        <span class="label">${schedule.label}</span>
+                                        ${schedule.status === 'passed' ? '<span class="status-badge">已過</span>' : '<span class="status-badge">待服藥</span>'}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <p class="preview-note">💡 確認無誤後，請點選「儲存」完成設定</p>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('預覽生成失敗:', error);
+        const body = modal.querySelector('.preview-modal-body');
+        body.innerHTML = `<p class="error-message">❌ 預覽生成失敗：${error.message}</p>`;
+    }
+}
+
+// 添加預設時間
+function addPresetTime(time) {
+    // 檢查是否已經存在該時間
+    const existingTimes = Array.from(document.querySelectorAll('.reminder-time'))
+        .map(input => input.value);
+
+    if (existingTimes.includes(time)) {
+        showToast('此時間已經存在', 'warning');
+        return;
+    }
+
+    // 尋找第一個空的時間輸入欄
+    const emptyInput = Array.from(document.querySelectorAll('.reminder-time'))
+        .find(input => !input.value);
+
+    if (emptyInput) {
+        emptyInput.value = time;
+    } else {
+        // 如果沒有空的輸入欄，新增一個
+        addReminderTimeInForm();
+        // 等待 DOM 更新後設定值
+        setTimeout(() => {
+            const allInputs = document.querySelectorAll('.reminder-time');
+            const lastInput = allInputs[allInputs.length - 1];
+            if (lastInput) {
+                lastInput.value = time;
+            }
+        }, 10);
+    }
+
+    showToast(`已添加 ${time} 的提醒`, 'success');
+}
+
+// ==================== 輔助函數 ====================
+
+// 生成短期用藥的提醒時間
+function generateShorttermReminders(startDate, startTime, intervalHours, days) {
+    const reminders = [];
+    const start = new Date(`${startDate}T${startTime}`);
+    const totalDoses = Math.ceil((days * 24) / intervalHours);
+
+    for (let i = 0; i < totalDoses; i++) {
+        const reminderTime = new Date(start.getTime() + (i * intervalHours * 60 * 60 * 1000));
+        // 只取時間部分（HH:MM）
+        const timeStr = reminderTime.toTimeString().slice(0, 5);
+        if (!reminders.includes(timeStr)) {
+            reminders.push(timeStr);
+        }
+    }
+
+    return reminders;
+}
+
+// 計算結束日期
+function calculateEndDate(startDate, days) {
+    const start = new Date(startDate);
+    const end = new Date(start.getTime() + (days * 24 * 60 * 60 * 1000));
+    return end.toISOString().split('T')[0];
+}
+
 // ==================== 新增/編輯藥物 ====================
 
 function showAddMedicationForm() {
-    document.getElementById('modalTitle').textContent = '➕ 快速新增用藥提醒';
+    document.getElementById('modalTitle').textContent = '➕ 新增用藥時間';
     document.getElementById('medicationForm').reset();
     document.getElementById('medicationId').value = '';
+
+    // 重置劑量按鈕選中狀態
+    document.querySelectorAll('.dosage-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
 
     // 重置提醒時間容器，只保留一個空的時間輸入
     const container = document.getElementById('reminderTimesContainer');
     container.innerHTML = `
-        <div class="time-input-group">
-            <input type="time" class="reminder-time" required>
-            <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)" style="display: none;">
-                ❌
+        <div class="time-input-group-large">
+            <label class="time-label">提醒時間：</label>
+            <input type="time" class="reminder-time large-time-input" required>
+            <button type="button" class="btn-icon-large danger" onclick="removeReminderTime(this)" style="display: none;">
+                ❌ 刪除
             </button>
         </div>
     `;
@@ -376,11 +970,12 @@ function toggleSection(header) {
 function addReminderTimeInForm() {
     const container = document.getElementById('reminderTimesContainer');
     const div = document.createElement('div');
-    div.className = 'time-input-group';
+    div.className = 'time-input-group-large';
     div.innerHTML = `
-        <input type="time" class="reminder-time" required>
-        <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)">
-            ❌
+        <label class="time-label">提醒時間：</label>
+        <input type="time" class="reminder-time large-time-input" required>
+        <button type="button" class="btn-icon-large danger" onclick="removeReminderTime(this)">
+            ❌ 刪除
         </button>
     `;
     container.appendChild(div);
@@ -392,11 +987,13 @@ function addReminderTimeInForm() {
 // 更新刪除按鈕的顯示狀態
 function updateRemoveButtons() {
     const container = document.getElementById('reminderTimesContainer');
-    const groups = container.querySelectorAll('.time-input-group');
+    const groups = container.querySelectorAll('.time-input-group-large');
     groups.forEach((group, index) => {
-        const btn = group.querySelector('.btn-icon');
+        const btn = group.querySelector('.btn-icon-large');
         // 如果只有一個時間，隱藏刪除按鈕
-        btn.style.display = groups.length > 1 ? 'inline-block' : 'none';
+        if (btn) {
+            btn.style.display = groups.length > 1 ? 'inline-block' : 'none';
+        }
     });
 }
 
@@ -460,16 +1057,39 @@ async function editMedication(id) {
         const reminder = result.data?.find(r => r.medication_id === id);
 
         if (reminder && reminder.reminder_times) {
-            const container = document.getElementById('reminderTimesContainer');
-            container.innerHTML = reminder.reminder_times.map((time, index) => `
-                <div class="time-input-group">
-                    <input type="time" class="reminder-time" value="${time}" required>
-                    <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)"
-                            style="display: ${reminder.reminder_times.length > 1 ? 'inline-block' : 'none'};">
-                        ❌
-                    </button>
-                </div>
-            `).join('');
+            // ✅ 修正：reminder_times 是 JSONB 物件，需要解析
+            let times = [];
+            if (typeof reminder.reminder_times === 'object') {
+                // 如果是物件，取出 times 陣列
+                times = reminder.reminder_times.times || [];
+            } else if (Array.isArray(reminder.reminder_times)) {
+                // 如果已經是陣列（舊資料格式）
+                times = reminder.reminder_times;
+            }
+
+            if (times.length > 0) {
+                const container = document.getElementById('reminderTimesContainer');
+                container.innerHTML = times.map((time, index) => `
+                    <div class="time-input-group">
+                        <input type="time" class="reminder-time" value="${time}" required>
+                        <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)"
+                                style="display: ${times.length > 1 ? 'inline-block' : 'none'};">
+                            ❌
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                // 沒有有效的時間資料
+                const container = document.getElementById('reminderTimesContainer');
+                container.innerHTML = `
+                    <div class="time-input-group">
+                        <input type="time" class="reminder-time" required>
+                        <button type="button" class="btn-icon danger" onclick="removeReminderTime(this)" style="display: none;">
+                            ❌
+                        </button>
+                    </div>
+                `;
+            }
         } else {
             // 如果沒有提醒設定，顯示空的時間輸入
             const container = document.getElementById('reminderTimesContainer');
@@ -492,14 +1112,93 @@ async function editMedication(id) {
 async function saveMedication(event) {
     event.preventDefault();
 
-    // 收集提醒時間
-    const times = Array.from(document.querySelectorAll('#reminderTimesContainer .reminder-time'))
-        .map(input => input.value)
-        .filter(t => t);
+    const durationType = document.getElementById('medicationDurationType').value;
+    let times = [];
+    let reminderMetadata = {}; // 用來儲存額外的提醒資訊
 
-    if (times.length === 0) {
-        showToast('請至少設定一個提醒時間', 'warning');
-        return;
+    // 根據用藥類型處理不同的時間設定
+    if (durationType === 'chronic') {
+        // 長期用藥：收集提醒時間
+        times = Array.from(document.querySelectorAll('#reminderTimesContainer .reminder-time'))
+            .map(input => input.value)
+            .filter(t => t);
+
+        if (times.length === 0) {
+            showToast('請至少設定一個提醒時間', 'warning');
+            return;
+        }
+    } else {
+        // 短期用藥：使用新的智能排程
+        const isAntibiotic = document.getElementById('isAntibiotic').value === 'yes';
+        const treatmentDays = parseInt(document.getElementById('treatmentDays').value) || 3;
+
+        if (isAntibiotic) {
+            // 抗生素：需要首次用藥時間和間隔
+            const firstDoseDate = document.getElementById('firstDoseDate')?.value;
+            const firstDoseTime = document.getElementById('firstDoseTime')?.value;
+            const intervalHours = parseInt(document.getElementById('doseInterval')?.value);
+
+            if (!firstDoseDate || !firstDoseTime || !intervalHours) {
+                showToast('請完整填寫抗生素用藥資訊（首次時間、間隔）', 'warning');
+                return;
+            }
+
+            const dosesPerDay = 24 / intervalHours;
+
+            reminderMetadata = {
+                durationType: 'shortterm',
+                useSmartSchedule: true,
+                isAntibiotic: true,
+                firstDoseDateTime: `${firstDoseDate}T${firstDoseTime}`,
+                dosesPerDay: dosesPerDay,
+                treatmentDays: treatmentDays,
+                endDate: calculateEndDate(firstDoseDate, treatmentDays)
+            };
+        } else {
+            // 一般短期用藥：使用新的智能排程系統
+            const dosesPerDay = parseInt(document.getElementById('dosesPerDay')?.value) || 3;
+            const timingPlan = document.getElementById('timingPlan')?.value || 'plan1';
+            const startDateType = document.getElementById('startDateType')?.value || 'today';
+
+            // 計算開始日期
+            let startDate = new Date();
+            if (startDateType === 'tomorrow') {
+                startDate.setDate(startDate.getDate() + 1);
+            } else if (startDateType === 'custom') {
+                const customDate = document.getElementById('customStartDate')?.value;
+                if (customDate) {
+                    startDate = new Date(customDate);
+                }
+            }
+            startDate.setHours(0, 0, 0, 0); // 設定為 00:00
+
+            // 收集自訂時間（如果有的話）
+            let customTimes = null;
+            if (timingPlan === 'custom') {
+                customTimes = Array.from(document.querySelectorAll('.custom-time-field'))
+                    .map(input => input.value)
+                    .filter(t => t);
+
+                if (customTimes.length === 0) {
+                    showToast('請設定自訂的用藥時間', 'warning');
+                    return;
+                }
+            }
+
+            reminderMetadata = {
+                durationType: 'shortterm',
+                useSmartSchedule: true,
+                isAntibiotic: false,
+                dosesPerDay: dosesPerDay,
+                timingPlan: timingPlan,
+                customTimes: customTimes,
+                treatmentDays: treatmentDays,
+                startDate: startDate.toISOString().split('T')[0]
+            };
+        }
+
+        // 暫時設定空陣列，實際排程會在後端生成
+        times = [];
     }
 
     const id = document.getElementById('medicationId').value;
@@ -519,6 +1218,23 @@ async function saveMedication(event) {
         ? `${mealTimingText}。${existingInstructions}`
         : mealTimingText;
 
+    // 檢查是否有 elder_id
+    if (!currentElderId) {
+        showToast('❌ 無法取得使用者資料，請重新整理頁面', 'error');
+        console.error('❌ currentElderId 是 null，無法儲存藥物');
+        console.log('當前使用者:', currentUser);
+        console.log('請檢查是否已完成 onboarding 流程');
+
+        // 嘗試重新載入使用者資料
+        await loadCurrentUser();
+
+        if (!currentElderId) {
+            showToast('❌ 初始化失敗，請聯繫系統管理員', 'error');
+            return;
+        }
+    }
+
+    // 準備藥物基本資料（不包含 end_date，那是 reminder 的屬性）
     const data = {
         elderId: currentElderId,
         medicationName: document.getElementById('medicationName').value,
@@ -537,11 +1253,12 @@ async function saveMedication(event) {
         let medicationId = id;
 
         if (id) {
-            // 更新藥物
+            // 更新藥物 - 移除 elderId，因為不應該更改藥物所屬的長輩
+            const { elderId, ...updateData } = data;
             response = await fetch(`${API_BASE_URL}/api/medications/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(updateData)
             });
         } else {
             // 新增藥物
@@ -562,22 +1279,32 @@ async function saveMedication(event) {
         // 取得藥物 ID
         medicationId = result.data?.id || id;
 
-        // 儲存提醒設定
-        const cronSchedule = timesToCron(times);
-        const reminderData = {
+        // 準備提醒資料
+        let finalReminderData = {
             medicationId: medicationId,
             elderId: currentElderId,
-            cronSchedule: cronSchedule,
-            reminderTimes: times,
             isEnabled: true,
             autoMarkMissedAfterMinutes: 30,
             notifyFamilyIfMissed: true
         };
 
+        if (durationType === 'chronic') {
+            // 長期用藥：使用舊的 cron 方式
+            const cronSchedule = timesToCron(times);
+            finalReminderData.cronSchedule = cronSchedule;
+            finalReminderData.reminderTimes = { times: times };
+        } else {
+            // 短期用藥：使用新的智能排程 API
+            finalReminderData = {
+                ...finalReminderData,
+                ...reminderMetadata // 包含所有智能排程參數
+            };
+        }
+
         const reminderResponse = await fetch(`${API_BASE_URL}/api/medication-reminders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reminderData)
+            body: JSON.stringify(finalReminderData)
         });
 
         if (!reminderResponse.ok) {
@@ -603,18 +1330,27 @@ async function deleteMedication(id) {
     }
 
     try {
+        console.log('🗑️ 刪除藥物:', id);
+
         const response = await fetch(`${API_BASE_URL}/api/medications/${id}`, {
             method: 'DELETE'
         });
+
+        console.log('📡 刪除 API 回應狀態:', response.status);
+
+        const result = await response.json();
+        console.log('📊 刪除 API 回應內容:', result);
 
         if (response.ok) {
             showToast('藥物已刪除', 'success');
             await loadMedications();
         } else {
-            showToast('刪除失敗', 'error');
+            const errorMsg = result.message || result.error || '刪除失敗';
+            console.error('❌ 刪除失敗:', errorMsg);
+            showToast(`刪除失敗: ${errorMsg}`, 'error');
         }
     } catch (error) {
-        console.error('刪除藥物失敗:', error);
+        console.error('❌ 刪除藥物異常:', error);
         showToast('刪除失敗，請稍後再試', 'error');
     }
 }
@@ -747,8 +1483,18 @@ async function saveReminder(event, medicationId) {
         return;
     }
 
+    console.log('收集到的提醒時間:', times);
+
     // 將時間轉換為 cron 表達式
     const cronSchedule = timesToCron(times);
+
+    if (!cronSchedule) {
+        showToast('時間格式錯誤，請檢查輸入的時間', 'error');
+        console.error('無法生成 cron 表達式，輸入時間:', times);
+        return;
+    }
+
+    console.log('生成的 cron 表達式:', cronSchedule);
 
     const data = {
         medicationId: medicationId,
@@ -796,9 +1542,53 @@ async function saveReminder(event, medicationId) {
 
 function timesToCron(times) {
     // 將時間陣列轉換為 cron 表達式
-    // 例如：['08:00', '12:00', '20:00'] => '0 8,12,20 * * *'
-    const hours = times.map(t => t.split(':')[0]).join(',');
-    return `0 ${hours} * * *`;
+    // 例如：['08:00', '12:00', '20:00'] => '0 0 8,12,20 * * *'
+
+    if (!times || times.length === 0) {
+        console.error('timesToCron: 時間陣列為空');
+        return null;
+    }
+
+    const timeData = times.map(t => {
+        // 確保時間格式正確 (HH:MM)
+        if (typeof t !== 'string' || !t.includes(':')) {
+            console.error('timesToCron: 無效的時間格式:', t);
+            return null;
+        }
+
+        const [hour, minute] = t.split(':');
+        return {
+            hour: parseInt(hour),
+            minute: parseInt(minute)
+        };
+    }).filter(td => td !== null);
+
+    if (timeData.length === 0) {
+        console.error('timesToCron: 沒有有效的時間資料');
+        return null;
+    }
+
+    // 按照時間排序
+    timeData.sort((a, b) => {
+        if (a.hour !== b.hour) return a.hour - b.hour;
+        return a.minute - b.minute;
+    });
+
+    // 檢查是否所有時間都有相同的分鐘數
+    const firstMinute = timeData[0].minute;
+    const allSameMinute = timeData.every(td => td.minute === firstMinute);
+
+    if (allSameMinute) {
+        // 如果分鐘數相同，可以用簡化的格式
+        const hours = timeData.map(td => td.hour).join(',');
+        return `0 ${firstMinute} ${hours} * * *`;
+    } else {
+        // 如果分鐘數不同，需要為每個時間點建立獨立的 cron 表達式
+        // 這裡返回第一個簡化版本，後端需要支援更複雜的排程
+        console.warn('timesToCron: 不同的分鐘數，使用第一個時間的分鐘數');
+        const hours = timeData.map(td => td.hour).join(',');
+        return `0 ${firstMinute} ${hours} * * *`;
+    }
 }
 
 function closeReminderModal() {
@@ -829,15 +1619,20 @@ async function loadTodayMedications() {
     }
 
     try {
+        console.log('📅 開始載入今日用藥計畫...');
+
         // 先嘗試生成今日用藥記錄（如果還沒生成的話）
         try {
-            await fetch(`${API_BASE_URL}/api/scheduler/generate-today-logs`, {
+            console.log('🔄 呼叫生成今日記錄 API...');
+            const generateResponse = await fetch(`${API_BASE_URL}/api/scheduler/generate-today-logs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ elderId: currentElderId })
             });
+            const generateResult = await generateResponse.json();
+            console.log('✅ 生成今日記錄結果:', generateResult);
         } catch (genError) {
-            console.warn('生成今日記錄失敗（可能已存在）:', genError);
+            console.warn('⚠️ 生成今日記錄失敗（可能已存在）:', genError);
         }
 
         // 查詢今日的用藥記錄（包含所有狀態）
@@ -845,8 +1640,16 @@ async function loadTodayMedications() {
         const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
+        console.log('🔍 查詢今日用藥記錄...', {
+            elderId: currentElderId,
+            todayStart: todayStart.toISOString(),
+            todayEnd: todayEnd.toISOString()
+        });
+
         const response = await fetch(`${API_BASE_URL}/api/medication-logs/elder/${currentElderId}?days=1`);
         const result = await response.json();
+
+        console.log('📊 查詢結果:', result);
 
         // 隱藏載入狀態
         const loadingState = document.querySelector('#today-tab .loading-state');
@@ -855,6 +1658,7 @@ async function loadTodayMedications() {
         }
 
         if (!result.success && !result.data) {
+            console.log('⚠️ 沒有查詢到用藥記錄');
             todayLogs = [];
             renderTodayTimeline(todayLogs);
             updateTodayStats(todayLogs);
@@ -862,15 +1666,20 @@ async function loadTodayMedications() {
         }
 
         // 過濾今日的記錄
-        todayLogs = (result.data || []).filter(log => {
+        const allLogs = result.data || [];
+        console.log(`📝 總共 ${allLogs.length} 筆記錄`);
+
+        todayLogs = allLogs.filter(log => {
             const logDate = new Date(log.scheduled_time);
             return logDate >= todayStart && logDate <= todayEnd;
         });
 
+        console.log(`✅ 今日記錄: ${todayLogs.length} 筆`);
+
         renderTodayTimeline(todayLogs);
         updateTodayStats(todayLogs);
     } catch (error) {
-        console.error('載入今日用藥失敗:', error);
+        console.error('❌ 載入今日用藥失敗:', error);
         // 隱藏載入狀態
         const loadingState = document.querySelector('#today-tab .loading-state');
         if (loadingState) {
@@ -1185,11 +1994,16 @@ async function registerFCMToken() {
     return;
   }
 
+  if (!currentUser) {
+    console.warn('⚠️ 使用者未登入');
+    return;
+  }
+
   try {
-    const { data: elder } = await supabase
+    const { data: elder } = await supabaseClient
       .from('elders')
       .select('id')
-      .eq('user_profile_id', currentUserId)
+      .eq('auth_user_id', currentUser.id)
       .single();
 
     if (!elder) {
@@ -1218,9 +2032,253 @@ async function registerFCMToken() {
   }
 }
 
+// ==================== 通知權限管理 ====================
+
+/**
+ * 檢查通知權限狀態
+ */
+function checkNotificationPermission() {
+  if (!('Notification' in window)) {
+    console.log('此瀏覽器不支援通知功能');
+    return 'unsupported';
+  }
+
+  console.log('🔔 通知權限狀態:', Notification.permission);
+  return Notification.permission;
+}
+
+/**
+ * 顯示通知權限橫幅
+ */
+function showNotificationBanner() {
+  const banner = document.getElementById('notificationBanner');
+  if (banner) {
+    banner.style.display = 'block';
+  }
+}
+
+/**
+ * 隱藏通知權限橫幅
+ */
+function hideNotificationBanner() {
+  const banner = document.getElementById('notificationBanner');
+  if (banner) {
+    banner.style.display = 'none';
+  }
+}
+
+/**
+ * 關閉橫幅
+ */
+function closeBanner() {
+  hideNotificationBanner();
+  // 記住用戶關閉了橫幅（可以存在 localStorage）
+  localStorage.setItem('notificationBannerClosed', 'true');
+}
+
+/**
+ * 請求通知權限
+ */
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    showPermissionGuide('unsupported');
+    return false;
+  }
+
+  // 如果已經被拒絕，顯示引導說明
+  if (Notification.permission === 'denied') {
+    showPermissionGuide('denied');
+    return false;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    console.log('通知權限請求結果:', permission);
+
+    if (permission === 'granted') {
+      hideNotificationBanner();
+      alert('✅ 通知權限已開啟！現在會發送測試通知');
+
+      // 發送測試通知
+      testNotification();
+
+      return true;
+    } else if (permission === 'denied') {
+      showPermissionGuide('denied');
+      return false;
+    } else {
+      alert('⚠️ 通知權限未授予，請點擊「允許」以開啟通知');
+      return false;
+    }
+  } catch (error) {
+    console.error('請求通知權限失敗:', error);
+    alert('請求通知權限失敗');
+    return false;
+  }
+}
+
+/**
+ * 測試推送通知
+ */
+function testNotification() {
+  const permission = checkNotificationPermission();
+
+  if (permission === 'unsupported') {
+    alert('您的瀏覽器不支援通知功能');
+    return;
+  }
+
+  if (permission === 'denied') {
+    alert('通知權限被拒絕\n\n請在瀏覽器設定中允許通知：\n1. 點擊網址列左側的鎖頭圖示\n2. 找到「通知」設定\n3. 改為「允許」');
+    return;
+  }
+
+  if (permission === 'default') {
+    // 需要請求權限
+    requestNotificationPermission();
+    return;
+  }
+
+  // permission === 'granted'
+  try {
+    console.log('🔔 準備發送測試通知...');
+
+    const notification = new Notification('💊 用藥提醒測試', {
+      body: '這是一個測試通知。如果您看到此訊息，表示通知功能正常運作！',
+      tag: 'medication-test',
+      requireInteraction: true, // 讓通知保持顯示，直到用戶關閉
+      timestamp: Date.now()
+    });
+
+    notification.onclick = function() {
+      console.log('✅ 通知被點擊了！');
+      alert('您點擊了通知！這表示通知功能完全正常 ✅');
+      window.focus();
+      notification.close();
+    };
+
+    notification.onshow = function() {
+      console.log('✅ 通知已顯示在系統通知區域！');
+    };
+
+    notification.onerror = function(error) {
+      console.error('❌ 通知顯示失敗:', error);
+    };
+
+    notification.onclose = function() {
+      console.log('ℹ️ 通知已關閉');
+    };
+
+    // 延遲顯示 alert，讓用戶先看到通知
+    setTimeout(() => {
+      alert('✅ 測試通知已發送！\n\n請查看螢幕右下角（Windows）或右上角（Mac）的通知區域\n\n如果看到通知，請點擊它進行確認！');
+    }, 500);
+
+    console.log('✅ 測試通知已發送');
+  } catch (error) {
+    console.error('❌ 發送測試通知失敗:', error);
+    alert('❌ 發送測試通知失敗: ' + error.message);
+  }
+}
+
+/**
+ * 顯示通知權限引導說明
+ */
+function showPermissionGuide(status) {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  let message = '';
+  let title = '';
+
+  if (status === 'unsupported') {
+    title = '❌ 不支援通知功能';
+    message = '您的瀏覽器不支援推送通知功能。\n\n建議使用 Chrome、Firefox 或 Edge 瀏覽器。';
+  } else if (status === 'denied') {
+    title = '🔓 需要開啟通知權限';
+
+    if (isMobile) {
+      message = `請按照以下步驟開啟通知權限：
+
+📱 行動裝置設定步驟：
+
+1. 點擊瀏覽器右上角的「⋮」選單
+2. 選擇「設定」
+3. 找到「網站設定」
+4. 選擇「通知」
+5. 找到本網站並設為「允許」
+
+完成後請重新整理頁面！`;
+    } else {
+      message = `請按照以下步驟開啟通知權限：
+
+💻 電腦版設定步驟：
+
+1. 點擊網址列左側的 🔒 鎖頭圖示
+2. 找到「通知」設定
+3. 將「封鎖」改為「允許」
+4. 重新整理頁面
+
+或者：
+• Chrome/Edge: 設定 → 隱私權和安全性 → 網站設定 → 通知
+• Firefox: 設定 → 隱私權與安全性 → 權限 → 通知`;
+    }
+  }
+
+  if (confirm(title + '\n\n' + message + '\n\n是否現在開啟瀏覽器設定？')) {
+    // 對於桌面版瀏覽器，嘗試提供快捷連結
+    if (!isMobile) {
+      // Chrome/Edge
+      if (navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edg')) {
+        window.open('chrome://settings/content/notifications', '_blank');
+      }
+      // Firefox
+      else if (navigator.userAgent.includes('Firefox')) {
+        alert('請在 Firefox 網址列輸入：about:preferences#privacy\n然後找到「權限」區塊中的「通知」設定');
+      }
+    }
+  }
+}
+
+/**
+ * 頁面載入時自動檢查通知權限
+ */
+function initNotificationCheck() {
+  // 檢查是否已經關閉過橫幅
+  const bannerClosed = localStorage.getItem('notificationBannerClosed');
+
+  const permission = checkNotificationPermission();
+
+  // 如果權限未授予且用戶未關閉橫幅，則顯示橫幅
+  if (permission !== 'granted' && permission !== 'unsupported' && !bannerClosed) {
+    // 延遲 1 秒後顯示橫幅，讓頁面先載入完成
+    setTimeout(() => {
+      showNotificationBanner();
+    }, 1000);
+  }
+
+  // 如果權限已授予，記錄狀態
+  if (permission === 'granted') {
+    console.log('✅ 通知權限已授予');
+  }
+
+  // 定期檢查權限是否改變（用戶可能在設定中手動開啟）
+  setInterval(() => {
+    const currentPermission = Notification.permission;
+    if (currentPermission === 'granted' && permission !== 'granted') {
+      console.log('✅ 通知權限已開啟！');
+      hideNotificationBanner();
+      alert('✅ 通知權限已成功開啟！\n\n現在會發送測試通知');
+      testNotification();
+    }
+  }, 2000); // 每2秒檢查一次
+}
+
 // 在頁面載入時執行
 window.addEventListener('DOMContentLoaded', () => {
   // ... 其他初始化代碼 ...
 
   registerFCMToken();
+
+  // 初始化通知權限檢查
+  initNotificationCheck();
 });

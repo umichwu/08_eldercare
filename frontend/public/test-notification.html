@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通知測試工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-entry.success { color: #28a745; }
+        .log-entry.error { color: #dc3545; }
+        .log-entry.info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 通知功能完整測試工具</h1>
+
+        <div id="permissionStatus"></div>
+        <div id="supportStatus"></div>
+
+        <div style="margin: 20px 0;">
+            <button class="btn" onclick="requestPermission()">1. 請求通知權限</button>
+            <button class="btn" onclick="testBasicNotification()">2. 測試基本通知</button>
+            <button class="btn" onclick="testAdvancedNotification()">3. 測試進階通知</button>
+            <button class="btn" onclick="checkWindowsFocus()">4. 檢查視窗焦點</button>
+            <button class="btn" onclick="clearLog()">清除日誌</button>
+        </div>
+
+        <h3>診斷日誌：</h3>
+        <div id="log" class="log"></div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #e7f3ff; border-radius: 5px;">
+            <h3>💡 常見問題排查：</h3>
+            <ol>
+                <li><strong>Windows 專注輔助模式：</strong> Win + A 打開通知中心，確認未開啟專注輔助</li>
+                <li><strong>系統通知設定：</strong> Win + I → 系統 → 通知，確認通知開關已開啟</li>
+                <li><strong>Chrome 通知設定：</strong> chrome://settings/content/notifications</li>
+                <li><strong>瀏覽器最小化：</strong> 確保瀏覽器視窗不是最小化狀態</li>
+                <li><strong>請勿打擾模式：</strong> 確認系統未開啟請勿打擾模式</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+
+        function checkSupport() {
+            const supportDiv = document.getElementById('supportStatus');
+
+            if (!('Notification' in window)) {
+                supportDiv.className = 'status error';
+                supportDiv.innerHTML = '❌ 您的瀏覽器不支援通知 API';
+                log('瀏覽器不支援通知 API', 'error');
+                return false;
+            }
+
+            supportDiv.className = 'status success';
+            supportDiv.innerHTML = '✅ 瀏覽器支援通知 API';
+            log('瀏覽器支援通知 API', 'success');
+            return true;
+        }
+
+        function checkPermission() {
+            const statusDiv = document.getElementById('permissionStatus');
+            const permission = Notification.permission;
+
+            log(`當前通知權限狀態: ${permission}`, 'info');
+
+            if (permission === 'granted') {
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '✅ 通知權限：已授予';
+            } else if (permission === 'denied') {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ 通知權限：已拒絕（請在瀏覽器設定中手動開啟）';
+            } else {
+                statusDiv.className = 'status warning';
+                statusDiv.innerHTML = '⚠️ 通知權限：尚未詢問';
+            }
+        }
+
+        async function requestPermission() {
+            log('開始請求通知權限...', 'info');
+
+            if (!checkSupport()) return;
+
+            try {
+                const permission = await Notification.requestPermission();
+                log(`權限請求結果: ${permission}`, permission === 'granted' ? 'success' : 'error');
+                checkPermission();
+
+                if (permission === 'granted') {
+                    log('權限授予成功！現在可以測試通知了', 'success');
+                }
+            } catch (error) {
+                log(`權限請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        function testBasicNotification() {
+            log('=== 開始基本通知測試 ===', 'info');
+
+            if (Notification.permission !== 'granted') {
+                log('錯誤：通知權限未授予，請先點擊「請求通知權限」', 'error');
+                alert('請先授予通知權限！');
+                return;
+            }
+
+            try {
+                log('創建通知物件...', 'info');
+
+                const notification = new Notification('🔔 基本測試通知', {
+                    body: '這是一個基本的測試通知\n時間：' + new Date().toLocaleTimeString(),
+                    requireInteraction: true
+                });
+
+                log('通知物件已創建', 'success');
+
+                notification.onshow = function() {
+                    log('✅ 通知已顯示！', 'success');
+                };
+
+                notification.onerror = function(e) {
+                    log('❌ 通知顯示時發生錯誤: ' + e, 'error');
+                };
+
+                notification.onclick = function() {
+                    log('✅ 通知被點擊了！', 'success');
+                    alert('恭喜！通知功能正常運作 ✅');
+                    notification.close();
+                };
+
+                notification.onclose = function() {
+                    log('通知已關閉', 'info');
+                };
+
+            } catch (error) {
+                log('❌ 創建通知失敗: ' + error.message, 'error');
+            }
+        }
+
+        function testAdvancedNotification() {
+            log('=== 開始進階通知測試 ===', 'info');
+
+            if (Notification.permission !== 'granted') {
+                log('錯誤：通知權限未授予', 'error');
+                return;
+            }
+
+            try {
+                // 測試多個通知選項
+                const options = {
+                    body: '這是進階測試通知\n包含多種選項',
+                    requireInteraction: true,
+                    silent: false,
+                    tag: 'test-' + Date.now(),
+                    renotify: true,
+                    vibrate: [200, 100, 200]
+                };
+
+                log('通知選項: ' + JSON.stringify(options, null, 2), 'info');
+
+                const notification = new Notification('💊 進階測試通知', options);
+
+                notification.onshow = function() {
+                    log('✅ 進階通知已顯示！', 'success');
+
+                    // 3秒後發送另一個通知
+                    setTimeout(() => {
+                        log('發送第二個通知...', 'info');
+                        const n2 = new Notification('🔔 第二個測試通知', {
+                            body: '如果您看到這個，表示連續通知功能正常',
+                            requireInteraction: true
+                        });
+                    }, 3000);
+                };
+
+                notification.onerror = function(e) {
+                    log('❌ 進階通知錯誤: ' + e, 'error');
+                };
+
+                notification.onclick = function() {
+                    log('✅ 進階通知被點擊！', 'success');
+                    notification.close();
+                };
+
+            } catch (error) {
+                log('❌ 進階通知測試失敗: ' + error.message, 'error');
+            }
+        }
+
+        function checkWindowsFocus() {
+            log('=== 檢查視窗狀態 ===', 'info');
+            log('文檔可見性: ' + document.visibilityState, 'info');
+            log('視窗焦點: ' + (document.hasFocus() ? '有焦點' : '無焦點'), 'info');
+            log('視窗寬度: ' + window.innerWidth + 'px', 'info');
+            log('視窗高度: ' + window.innerHeight + 'px', 'info');
+            log('User Agent: ' + navigator.userAgent, 'info');
+
+            // 檢查 Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    log('Service Workers: ' + registrations.length + ' 個', 'info');
+                });
+            }
+        }
+
+        // 頁面載入時執行
+        window.addEventListener('DOMContentLoaded', () => {
+            log('=== 通知測試工具已載入 ===', 'success');
+            checkSupport();
+            checkPermission();
+
+            log('瀏覽器: ' + navigator.userAgent, 'info');
+            log('當前時間: ' + new Date().toLocaleString(), 'info');
+        });
+
+        // 監聽可見性變化
+        document.addEventListener('visibilitychange', () => {
+            log('頁面可見性變更: ' + document.visibilityState, 'info');
+        });
+    </script>
+</body>
+</html>

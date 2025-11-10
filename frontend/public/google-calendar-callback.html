@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Calendar 授權中...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .loading-box {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h2 {
+            margin: 0 0 8px 0;
+            color: #374151;
+            font-size: 18px;
+        }
+
+        p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .success {
+            color: #10b981;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-box">
+        <div class="spinner"></div>
+        <h2 id="status">正在處理授權...</h2>
+        <p id="message">請稍候</p>
+    </div>
+
+    <script>
+        // 解析 URL fragment 中的 access_token
+        function getAccessTokenFromHash() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            return params.get('access_token');
+        }
+
+        // 處理授權
+        function handleAuth() {
+            const accessToken = getAccessTokenFromHash();
+            const statusEl = document.getElementById('status');
+            const messageEl = document.getElementById('message');
+
+            if (accessToken) {
+                // 授權成功
+                statusEl.textContent = '✅ 授權成功！';
+                statusEl.classList.add('success');
+                messageEl.textContent = '正在返回...';
+
+                // 將 token 傳回開啟此視窗的父視窗
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'google_auth_success',
+                        accessToken: accessToken
+                    }, window.location.origin);
+
+                    // 延遲關閉視窗，讓使用者看到成功訊息
+                    setTimeout(() => {
+                        window.close();
+                    }, 1500);
+                } else {
+                    // 如果沒有 opener，儲存到 localStorage 並跳轉
+                    localStorage.setItem('google_calendar_access_token', accessToken);
+                    messageEl.textContent = '即將返回設定頁面...';
+                    setTimeout(() => {
+                        window.location.href = 'google-calendar-setup.html';
+                    }, 1500);
+                }
+            } else {
+                // 授權失敗
+                statusEl.textContent = '❌ 授權失敗';
+                statusEl.classList.add('error');
+                messageEl.textContent = '請關閉此視窗並重試';
+
+                // 如果有 opener，通知失敗
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'google_auth_error',
+                        error: 'No access token received'
+                    }, window.location.origin);
+
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000);
+                }
+            }
+        }
+
+        // 頁面載入時處理授權
+        handleAuth();
+    </script>
+</body>
+</html>

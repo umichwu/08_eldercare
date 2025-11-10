@@ -1,18 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cat firebase-service-account.json)",
-      "Bash(python3 -c \"import sys, json; print(json.dumps(json.load(sys.stdin)))\")",
-      "Bash(npm start)",
-      "Bash(node test-email.js)",
-      "Bash(python3 -m http.server 8080 --directory public)",
-      "Bash(lsof -ti:3000)",
-      "Bash(xargs kill -9)",
-      "Bash(netstat -tulpn)",
-      "Bash(ss -tulpn)",
-      "Bash(pkill -f \"node server.js\")",
-      "Bash(kill -9 3560 3561)",
-      "Bash(chmod +x start.sh)"
+      "Bash(bash stop.sh)",
+      "Bash(curl -X POST \"http://localhost:3000/api/medication-reminders/preview?days=3\" -H \"Content-Type: application/json\" -d '{\n    \"\"\"\"dosesPerDay\"\"\"\": 3,\n    \"\"\"\"timingPlan\"\"\"\": \"\"\"\"plan1\"\"\"\",\n    \"\"\"\"treatmentDays\"\"\"\": 3,\n    \"\"\"\"startDate\"\"\"\": \"\"\"\"2025-11-10\"\"\"\",\n    \"\"\"\"medicationName\"\"\"\": \"\"\"\"測試藥物\"\"\"\"\n  }')",
+      "Bash(npm install googleapis)",
+      "Bash(curl -X POST \"http://localhost:3000/api/medication-reminders/preview?days=3\" -H \"Content-Type: application/json\" -d '{\n    \"\"dosesPerDay\"\": 3,\n    \"\"timingPlan\"\": \"\"plan1\"\",\n    \"\"treatmentDays\"\": 3,\n    \"\"startDate\"\": \"\"2025-11-10\"\",\n    \"\"medicationName\"\": \"\"測試藥物\"\"\n  }')",
+      "Bash(node test-schedule-fix.js)",
+      "Bash(node test-morning-schedule.js)",
+      "Bash(node test-10am-schedule.js)",
+      "Bash(ps -o lstart -p 30594)",
+      "Bash(awk '{print $6, $7, $8}')",
+      "Bash(bash start.sh)",
+      "Bash(node test-complete-fix.js)"
     ],
     "deny": [],
     "ask": []

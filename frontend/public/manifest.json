@@ -77,6 +77,18 @@
   ],
   "shortcuts": [
     {
+      "name": "用藥提醒",
+      "short_name": "用藥",
+      "description": "查看今日用藥提醒",
+      "url": "/medications.html",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
       "name": "開始聊天",
       "short_name": "聊天",
       "description": "開始與AI助手對話",
@@ -89,10 +101,10 @@
       ]
     },
     {
-      "name": "查看總結",
-      "short_name": "總結",
-      "description": "查看對話總結",
-      "url": "/index.html?view=summaries",
+      "name": "安裝引導",
+      "short_name": "安裝",
+      "description": "查看安裝到手機的說明",
+      "url": "/install-guide.html",
       "icons": [
         {
           "src": "/icons/icon-96x96.png",

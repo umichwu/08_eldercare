@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安裝到手機 - 長輩陪伴系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .detection {
+            text-align: center;
+            padding: 20px;
+            background: #f0f4ff;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detection-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .detection-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .detection-detail {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .step {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-size: 22px;
+            font-weight: 700;
+            margin-right: 15px;
+        }
+
+        .step-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-content {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #555;
+            margin-left: 55px;
+        }
+
+        .step-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 20px 30px;
+            border: none;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 3px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f4ff;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .warning-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .warning-text {
+            font-size: 16px;
+            color: #856404;
+            line-height: 1.6;
+        }
+
+        .qr-section {
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+        }
+
+        .qr-code {
+            width: 250px;
+            height: 250px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 26px;
+            }
+
+            .step-title {
+                font-size: 20px;
+            }
+
+            .step-content {
+                font-size: 16px;
+            }
+
+            .btn {
+                font-size: 18px;
+                padding: 18px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 安裝到您的手機</h1>
+            <p>一鍵安裝，像 App 一樣方便使用</p>
+        </div>
+
+        <!-- 瀏覽器偵測 -->
+        <div class="card">
+            <div class="detection" id="browserDetection">
+                <div class="detection-icon">🔍</div>
+                <div class="detection-text">正在偵測您的裝置...</div>
+            </div>
+
+            <!-- WeChat 警告 -->
+            <div class="warning hidden" id="wechatWarning">
+                <div class="warning-title">⚠️ 微信用戶請注意</div>
+                <div class="warning-text">
+                    微信內建瀏覽器無法使用 Google 登入。<br>
+                    請點擊右上角「...」選擇「在瀏覽器中開啟」
+                </div>
+            </div>
+
+            <!-- iOS Safari 安裝步驟 -->
+            <div class="hidden" id="iosInstructions">
+                <h2 style="font-size: 24px; font-weight: 700; color: #333; margin-bottom: 20px;">
+                    🍎 iPhone / iPad 安裝步驟
+                </h2>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">1</span>
+                        點擊分享按鈕
+                    </div>
+                    <div class="step-content">
+                        在 Safari 瀏覽器底部，找到「分享」按鈕（方框加向上箭頭）並點擊
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">2</span>
+                        加入主畫面
+                    </div>
+                    <div class="step-content">
+                        在彈出選單中，向下滑動找到「加入主畫面」或「Add to Home Screen」
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">3</span>
+                        完成安裝
+                    </div>
+                    <div class="step-content">
+                        點擊右上角的「新增」或「Add」，App 圖示就會出現在您的手機桌面上
+                    </div>
+                </div>
+            </div>
+
+            <!-- Android Chrome 安裝步驟 -->
+            <div class="hidden" id="androidInstructions">
+                <h2 style="font-size: 24px; font-weight: 700; color: #333; margin-bottom: 20px;">
+                    🤖 Android 安裝步驟
+                </h2>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">1</span>
+                        點擊安裝按鈕
+                    </div>
+                    <div class="step-content">
+                        點擊下方的「安裝到桌面」按鈕，或點擊瀏覽器右上角的選單（三個點）
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">2</span>
+                        選擇安裝選項
+                    </div>
+                    <div class="step-content">
+                        在選單中選擇「安裝應用程式」或「加到主畫面」
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">3</span>
+                        確認安裝
+                    </div>
+                    <div class="step-content">
+                        在彈出的確認視窗中點擊「安裝」，App 圖示就會出現在桌面上
+                    </div>
+                </div>
+            </div>
+
+            <!-- 按鈕組 -->
+            <div class="button-group">
+                <button class="btn btn-primary hidden" id="installButton">
+                    ⬇️ 安裝到桌面
+                </button>
+                <a href="/" class="btn btn-secondary">
+                    🏠 返回首頁
+                </a>
+                <button class="btn btn-secondary" id="shareButton" style="display: none;">
+                    📤 分享給家人
+                </button>
+            </div>
+        </div>
+
+        <!-- QR Code 分享 -->
+        <div class="card hidden" id="qrSection">
+            <div class="qr-section">
+                <h3 style="font-size: 24px; font-weight: 700; color: #333; margin-bottom: 15px;">
+                    📱 掃描二維碼安裝
+                </h3>
+                <p style="font-size: 18px; color: #666; margin-bottom: 20px;">
+                    家人可以用手機掃描此二維碼<br>直接開啟並安裝
+                </p>
+                <div class="qr-code" id="qrCode"></div>
+                <p style="font-size: 16px; color: #999; margin-top: 15px;">
+                    https://08-eldercare.vercel.app
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code 生成庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <script>
+        // 偵測瀏覽器和裝置
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
+
+        const detection = document.getElementById('browserDetection');
+        const wechatWarning = document.getElementById('wechatWarning');
+        const iosInstructions = document.getElementById('iosInstructions');
+        const androidInstructions = document.getElementById('androidInstructions');
+        const installButton = document.getElementById('installButton');
+        const shareButton = document.getElementById('shareButton');
+        const qrSection = document.getElementById('qrSection');
+
+        let deferredPrompt;
+
+        // 更新偵測資訊
+        function updateDetection() {
+            let icon = '📱';
+            let device = '';
+            let browser = '';
+
+            if (isIOS) {
+                icon = '🍎';
+                device = 'iPhone/iPad';
+                browser = isSafari ? 'Safari' : '其他瀏覽器';
+            } else if (isAndroid) {
+                icon = '🤖';
+                device = 'Android';
+                browser = isChrome ? 'Chrome' : '其他瀏覽器';
+            } else {
+                icon = '💻';
+                device = '電腦';
+            }
+
+            if (isWeChat) {
+                browser = '微信內建瀏覽器';
+            }
+
+            detection.innerHTML = `
+                <div class="detection-icon">${icon}</div>
+                <div class="detection-text">您的裝置：${device}</div>
+                <div class="detection-detail">瀏覽器：${browser}</div>
+            `;
+
+            // 顯示對應的安裝說明
+            if (isWeChat) {
+                wechatWarning.classList.remove('hidden');
+            }
+
+            if (isIOS && isSafari) {
+                iosInstructions.classList.remove('hidden');
+                shareButton.style.display = 'flex';
+            } else if (isAndroid) {
+                androidInstructions.classList.remove('hidden');
+            } else if (!isWeChat) {
+                // 其他瀏覽器顯示通用說明
+                androidInstructions.classList.remove('hidden');
+            }
+        }
+
+        // PWA 安裝提示
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installButton.classList.remove('hidden');
+        });
+
+        installButton.addEventListener('click', async () => {
+            if (!deferredPrompt) {
+                alert('請使用瀏覽器選單的「安裝應用程式」或「加到主畫面」功能');
+                return;
+            }
+
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+
+            if (outcome === 'accepted') {
+                console.log('✅ 使用者接受安裝');
+            } else {
+                console.log('❌ 使用者拒絕安裝');
+            }
+
+            deferredPrompt = null;
+            installButton.classList.add('hidden');
+        });
+
+        // 分享功能
+        shareButton.addEventListener('click', async () => {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: '長輩陪伴系統',
+                        text: '方便的用藥管理和陪伴系統',
+                        url: 'https://08-eldercare.vercel.app'
+                    });
+                    console.log('✅ 分享成功');
+                } catch (err) {
+                    console.log('❌ 分享失敗:', err);
+                }
+            } else {
+                // 顯示 QR Code
+                qrSection.classList.remove('hidden');
+                qrSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+
+        // 生成 QR Code
+        setTimeout(() => {
+            new QRCode(document.getElementById('qrCode'), {
+                text: 'https://08-eldercare.vercel.app/install-guide.html',
+                width: 200,
+                height: 200,
+                colorDark: '#667eea',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            qrSection.classList.remove('hidden');
+        }, 1000);
+
+        // 初始化
+        updateDetection();
+
+        // 監聽安裝成功
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ PWA 已成功安裝到桌面');
+            alert('✅ 安裝成功！\n\nApp 已加入您的手機桌面，\n之後可以直接點擊圖示開啟。');
+        });
+    </script>
+</body>
+</html>

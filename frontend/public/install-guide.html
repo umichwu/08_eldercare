@@ -292,20 +292,28 @@
                 <div class="step">
                     <div class="step-title">
                         <span class="step-number">1</span>
-                        點擊安裝按鈕
+                        點擊瀏覽器選單
                     </div>
                     <div class="step-content">
-                        點擊下方的「安裝到桌面」按鈕，或點擊瀏覽器右上角的選單（三個點）
+                        點擊瀏覽器右上角的選單圖示（⋮ 三個點）
                     </div>
                 </div>
 
                 <div class="step">
                     <div class="step-title">
                         <span class="step-number">2</span>
-                        選擇安裝選項
+                        尋找安裝選項
                     </div>
                     <div class="step-content">
-                        在選單中選擇「安裝應用程式」或「加到主畫面」
+                        在選單中尋找以下選項之一：<br>
+                        • 「安裝應用程式」<br>
+                        • 「加到主畫面」<br>
+                        • 「新增至主畫面」<br>
+                        • 「Install app」<br>
+                        <br>
+                        <strong>⚠️ 如果找不到這些選項：</strong><br>
+                        可能是因為網站已經安裝，或瀏覽器不支援。<br>
+                        您可以直接在瀏覽器中使用本系統。
                     </div>
                 </div>
 
@@ -315,18 +323,32 @@
                         確認安裝
                     </div>
                     <div class="step-content">
-                        在彈出的確認視窗中點擊「安裝」，App 圖示就會出現在桌面上
+                        找到選項後，點擊並在彈出視窗中確認「安裝」，<br>
+                        App 圖示就會出現在桌面或應用程式列表中
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-title">
+                        <span class="step-number">💡</span>
+                        替代方案
+                    </div>
+                    <div class="step-content">
+                        <strong>如果無法安裝：</strong><br>
+                        1. 將此頁面加入書籤/我的最愛<br>
+                        2. 或記住網址：<code style="background: #f0f4ff; padding: 4px 8px; border-radius: 4px;">08-eldercare.vercel.app</code><br>
+                        3. 之後從瀏覽器書籤開啟即可使用
                     </div>
                 </div>
             </div>
 
             <!-- 按鈕組 -->
             <div class="button-group">
-                <button class="btn btn-primary hidden" id="installButton">
-                    ⬇️ 安裝到桌面
+                <button class="btn btn-primary" id="installButton">
+                    ⬇️ 嘗試安裝到桌面
                 </button>
-                <a href="/" class="btn btn-secondary">
-                    🏠 返回首頁
+                <a href="/login.html" class="btn btn-secondary">
+                    🚀 直接開始使用
                 </a>
                 <button class="btn btn-secondary" id="shareButton" style="display: none;">
                     📤 分享給家人
@@ -421,27 +443,63 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installButton.classList.remove('hidden');
+            console.log('✅ beforeinstallprompt 事件已觸發');
+            installButton.textContent = '⬇️ 一鍵安裝到桌面';
         });
 
         installButton.addEventListener('click', async () => {
-            if (!deferredPrompt) {
-                alert('請使用瀏覽器選單的「安裝應用程式」或「加到主畫面」功能');
-                return;
-            }
+            if (deferredPrompt) {
+                // 有自動安裝提示，使用它
+                try {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
 
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('✅ 使用者接受安裝');
+                        alert('✅ 安裝成功！\n\nApp 已加入您的桌面，\n之後可以直接點擊圖示開啟。');
+                    } else {
+                        console.log('❌ 使用者拒絕安裝');
+                    }
 
-            if (outcome === 'accepted') {
-                console.log('✅ 使用者接受安裝');
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('安裝提示錯誤:', error);
+                    showManualInstructions();
+                }
             } else {
-                console.log('❌ 使用者拒絕安裝');
+                // 沒有自動安裝提示，顯示手動說明
+                showManualInstructions();
+            }
+        });
+
+        function showManualInstructions() {
+            let instructions = '';
+
+            if (isIOS && isSafari) {
+                instructions = '📱 iPhone/iPad 安裝步驟：\n\n' +
+                              '1. 點擊底部「分享」按鈕 (⎵↑)\n' +
+                              '2. 向下滑動找到「加入主畫面」\n' +
+                              '3. 點擊「新增」完成安裝\n\n' +
+                              '安裝後，圖示會出現在桌面上。';
+            } else if (isAndroid) {
+                instructions = '📱 Android 安裝步驟：\n\n' +
+                              '1. 點擊瀏覽器右上角選單 (⋮)\n' +
+                              '2. 尋找「安裝應用程式」或「加到主畫面」\n' +
+                              '3. 點擊後確認安裝\n\n' +
+                              '❓ 如果找不到安裝選項：\n' +
+                              '可能是瀏覽器不支援，或網站已經安裝過了。\n' +
+                              '您可以將此頁面加入書籤，之後從書籤開啟使用。';
+            } else {
+                instructions = '💻 無法自動安裝\n\n' +
+                              '您可以：\n' +
+                              '1. 將此頁面加入書籤/我的最愛\n' +
+                              '2. 記住網址：08-eldercare.vercel.app\n' +
+                              '3. 之後從瀏覽器開啟使用\n\n' +
+                              '或使用手機瀏覽器訪問以安裝 App。';
             }
 
-            deferredPrompt = null;
-            installButton.classList.add('hidden');
-        });
+            alert(instructions);
+        }
 
         // 分享功能
         shareButton.addEventListener('click', async () => {

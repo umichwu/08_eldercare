@@ -36,15 +36,25 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:8080',
       'http://127.0.0.1:8080',
-      process.env.FRONTEND_URL, // Vercel URL
+      'https://08-eldercare.vercel.app',
+      process.env.FRONTEND_URL, // 額外的前端 URL
     ].filter(Boolean);
 
     // 允許沒有 origin 的請求（例如 mobile apps, Postman）
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('✅ CORS: 允許無 origin 請求');
+      return callback(null, true);
+    }
 
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+    // 檢查是否為允許的來源
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`✅ CORS: 允許來源 ${origin}`);
+      callback(null, true);
+    } else if (origin.endsWith('.vercel.app')) {
+      console.log(`✅ CORS: 允許 Vercel 來源 ${origin}`);
       callback(null, true);
     } else {
+      console.log(`❌ CORS: 拒絕來源 ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },

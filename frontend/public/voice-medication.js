@@ -5,7 +5,7 @@
 // API 基礎 URL
 const API_BASE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:3000'
-    : 'https://eldercare-backend.onrender.com';
+    : 'https://eldercare-backend-8o4k.onrender.com';
 
 // Supabase 設定
 const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';

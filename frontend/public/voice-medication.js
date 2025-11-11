@@ -19,7 +19,8 @@ let currentUser = null;
 let currentElderId = null;
 let recognition = null;
 let speechSynthesis = window.speechSynthesis;
-let currentStep = 'welcome';
+let currentStep = 'medication_name';  // 直接開始藥物名稱步驟
+let isFirstInteraction = true;  // 標記是否為首次互動
 let medicationData = {
     medicationName: '',
     dosesPerDay: 0,
@@ -52,6 +53,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCurrentUser();
     initSpeechRecognition();
     setupEventListeners();
+
+    // 載入語音列表（確保中文語音可用）
+    if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.addEventListener('voiceschanged', () => {
+            const voices = speechSynthesis.getVoices();
+            console.log('🔊 語音列表已載入:', voices.length, '個語音');
+        });
+    }
 });
 
 // 檢查登入狀態
@@ -121,6 +130,15 @@ function initSpeechRecognition() {
         micBtn.classList.add('active');
         listeningIndicator.classList.add('active');
         statusText.textContent = '正在聆聽，請說話...';
+
+        // 首次互動時直接詢問藥物名稱
+        if (isFirstInteraction && currentStep === 'medication_name') {
+            isFirstInteraction = false;
+            // 稍微延遲，避免與開始提示音重疊
+            setTimeout(() => {
+                askMedicationName();
+            }, 500);
+        }
     };
 
     recognition.onresult = (event) => {
@@ -248,6 +266,29 @@ function speak(text) {
     utterance.rate = 0.9; // 稍微慢一點，讓長輩更容易聽清楚
     utterance.pitch = 1;
     utterance.volume = 1;
+
+    // 嘗試選擇中文語音
+    const voices = speechSynthesis.getVoices();
+    console.log('🔊 可用語音:', voices.map(v => `${v.name} (${v.lang})`));
+
+    // 優先順序：zh-TW > zh-CN > zh > 包含 Chinese 的語音
+    const chineseVoice = voices.find(voice =>
+        voice.lang === 'zh-TW' ||
+        voice.lang === 'zh-HK' ||
+        voice.lang === 'zh-CN' ||
+        voice.lang.startsWith('zh') ||
+        voice.name.includes('Chinese') ||
+        voice.name.includes('中文') ||
+        voice.name.includes('普通话') ||
+        voice.name.includes('國語')
+    );
+
+    if (chineseVoice) {
+        utterance.voice = chineseVoice;
+        console.log('✅ 使用中文語音:', chineseVoice.name, chineseVoice.lang);
+    } else {
+        console.log('⚠️ 未找到中文語音，使用預設語音');
+    }
 
     speechSynthesis.speak(utterance);
 }

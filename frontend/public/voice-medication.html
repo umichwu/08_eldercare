@@ -66,7 +66,7 @@
             border-radius: 15px;
             max-width: 85%;
             line-height: 1.8;
-            font-size: 18px;
+            font-size: var(--message-font-size, 20px);
         }
 
         .message.assistant {
@@ -188,6 +188,60 @@
             }
         }
 
+        /* 字體大小控制 */
+        .font-size-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .font-btn {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .font-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .font-btn:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 768px) {
+            .font-size-controls {
+                top: 10px;
+                right: 10px;
+                padding: 8px;
+            }
+
+            .font-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+        }
+
         .listening-indicator {
             display: none;
             align-items: center;
@@ -229,19 +283,21 @@
         }
 
         .suggestion-btn {
-            padding: 10px 20px;
-            border: 2px solid #667eea;
+            padding: 14px 24px;
+            border: 3px solid #667eea;
             background: white;
             color: #667eea;
-            border-radius: 20px;
+            border-radius: 25px;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 14px;
+            font-size: var(--button-font-size, 18px);
+            font-weight: 600;
         }
 
         .suggestion-btn:hover {
             background: #667eea;
             color: white;
+            transform: scale(1.05);
         }
 
         .summary-card {
@@ -280,6 +336,12 @@
     </style>
 </head>
 <body>
+    <!-- 字體大小控制 -->
+    <div class="font-size-controls">
+        <button class="font-btn" id="fontDecrease" title="縮小字體">A-</button>
+        <button class="font-btn" id="fontIncrease" title="放大字體">A+</button>
+    </div>
+
     <div class="voice-container">
         <div class="voice-assistant">
             <div class="assistant-avatar">🤖</div>

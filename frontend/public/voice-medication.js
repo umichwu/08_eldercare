@@ -130,15 +130,6 @@ function initSpeechRecognition() {
         micBtn.classList.add('active');
         listeningIndicator.classList.add('active');
         statusText.textContent = '正在聆聽，請說話...';
-
-        // 首次互動時直接詢問藥物名稱
-        if (isFirstInteraction && currentStep === 'medication_name') {
-            isFirstInteraction = false;
-            // 稍微延遲，避免與開始提示音重疊
-            setTimeout(() => {
-                askMedicationName();
-            }, 500);
-        }
     };
 
     recognition.onresult = (event) => {
@@ -202,11 +193,41 @@ function setupEventListeners() {
             return;
         }
 
-        try {
-            console.log('▶️ 嘗試啟動語音辨識...');
-            recognition.start();
-        } catch (error) {
-            console.log('⚠️ 語音辨識已在運行中或發生錯誤:', error.message);
+        // 首次互動時先詢問藥物名稱，再啟動錄音
+        if (isFirstInteraction && currentStep === 'medication_name') {
+            isFirstInteraction = false;
+            askMedicationName();
+
+            // 等待語音播報完成後才啟動錄音
+            const utteranceEndHandler = () => {
+                try {
+                    console.log('▶️ 語音播報完成，啟動語音辨識...');
+                    recognition.start();
+                } catch (error) {
+                    console.log('⚠️ 語音辨識已在運行中或發生錯誤:', error.message);
+                }
+            };
+
+            // 監聽語音播報結束
+            if (speechSynthesis.speaking) {
+                const checkSpeaking = setInterval(() => {
+                    if (!speechSynthesis.speaking) {
+                        clearInterval(checkSpeaking);
+                        utteranceEndHandler();
+                    }
+                }, 100);
+            } else {
+                // 如果沒有播報，直接啟動
+                setTimeout(utteranceEndHandler, 500);
+            }
+        } else {
+            // 非首次互動，直接啟動錄音
+            try {
+                console.log('▶️ 嘗試啟動語音辨識...');
+                recognition.start();
+            } catch (error) {
+                console.log('⚠️ 語音辨識已在運行中或發生錯誤:', error.message);
+            }
         }
     });
 
@@ -216,6 +237,54 @@ function setupEventListeners() {
             recognition.stop();
         }
     });
+
+    // 字體大小控制
+    const fontSizes = [18, 20, 22, 24, 26, 28];  // 可用的字體大小（px）
+    let currentFontIndex = parseInt(localStorage.getItem('fontSizeIndex')) || 2;  // 預設 22px（索引2）
+
+    const fontIncreaseBtn = document.getElementById('fontIncrease');
+    const fontDecreaseBtn = document.getElementById('fontDecrease');
+
+    if (fontIncreaseBtn && fontDecreaseBtn) {
+        // 初始化：套用已儲存的字體大小
+        applyFontSize();
+
+        // 放大字體
+        fontIncreaseBtn.addEventListener('click', () => {
+            if (currentFontIndex < fontSizes.length - 1) {
+                currentFontIndex++;
+                applyFontSize();
+                console.log('🔠 放大字體至:', fontSizes[currentFontIndex]);
+            } else {
+                console.log('⚠️ 已達最大字體');
+            }
+        });
+
+        // 縮小字體
+        fontDecreaseBtn.addEventListener('click', () => {
+            if (currentFontIndex > 0) {
+                currentFontIndex--;
+                applyFontSize();
+                console.log('🔠 縮小字體至:', fontSizes[currentFontIndex]);
+            } else {
+                console.log('⚠️ 已達最小字體');
+            }
+        });
+
+        // 套用字體大小
+        function applyFontSize() {
+            const messageSize = fontSizes[currentFontIndex];
+            const buttonSize = Math.max(16, messageSize - 2);  // 按鈕稍小 2px，最小 16px
+
+            document.documentElement.style.setProperty('--message-font-size', `${messageSize}px`);
+            document.documentElement.style.setProperty('--button-font-size', `${buttonSize}px`);
+
+            // 儲存偏好到 localStorage
+            localStorage.setItem('fontSizeIndex', currentFontIndex);
+
+            console.log(`✅ 字體大小已套用: 訊息=${messageSize}px, 按鈕=${buttonSize}px`);
+        }
+    }
 
     console.log('✅ 事件監聽器設定完成');
 }

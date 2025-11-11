@@ -592,39 +592,49 @@ router.get('/health', (req, res) => {
 });
 
 // ============================================
-// 測試端點：測試 Gemini API
+// 測試端點：測試 LLM API
 // ============================================
 router.get('/test-llm', async (req, res) => {
   try {
-    const { defaultLLMService } = await import('../config/llm.js');
+    // ✅ 支持透過查詢參數指定 LLM 提供商
+    // 例如：/api/test-llm?provider=deepseek
+    const { provider } = req.query;
+    const { defaultLLMService, createLLMService } = await import('../config/llm.js');
+
+    // 根據參數選擇 LLM 服務
+    const llmService = provider ? createLLMService(provider) : defaultLLMService;
+    const providerName = llmService.getProviderName();
 
     console.log('🧪 測試 LLM API...');
-    console.log('   Provider:', defaultLLMService.getProviderName());
-    console.log('   Model:', defaultLLMService.getModelName());
-    console.log('   Available:', defaultLLMService.isAvailable());
+    console.log('   Requested Provider:', provider || '預設');
+    console.log('   Actual Provider:', providerName);
+    console.log('   Model:', llmService.getModelName());
+    console.log('   Available:', llmService.isAvailable());
 
-    if (!defaultLLMService.isAvailable()) {
+    if (!llmService.isAvailable()) {
       return res.status(500).json({
         error: 'LLM 服務不可用',
-        provider: defaultLLMService.getProviderName(),
+        requestedProvider: provider || '預設',
+        actualProvider: providerName,
         message: '請檢查 API Key 配置'
       });
     }
 
     // 簡單測試訊息
     const testMessages = [
-      { role: 'user', content: '你好，請說「測試成功」' }
+      { role: 'user', content: '你好，請簡短說「測試成功」即可，不要多說' }
     ];
 
-    const response = await defaultLLMService.generateResponse(testMessages, {
+    const response = await llmService.generateResponse(testMessages, {
       temperature: 0.7,
       maxTokens: 50
     });
 
     res.json({
       success: true,
-      provider: defaultLLMService.getProviderName(),
-      model: defaultLLMService.getModelName(),
+      requestedProvider: provider || '預設',
+      actualProvider: providerName,
+      model: llmService.getModelName(),
       response: response.content,
       usage: response.usage
     });

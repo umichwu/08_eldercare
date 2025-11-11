@@ -214,7 +214,15 @@ class MessageService {
       }
 
       // 一般模式：使用原有邏輯
+      console.log('🔍 LLM Provider 選擇:');
+      console.log('   傳入的 llmProvider:', llmProvider);
+      console.log('   是否使用自訂提供商:', !!llmProvider);
+
       const llmService = llmProvider ? createLLMService(llmProvider) : defaultLLMService;
+
+      console.log('   實際使用的提供商:', llmService.getProviderName());
+      console.log('   模型:', llmService.getModelName());
+      console.log('   服務可用:', llmService.isAvailable());
 
       if (!llmService.isAvailable()) {
         throw new Error(`LLM API 未配置: ${llmProvider || '默認提供商'}`);

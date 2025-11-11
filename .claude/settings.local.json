@@ -13,7 +13,10 @@
       "Bash(bash start.sh)",
       "Bash(node test-complete-fix.js)",
       "Bash(curl -s http://localhost:8080/voice-medication.html)",
-      "Bash(node test-time-extraction.js)"
+      "Bash(node test-time-extraction.js)",
+      "Bash(git add backend/server.js frontend/public/medications.css)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n修復 CORS 設定並優化 UI\n\n- 明確加入 Vercel 前端 URL (https://08-eldercare.vercel.app)\n- 增強 CORS 日誌輸出方便除錯\n- 放大語音新增按鈕字體（22px）提升可見性\n- 縮小快速新增藥物圖示（32px）\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push origin08e main)"
     ],
     "deny": [],
     "ask": []

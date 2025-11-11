@@ -1724,13 +1724,31 @@ async function loadTodayMedications() {
         // 過濾今日的記錄
         const allLogs = result.data || [];
         console.log(`📝 總共 ${allLogs.length} 筆記錄`);
+        console.log('🔍 [DEBUG] All logs before filtering:', allLogs.map(log => ({
+            id: log.id,
+            medication_id: log.medication_id,
+            medication_name: log.medication_name || log.medications?.medication_name,
+            scheduled_time: log.scheduled_time
+        })));
 
         todayLogs = allLogs.filter(log => {
             const logDate = new Date(log.scheduled_time);
-            return logDate >= todayStart && logDate <= todayEnd;
+            const isToday = logDate >= todayStart && logDate <= todayEnd;
+            console.log(`🔍 [DEBUG] Filtering log ${log.id} (${log.medication_name || log.medications?.medication_name}):`, {
+                scheduled_time: log.scheduled_time,
+                logDate: logDate.toISOString(),
+                isToday
+            });
+            return isToday;
         });
 
         console.log(`✅ 今日記錄: ${todayLogs.length} 筆`);
+        console.log('🔍 [DEBUG] Today logs after filtering:', todayLogs.map(log => ({
+            id: log.id,
+            medication_id: log.medication_id,
+            medication_name: log.medication_name || log.medications?.medication_name,
+            scheduled_time: log.scheduled_time
+        })));
 
         renderTodayTimeline(todayLogs);
         updateTodayStats(todayLogs);
@@ -1760,6 +1778,14 @@ function updateTodayStats(logs) {
 }
 
 function renderTodayTimeline(logs) {
+    console.log('🔍 [DEBUG] renderTodayTimeline called');
+    console.log('🔍 [DEBUG] Number of logs received:', logs.length);
+    console.log('🔍 [DEBUG] All logs data:', logs);
+
+    // 檢查是否有重複的藥物
+    const medNames = logs.map(log => log.medication_name || log.medications?.medication_name);
+    console.log('🔍 [DEBUG] Medication names:', medNames);
+
     const container = document.getElementById('todayTimeline');
 
     if (logs.length === 0) {
@@ -1779,7 +1805,15 @@ function renderTodayTimeline(logs) {
     // 按時間排序
     logs.sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
 
-    container.innerHTML = logs.map(log => {
+    container.innerHTML = logs.map((log, index) => {
+        console.log(`🔍 [DEBUG] Rendering log ${index}:`, {
+            id: log.id,
+            medication_id: log.medication_id,
+            medication_name: log.medication_name || log.medications?.medication_name,
+            scheduled_time: log.scheduled_time,
+            status: log.status
+        });
+
         const time = new Date(log.scheduled_time);
         const timeStr = time.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
         const now = new Date();

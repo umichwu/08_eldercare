@@ -258,8 +258,12 @@ function setupEventListeners() {
   document.querySelectorAll('.quick-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const message = btn.dataset.message;
-      document.getElementById('messageInput').value = message;
-      sendMessage();
+      // ✅ 只有有 data-message 的按鈕才觸發 sendMessage
+      // 沒有 data-message 的按鈕（如用藥管理）會使用 onclick 導航
+      if (message) {
+        document.getElementById('messageInput').value = message;
+        sendMessage();
+      }
     });
   });
 
@@ -267,9 +271,13 @@ function setupEventListeners() {
   document.querySelectorAll('.shortcut-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const messageKey = btn.dataset.message;
-      const message = window.i18n ? window.i18n.t(messageKey) : messageKey;
-      document.getElementById('messageInput').value = message;
-      sendMessage();
+      // ✅ 只有有 data-message 的按鈕才觸發 sendMessage
+      // 沒有 data-message 的按鈕（如用藥管理）會使用 onclick 導航
+      if (messageKey) {
+        const message = window.i18n ? window.i18n.t(messageKey) : messageKey;
+        document.getElementById('messageInput').value = message;
+        sendMessage();
+      }
     });
   });
 

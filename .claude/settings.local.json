@@ -16,7 +16,9 @@
       "Bash(node test-time-extraction.js)",
       "Bash(git add backend/server.js frontend/public/medications.css)",
       "Bash(git commit -m \"$(cat <<''EOF''\n修復 CORS 設定並優化 UI\n\n- 明確加入 Vercel 前端 URL (https://08-eldercare.vercel.app)\n- 增強 CORS 日誌輸出方便除錯\n- 放大語音新增按鈕字體（22px）提升可見性\n- 縮小快速新增藥物圖示（32px）\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push origin08e main)"
+      "Bash(git push origin08e main)",
+      "Bash(git add frontend/public/medications.js frontend/public/voice-medication.js frontend/public/family-dashboard.js backend/server.js frontend/public/medications.css)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n統一前端 API URL 並修復 CORS\n\n修改內容：\n- 統一所有前端檔案使用正確的 Render URL (eldercare-backend-8o4k.onrender.com)\n- medications.js: 更新 API_BASE_URL\n- voice-medication.js: 更新 API_BASE_URL  \n- family-dashboard.js: 更新 API_BASE_URL\n- backend/server.js: 明確加入 Vercel 前端 URL 並增強 CORS 日誌\n- medications.css: 放大語音新增按鈕，縮小快速新增藥物圖示\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

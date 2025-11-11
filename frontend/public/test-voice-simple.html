@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>語音測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 20px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+        #result {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 語音辨識測試</h1>
+
+    <div id="status">
+        <strong>狀態：</strong><span id="statusText">等待中...</span>
+    </div>
+
+    <button id="startBtn">🎤 開始錄音</button>
+    <button id="stopBtn">🛑 停止</button>
+
+    <div id="result">
+        <strong>辨識結果：</strong><br>
+        <span id="resultText">（尚未開始）</span>
+    </div>
+
+    <div id="log" style="margin-top: 20px; padding: 15px; background: #fff3e0; border-radius: 8px;">
+        <strong>除錯訊息：</strong>
+        <div id="logContent"></div>
+    </div>
+
+    <script>
+        const statusText = document.getElementById('statusText');
+        const resultText = document.getElementById('resultText');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const logContent = document.getElementById('logContent');
+
+        let recognition = null;
+
+        function log(message) {
+            console.log(message);
+            const p = document.createElement('p');
+            p.textContent = message;
+            p.style.margin = '5px 0';
+            logContent.appendChild(p);
+        }
+
+        // 檢查瀏覽器支援
+        log('🔍 檢查瀏覽器支援...');
+        log('Navigator: ' + navigator.userAgent);
+
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            log('❌ 瀏覽器不支援語音辨識');
+            statusText.textContent = '❌ 瀏覽器不支援語音辨識';
+            startBtn.disabled = true;
+        } else {
+            log('✅ 瀏覽器支援語音辨識');
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+
+            recognition.lang = 'zh-TW';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            log('✅ 語音辨識物件已建立');
+
+            recognition.onstart = () => {
+                log('🎤 開始錄音');
+                statusText.textContent = '🎤 正在錄音...';
+                startBtn.disabled = true;
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                log('✅ 辨識結果: ' + transcript);
+                resultText.textContent = transcript;
+            };
+
+            recognition.onerror = (event) => {
+                log('❌ 錯誤: ' + event.error);
+                statusText.textContent = '❌ 錯誤: ' + event.error;
+                startBtn.disabled = false;
+            };
+
+            recognition.onend = () => {
+                log('⏹️ 錄音結束');
+                statusText.textContent = '⏹️ 已停止';
+                startBtn.disabled = false;
+            };
+
+            startBtn.addEventListener('click', () => {
+                log('👆 按鈕被點擊');
+                try {
+                    recognition.start();
+                    log('▶️ 已呼叫 start()');
+                } catch (error) {
+                    log('❌ 啟動失敗: ' + error.message);
+                }
+            });
+
+            stopBtn.addEventListener('click', () => {
+                log('🛑 停止按鈕被點擊');
+                recognition.stop();
+            });
+        }
+    </script>
+</body>
+</html>

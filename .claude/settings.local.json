@@ -11,7 +11,9 @@
       "Bash(ps -o lstart -p 30594)",
       "Bash(awk '{print $6, $7, $8}')",
       "Bash(bash start.sh)",
-      "Bash(node test-complete-fix.js)"
+      "Bash(node test-complete-fix.js)",
+      "Bash(curl -s http://localhost:8080/voice-medication.html)",
+      "Bash(node test-time-extraction.js)"
     ],
     "deny": [],
     "ask": []

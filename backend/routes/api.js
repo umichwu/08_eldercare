@@ -591,4 +591,52 @@ router.get('/health', (req, res) => {
   });
 });
 
+// ============================================
+// 測試端點：測試 Gemini API
+// ============================================
+router.get('/test-llm', async (req, res) => {
+  try {
+    const { defaultLLMService } = await import('../config/llm.js');
+
+    console.log('🧪 測試 LLM API...');
+    console.log('   Provider:', defaultLLMService.getProviderName());
+    console.log('   Model:', defaultLLMService.getModelName());
+    console.log('   Available:', defaultLLMService.isAvailable());
+
+    if (!defaultLLMService.isAvailable()) {
+      return res.status(500).json({
+        error: 'LLM 服務不可用',
+        provider: defaultLLMService.getProviderName(),
+        message: '請檢查 API Key 配置'
+      });
+    }
+
+    // 簡單測試訊息
+    const testMessages = [
+      { role: 'user', content: '你好，請說「測試成功」' }
+    ];
+
+    const response = await defaultLLMService.generateResponse(testMessages, {
+      temperature: 0.7,
+      maxTokens: 50
+    });
+
+    res.json({
+      success: true,
+      provider: defaultLLMService.getProviderName(),
+      model: defaultLLMService.getModelName(),
+      response: response.content,
+      usage: response.usage
+    });
+
+  } catch (error) {
+    console.error('❌ LLM 測試失敗:', error);
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+  }
+});
+
 export default router;

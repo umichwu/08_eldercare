@@ -682,15 +682,21 @@ async function sendMessage() {
     messages.push(userMessage);
     renderMessages();
 
-    // 檢查是否使用 Gemini（前端直接調用）
-    const llmProvider = localStorage.getItem('llmProvider') || 'gemini';
+    // ✅ 修正：預設使用後端 API（使用後端的有效 Gemini API Key）
+    // 可以透過 localStorage.setItem('llmProvider', 'gemini') 改為前端直接調用
+    const llmProvider = localStorage.getItem('llmProvider') || 'backend';
 
     if (llmProvider === 'gemini') {
       console.log('🌟 使用前端直接調用 Gemini API...');
+      console.log('⚠️ 注意：前端直接調用可能會遇到 API 配額限制');
 
-      // 從 localStorage 獲取 Gemini API Key，如果沒有則使用默認的
-      const defaultGeminiApiKey = 'AIzaSyDpMWf60w_8ZdVSTVizw1C1zlfhQSCkllY';
-      const geminiApiKey = localStorage.getItem('geminiApiKey') || defaultGeminiApiKey;
+      // 從 localStorage 獲取 Gemini API Key
+      const geminiApiKey = localStorage.getItem('geminiApiKey');
+
+      if (!geminiApiKey) {
+        console.error('❌ 未設定 Gemini API Key');
+        throw new Error('請在設定中配置 Gemini API Key，或改用後端 API');
+      }
 
       console.log('🔑 使用 Gemini API Key:', geminiApiKey.substring(0, 10) + '...');
 
@@ -839,9 +845,11 @@ async function sendMessage() {
       await loadLatestSummary();
 
     } else {
-      // 使用後端 API（OpenAI 或 Deepseek）
-      console.log('🌐 準備發送 API 請求...');
+      // ✅ 使用後端 API（Gemini、OpenAI 或 Deepseek）
+      // 後端會使用配置在 Render 環境變數中的 API Key
+      console.log('🌐 使用後端 API...');
       console.log('📍 URL:', `/conversations/${currentConversation.id}/messages`);
+      console.log('🤖 LLM Provider:', llmProvider);
       console.log('📦 資料:', { userId: currentUserId, content });
 
       const response = await apiCall(
@@ -850,7 +858,7 @@ async function sendMessage() {
         {
           userId: currentUserId,
           content,
-          llmProvider
+          llmProvider: llmProvider === 'backend' ? 'gemini' : llmProvider
         }
       );
 

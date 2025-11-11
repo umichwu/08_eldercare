@@ -438,7 +438,7 @@ function askMedicationName() {
 function askDosesPerDay() {
     currentStep = 'doses_per_day';
     addMessage('assistant',
-        `好的，<strong>${medicationData.medicationName}</strong>。<br>請問這個藥一天要吃幾次呢？ <br> 請按下方按鈕，或是點選 麥克風 開始語音回覆。`,
+        `好的，<strong>${medicationData.medicationName}</strong>。<br>請問這個藥一天要吃幾次呢？ <br> -- 請按下方按鈕，或是點選 麥克風 開始語音回覆。`,
         [
             { text: '一天一次', value: '1' },
             { text: '一天兩次', value: '2' },
@@ -489,7 +489,7 @@ function askTimingPlan(doses) {
         ];
     }
 
-    message += '<br>您想選擇哪個方案呢？ <br> 請按下方按鈕，或是 點選 麥克風 開始語音回覆';
+    message += '<br>您想選擇哪個方案呢？ <br> -- 請按下方按鈕，或是 點選 麥克風 開始語音回覆';
     addMessage('assistant', message, suggestions);
 }
 
@@ -534,7 +534,7 @@ function askCustomTimes() {
     addMessage('assistant',
         `請告訴我您想要的服藥時間，例如：<br>
         「早上7點和晚上9點」<br>
-        「早上8點、中午12點、晚上6點」
+        「早上8點、中午12點、晚上6點」<br>
          --- 請點選 麥克風 語音回覆`
     );
 }
@@ -593,7 +593,7 @@ function askStockQuantity() {
     currentStep = 'stock_quantity';
     addMessage('assistant',
         '最後一個問題，請問您目前有多少顆（或多少包）藥呢？<br>' +
-        '這樣我可以在藥快吃完時提醒您。<br> 請按下方按鈕，或是 點選 麥克風 開始語音回覆',
+        '這樣我可以在藥快吃完時提醒您。<br> -- 請按下方按鈕，或是 點選 麥克風 開始語音回覆',
         [
             { text: '30顆', value: '30' },
             { text: '60顆', value: '60' },

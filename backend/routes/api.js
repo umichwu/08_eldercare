@@ -541,6 +541,20 @@ router.get('/health', (req, res) => {
   };
 
   // LLM 提供商檢查
+  // ✅ 檢查 Gemini Key Pool
+  let geminiKeyPoolInfo = { keys: 0, healthy: 0 };
+  try {
+    const geminiKeyPool = require('../config/geminiKeyPool.js').default;
+    const stats = geminiKeyPool.getStats();
+    geminiKeyPoolInfo = {
+      keys: stats.totalKeys,
+      healthy: stats.healthyKeys,
+      blacklisted: stats.blacklistedKeys
+    };
+  } catch (error) {
+    console.warn('⚠️ 無法取得 Gemini Key Pool 資訊:', error.message);
+  }
+
   const llmCheck = {
     currentProvider: process.env.LLM_PROVIDER || 'gemini',
     openai: {
@@ -548,8 +562,9 @@ router.get('/health', (req, res) => {
       keyPrefix: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 7) + '...' : null
     },
     gemini: {
-      configured: !!process.env.GEMINI_API_KEY,
-      keyPrefix: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 6) + '...' : null
+      configured: geminiKeyPoolInfo.keys > 0,
+      keyPool: geminiKeyPoolInfo,
+      keyPrefix: geminiKeyPoolInfo.keys > 0 ? `${geminiKeyPoolInfo.keys} Keys in Pool` : null
     },
     deepseek: {
       configured: !!process.env.DEEPSEEK_API_KEY,
@@ -589,6 +604,28 @@ router.get('/health', (req, res) => {
       }
     }
   });
+});
+
+// ============================================
+// 監控端點：Gemini Key Pool 狀態
+// ============================================
+router.get('/gemini-key-pool-stats', async (req, res) => {
+  try {
+    const geminiKeyPool = (await import('../config/geminiKeyPool.js')).default;
+    const stats = geminiKeyPool.getStats();
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      ...stats
+    });
+  } catch (error) {
+    console.error('❌ 取得 Key Pool 狀態失敗:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // ============================================

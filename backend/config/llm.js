@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import geminiKeyPool from './geminiKeyPool.js';
 
 // 取得當前檔案的目錄
 const __filename = fileURLToPath(import.meta.url);
@@ -35,12 +36,10 @@ const DEFAULT_MODELS = {
 // 从环境变量获取配置
 const currentProvider = process.env.LLM_PROVIDER || LLM_PROVIDERS.GEMINI;
 const openaiApiKey = process.env.OPENAI_API_KEY;
-const geminiApiKey = process.env.GEMINI_API_KEY;
 const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
 // 初始化各个LLM客户端
 let openaiClient = null;
-let geminiClient = null;
 let deepseekClient = null;
 
 if (openaiApiKey) {
@@ -48,10 +47,8 @@ if (openaiApiKey) {
   console.log('✅ OpenAI client initialized');
 }
 
-if (geminiApiKey) {
-  geminiClient = new GoogleGenerativeAI(geminiApiKey);
-  console.log('✅ Gemini client initialized');
-}
+// ✅ Gemini 使用 Key Pool（支持多個 API Keys）
+console.log('✅ Gemini Key Pool initialized');
 
 if (deepseekApiKey) {
   deepseekClient = new OpenAI({
@@ -77,10 +74,12 @@ export class LLMService {
         }
         return openaiClient;
       case LLM_PROVIDERS.GEMINI:
-        if (!geminiClient) {
-          console.warn('⚠️  Gemini API key not configured');
+        // ✅ Gemini 使用 Key Pool，在 generateGeminiResponse 中動態取得
+        if (!geminiKeyPool.hasAvailableKeys()) {
+          console.warn('⚠️  Gemini Key Pool 中沒有可用的 Keys');
+          return null;
         }
-        return geminiClient;
+        return 'gemini-key-pool'; // 返回特殊標記
       case LLM_PROVIDERS.DEEPSEEK:
         if (!deepseekClient) {
           console.warn('⚠️  Deepseek API key not configured');
@@ -149,69 +148,104 @@ export class LLMService {
   }
 
   async generateGeminiResponse(messages, temperature, maxTokens) {
-    const model = this.client.getGenerativeModel({
-      model: this.defaultModel,
-      generationConfig: {
-        temperature: temperature,
-        maxOutputTokens: maxTokens,
+    // ✅ 使用 Key Pool 獲取可用的 Client（支持重試）
+    const { client, keyInfo } = await geminiKeyPool.getClientWithRetry();
+
+    try {
+      const model = client.getGenerativeModel({
+        model: this.defaultModel,
+        generationConfig: {
+          temperature: temperature,
+          maxOutputTokens: maxTokens,
+        }
+      });
+
+      // 转换消息格式为Gemini格式
+      const systemMessage = messages.find(m => m.role === 'system');
+      const chatMessages = messages.filter(m => m.role !== 'system');
+
+      // 构建聊天历史
+      let history = chatMessages.slice(0, -1).map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }));
+
+      // 获取最后一条用户消息
+      const lastMessage = chatMessages[chatMessages.length - 1];
+
+      // 将系统消息合并到第一条消息中
+      let prompt = lastMessage.content;
+      if (systemMessage) {
+        if (history.length === 0) {
+          // 如果没有历史，将系统消息添加到当前消息前
+          prompt = `${systemMessage.content}\n\n用户问题：${prompt}`;
+        } else {
+          // 如果有历史，将系统消息作为对话历史的第一组交互
+          // 注意：Gemini API 要求第一条消息必须是 user 角色
+          const systemHistory = [
+            {
+              role: 'user',
+              parts: [{ text: systemMessage.content }]
+            },
+            {
+              role: 'model',
+              parts: [{ text: '好的，我明白了。我會用簡單、親切、有耐心的語氣來陪伴老年人。' }]
+            }
+          ];
+          history = [...systemHistory, ...history];
+        }
       }
-    });
 
-    // 转换消息格式为Gemini格式
-    const systemMessage = messages.find(m => m.role === 'system');
-    const chatMessages = messages.filter(m => m.role !== 'system');
+      const chat = model.startChat({
+        history: history
+      });
 
-    // 构建聊天历史
-    let history = chatMessages.slice(0, -1).map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
+      const result = await chat.sendMessage(prompt);
+      const response = result.response;
+      const text = response.text();
 
-    // 获取最后一条用户消息
-    const lastMessage = chatMessages[chatMessages.length - 1];
+      // ✅ 標記為成功
+      geminiKeyPool.markSuccess(keyInfo);
 
-    // 将系统消息合并到第一条消息中
-    let prompt = lastMessage.content;
-    if (systemMessage) {
-      if (history.length === 0) {
-        // 如果没有历史，将系统消息添加到当前消息前
-        prompt = `${systemMessage.content}\n\n用户问题：${prompt}`;
+      return {
+        content: text,
+        usage: {
+          promptTokens: 0, // Gemini API doesn't return token counts in the same way
+          completionTokens: 0,
+          totalTokens: 0
+        }
+      };
+    } catch (error) {
+      // ✅ 檢查是否為配額錯誤
+      const isQuotaError = error.message && (
+        error.message.includes('quota') ||
+        error.message.includes('429') ||
+        error.message.includes('Too Many Requests') ||
+        error.message.includes('RESOURCE_EXHAUSTED')
+      );
+
+      if (isQuotaError) {
+        console.warn(`❌ ${keyInfo.id} 配額錯誤，標記為不可用`);
+        geminiKeyPool.markQuotaError(keyInfo);
+
+        // 重試：嘗試使用下一個 Key
+        if (geminiKeyPool.hasAvailableKeys()) {
+          console.log('🔄 嘗試使用下一個可用的 API Key...');
+          return this.generateGeminiResponse(messages, temperature, maxTokens);
+        }
       } else {
-        // 如果有历史，将系统消息作为对话历史的第一组交互
-        // 注意：Gemini API 要求第一条消息必须是 user 角色
-        const systemHistory = [
-          {
-            role: 'user',
-            parts: [{ text: systemMessage.content }]
-          },
-          {
-            role: 'model',
-            parts: [{ text: '好的，我明白了。我會用簡單、親切、有耐心的語氣來陪伴老年人。' }]
-          }
-        ];
-        history = [...systemHistory, ...history];
+        geminiKeyPool.markError(keyInfo, error);
       }
+
+      throw error;
     }
-
-    const chat = model.startChat({
-      history: history
-    });
-
-    const result = await chat.sendMessage(prompt);
-    const response = result.response;
-    const text = response.text();
-
-    return {
-      content: text,
-      usage: {
-        promptTokens: 0, // Gemini API doesn't return token counts in the same way
-        completionTokens: 0,
-        totalTokens: 0
-      }
-    };
   }
 
   isAvailable() {
+    // ✅ 特殊處理 Gemini Key Pool
+    if (this.provider === LLM_PROVIDERS.GEMINI) {
+      return geminiKeyPool.hasAvailableKeys();
+    }
     return this.client !== null;
   }
 
@@ -237,5 +271,13 @@ console.log('📋 LLM Configuration:');
 console.log('   Current Provider:', currentProvider);
 console.log('   Default Model:', DEFAULT_MODELS[currentProvider]);
 console.log('   OpenAI API Key:', openaiApiKey ? 'Configured' : 'Not configured');
-console.log('   Gemini API Key:', geminiApiKey ? 'Configured' : 'Not configured');
+console.log('   Gemini Key Pool:', geminiKeyPool.keys.length > 0 ? `${geminiKeyPool.keys.length} Keys` : 'Not configured');
 console.log('   Deepseek API Key:', deepseekApiKey ? 'Configured' : 'Not configured');
+
+// 顯示 Gemini Key Pool 詳細資訊
+if (geminiKeyPool.keys.length > 0) {
+  console.log('\n🔑 Gemini API Key Pool Status:');
+  geminiKeyPool.keys.forEach((key, index) => {
+    console.log(`   #${index + 1} ${key.id}: ${key.prefix} - ${key.isHealthy ? '✅ Healthy' : '❌ Unhealthy'}`);
+  });
+}

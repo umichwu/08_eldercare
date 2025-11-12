@@ -10,7 +10,7 @@ class SettingsManager {
       language: localStorage.getItem('language') || 'zh-TW',
       fontSize: parseInt(localStorage.getItem('fontSize')) || 24,
       theme: localStorage.getItem('theme') || 'light',
-      llmProvider: localStorage.getItem('llmProvider') || 'gemini'
+      llmProvider: localStorage.getItem('llmProvider') || DEFAULT_LLM_PROVIDER
     };
     this.init();
   }

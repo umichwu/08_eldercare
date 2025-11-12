@@ -17,12 +17,19 @@
 //   const DEFAULT_LLM_PROVIDER = 'openai';    // 使用 OpenAI
 //   const DEFAULT_LLM_PROVIDER = 'gemini';    // 使用 Gemini
 //   const DEFAULT_LLM_PROVIDER = 'deepseek';  // 使用 DeepSeek
-//
+// 
+//  1. 修改成 OpenAI - ChatGPT (修改兩處)
 const DEFAULT_LLM_PROVIDER = 'openai';  // ⬅️ 在這裡修改預設 AI 模型
-
-// 配置版本（修改 DEFAULT_LLM_PROVIDER 時請同步更新此版本號）
-// 用途：當版本號改變時，自動清除舊的 localStorage 設定
 const LLM_CONFIG_VERSION = '2025-11-12-openai';  // ⬅️ 修改 LLM 時也要改這裡
+
+//  2. 想改用 Gemini
+//  const DEFAULT_LLM_PROVIDER = 'gemini';  // ⬅️ 改這裡
+//  const LLM_CONFIG_VERSION = '2024-11-12-gemini';  // ⬅️ 也要改這裡（任何不同的字串都可以）
+
+//  3. 想改用 DeepSeek
+//  const DEFAULT_LLM_PROVIDER = 'deepseek';  // ⬅️ 改這裡
+//  const LLM_CONFIG_VERSION = '2024-11-12-deepseek';  // ⬅️ 也要改這裡
+
 // ===================================
 
 // 檢查並清除過期的 localStorage 設定

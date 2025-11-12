@@ -1020,15 +1020,24 @@ function speakText(text) {
 }
 
 function toggleVoice() {
-  isVoiceEnabled = !isVoiceEnabled;
   const btn = document.getElementById('voiceToggle');
-  btn.textContent = isVoiceEnabled ? '🔊' : '🔇';
 
-  if (!isVoiceEnabled) {
-    synthesis.cancel();
+  if (isVoiceEnabled) {
+    // 目前是開啟，準備關閉
+    isVoiceEnabled = false;
+    btn.textContent = '🔇';
+    btn.title = '點擊開啟語音';
+    synthesis.cancel(); // 停止當前播放
+    console.log('🔇 語音已關閉');
+  } else {
+    // 目前是關閉，準備開啟
+    isVoiceEnabled = true;
+    btn.textContent = '🔊';
+    btn.title = '點擊關閉語音';
+    console.log('🔊 語音已開啟');
+    // 播放確認訊息
+    speakText('語音已開啟');
   }
-
-  speakText(isVoiceEnabled ? '語音已開啟' : '語音已關閉');
 }
 
 // ===================================

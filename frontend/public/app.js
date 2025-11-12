@@ -997,26 +997,48 @@ function startVoiceInput() {
 }
 
 function speakText(text) {
-  if (!isVoiceEnabled || isSpeaking) return;
+  console.log(`🔊 speakText called: "${text}"`);
+  console.log(`   isVoiceEnabled: ${isVoiceEnabled}, isSpeaking: ${isSpeaking}`);
+
+  if (!isVoiceEnabled) {
+    console.log('   ❌ 語音已關閉，不播放');
+    return;
+  }
+
+  if (isSpeaking) {
+    console.log('   ⏳ 正在播放中，等待前一個播放完成');
+    return;
+  }
 
   // 停止之前的語音
   synthesis.cancel();
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-TW';
-  utterance.rate = 0.9; // 稍慢的語速
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
+  // 短暫延遲，確保 cancel 完成
+  setTimeout(() => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-TW';
+    utterance.rate = 0.9; // 稍慢的語速
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
 
-  utterance.onstart = () => {
-    isSpeaking = true;
-  };
+    utterance.onstart = () => {
+      isSpeaking = true;
+      console.log('   ✅ 語音開始播放');
+    };
 
-  utterance.onend = () => {
-    isSpeaking = false;
-  };
+    utterance.onend = () => {
+      isSpeaking = false;
+      console.log('   ✅ 語音播放結束');
+    };
 
-  synthesis.speak(utterance);
+    utterance.onerror = (event) => {
+      isSpeaking = false;
+      console.error('   ❌ 語音播放錯誤:', event);
+    };
+
+    console.log('   🎤 開始播放語音...');
+    synthesis.speak(utterance);
+  }, 100); // 100ms 延遲
 }
 
 function toggleVoice() {

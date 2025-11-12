@@ -28,7 +28,7 @@ const DEFAULT_LLM_PROVIDER = 'openai';  // ⬅️ 在這裡修改預設 AI 模�
 
 // 配置版本（修改 DEFAULT_LLM_PROVIDER 時請同步更新此版本號）
 // 用途：當版本號改變時，自動清除舊的 localStorage 設定
-const LLM_CONFIG_VERSION = '2024-11-12-openai';  // ⬅️ 修改 LLM 時也要改這裡
+const LLM_CONFIG_VERSION = '2025-11-12-openai';  // ⬅️ 修改 LLM 時也要改這裡
 // ===================================
 
 // 檢查並清除過期的 localStorage 設定

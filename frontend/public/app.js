@@ -682,12 +682,16 @@ async function sendMessage() {
     messages.push(userMessage);
     renderMessages();
 
-    // ✅ 修正：預設使用後端 API
-    // 可選的 LLM 提供商：'backend' (預設 Gemini), 'openai', 'deepseek', 'gemini' (前端直接調用)
-    // 如果後端的 Gemini 也超過配額，可以改用：localStorage.setItem('llmProvider', 'deepseek')
-    const llmProvider = localStorage.getItem('llmProvider') || 'deepseek';
+    // ✅ 預設使用 OpenAI
+    // 可選的 LLM 提供商：
+    //   'openai' - 使用 OpenAI（預設，推薦）
+    //   'gemini' - 使用後端 Gemini Key Pool
+    //   'deepseek' - 使用 DeepSeek
+    const llmProvider = localStorage.getItem('llmProvider') || 'openai';
 
-    if (llmProvider === 'gemini') {
+    // ✅ 特殊標記：只有 'gemini-frontend' 才使用前端直接調用
+    // 其他情況（包括 'gemini'）都使用後端 API
+    if (llmProvider === 'gemini-frontend') {
       console.log('🌟 使用前端直接調用 Gemini API...');
       console.log('⚠️ 注意：前端直接調用可能會遇到 API 配額限制');
 
@@ -859,11 +863,11 @@ async function sendMessage() {
         {
           userId: currentUserId,
           content,
-          // ✅ 直接傳遞 llmProvider，讓後端決定使用哪個 LLM
-          // 'backend' → 使用後端預設（Gemini）
+          // ✅ 直接傳遞 llmProvider 給後端
+          // 'gemini' → 使用後端 Gemini Key Pool（推薦）
           // 'openai' → 使用 OpenAI
           // 'deepseek' → 使用 DeepSeek
-          llmProvider: llmProvider === 'backend' ? undefined : llmProvider
+          llmProvider: llmProvider
         }
       );
 

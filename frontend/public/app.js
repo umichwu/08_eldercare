@@ -9,6 +9,24 @@ const API_BASE_URL = window.location.hostname === 'localhost'
 
 console.log('🔗 API Base URL:', API_BASE_URL);
 
+// ===================================
+// 🤖 AI 模型配置 (預設 LLM 提供商)
+// ===================================
+//
+// 修改此處來改變預設的 AI 模型：
+//
+//   'openai'   - 使用 OpenAI GPT-4o-mini (推薦，穩定且配額充足)
+//   'gemini'   - 使用 Google Gemini (透過後端 Key Pool，支援多個 API Keys)
+//   'deepseek' - 使用 DeepSeek (需要確認帳戶餘額)
+//
+// 範例：
+//   const DEFAULT_LLM_PROVIDER = 'openai';    // 使用 OpenAI
+//   const DEFAULT_LLM_PROVIDER = 'gemini';    // 使用 Gemini
+//   const DEFAULT_LLM_PROVIDER = 'deepseek';  // 使用 DeepSeek
+//
+const DEFAULT_LLM_PROVIDER = 'openai';  // ⬅️ 在這裡修改預設 AI 模型
+// ===================================
+
 // 全域狀態 - 使用者資訊
 let currentUserId = null; // 將由 initElderCareApp 初始化
 let currentUserProfile = null; // 將由 initElderCareApp 初始化
@@ -682,12 +700,9 @@ async function sendMessage() {
     messages.push(userMessage);
     renderMessages();
 
-    // ✅ 預設使用 OpenAI
-    // 可選的 LLM 提供商：
-    //   'openai' - 使用 OpenAI（預設，推薦）
-    //   'gemini' - 使用後端 Gemini Key Pool
-    //   'deepseek' - 使用 DeepSeek
-    const llmProvider = localStorage.getItem('llmProvider') || 'openai';
+    // ✅ 讀取 LLM 提供商設定（優先使用 localStorage，否則使用檔案頂部定義的預設值）
+    // 如果要永久修改預設值，請編輯檔案頂部的 DEFAULT_LLM_PROVIDER 常量
+    const llmProvider = localStorage.getItem('llmProvider') || DEFAULT_LLM_PROVIDER;
 
     // ✅ 特殊標記：只有 'gemini-frontend' 才使用前端直接調用
     // 其他情況（包括 'gemini'）都使用後端 API

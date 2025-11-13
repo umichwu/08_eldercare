@@ -854,14 +854,39 @@ async function sendMessage() {
       console.log('🌐 使用後端 API...');
       console.log('📍 URL:', `/conversations/${currentConversation.id}/messages`);
       console.log('🤖 LLM Provider:', llmProvider);
-      console.log('📦 資料:', { userId: currentUserId, content });
+
+      // 準備訊息內容，加入地理位置和時間資訊
+      let messageContent = content;
+
+      if (userLocation) {
+        // 更新當地時間（確保時間是最新的）
+        userLocation.localTime = new Date().toLocaleString('zh-TW', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+          timeZone: 'Asia/Taipei'
+        });
+
+        // 將地理位置資訊附加到訊息前面
+        const geoInfo = `[地理位置資訊]\n座標: ${userLocation.lat}, ${userLocation.lng}\n城市: ${userLocation.city}\n當地時間: ${userLocation.localTime}\n[/地理位置資訊]\n\n`;
+        messageContent = geoInfo + content;
+        console.log('📍 已附加地理位置資訊:', userLocation);
+      } else {
+        console.warn('⚠️ 尚未獲取地理位置資訊');
+      }
+
+      console.log('📦 資料:', { userId: currentUserId, content: messageContent });
 
       const response = await apiCall(
         `/conversations/${currentConversation.id}/messages`,
         'POST',
         {
           userId: currentUserId,
-          content,
+          content: messageContent,
           // ✅ 直接傳遞 llmProvider 給後端
           // 'gemini' → 使用後端 Gemini Key Pool（推薦）
           // 'openai' → 使用 OpenAI

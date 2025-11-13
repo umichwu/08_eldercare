@@ -40,6 +40,30 @@ if (localStorage.getItem('llmConfigVersion') !== LLM_CONFIG_VERSION) {
   console.log(`✅ 已更新為預設 LLM: ${DEFAULT_LLM_PROVIDER}`);
 }
 
+// ===================================
+// 🔍 網路搜尋功能配置
+// ===================================
+//
+// 控制是否啟用即時網路搜尋功能：
+// - true:  啟用網路搜尋（會查詢最新的天氣、新聞、颱風等即時資訊）
+// - false: 關閉網路搜尋（AI 只根據既有知識回答，不查詢即時資訊）
+//
+// 注意：網路搜尋可能增加 API 用量和回應時間
+//
+const DEFAULT_WEB_SEARCH_ENABLED = true;  // ⬅️ 預設啟用網路搜尋
+const WEB_SEARCH_CONFIG_VERSION = '2025-11-13-v1';
+
+// 檢查並清除過期的網路搜尋設定
+if (localStorage.getItem('webSearchConfigVersion') !== WEB_SEARCH_CONFIG_VERSION) {
+  console.log('🔄 檢測到網路搜尋配置更新，清除舊設定...');
+  localStorage.removeItem('webSearchEnabled');
+  localStorage.setItem('webSearchConfigVersion', WEB_SEARCH_CONFIG_VERSION);
+  console.log(`✅ 已更新為預設網路搜尋設定: ${DEFAULT_WEB_SEARCH_ENABLED ? '啟用' : '停用'}`);
+}
+
+// ===================================
+
 console.log('📝 全域配置已載入');
 console.log(`   預設 LLM 提供商: ${DEFAULT_LLM_PROVIDER}`);
 console.log(`   配置版本: ${LLM_CONFIG_VERSION}`);
+console.log(`   網路搜尋: ${DEFAULT_WEB_SEARCH_ENABLED ? '啟用' : '停用'}`);

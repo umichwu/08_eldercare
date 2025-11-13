@@ -261,9 +261,15 @@ router.post('/conversations/:id/messages/save', async (req, res) => {
 router.post('/conversations/:id/messages', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId, content, llmProvider } = req.body;
+    const { userId, content, llmProvider, webSearchEnabled } = req.body;
 
-    console.log('📨 收到訊息請求:', { conversationId: id, userId, llmProvider, contentLength: content?.length });
+    console.log('📨 收到訊息請求:', {
+      conversationId: id,
+      userId,
+      llmProvider,
+      webSearchEnabled: webSearchEnabled !== undefined ? webSearchEnabled : 'default',
+      contentLength: content?.length
+    });
 
     if (!userId || !content) {
       console.error('❌ 缺少必要參數:', { userId: !!userId, content: !!content });
@@ -276,9 +282,10 @@ router.post('/conversations/:id/messages', async (req, res) => {
       });
     }
 
-    // 處理使用者訊息並產生回應（使用用戶指定的LLM提供商）
+    // 處理使用者訊息並產生回應（使用用戶指定的LLM提供商和網路搜尋設定）
     console.log('🤖 使用 LLM 提供商:', llmProvider || '默認');
-    const result = await messageService.processUserMessage(id, userId, content, llmProvider);
+    console.log('🔍 網路搜尋:', webSearchEnabled !== false ? '啟用' : '停用');
+    const result = await messageService.processUserMessage(id, userId, content, llmProvider, webSearchEnabled);
 
     if (result.success) {
       console.log('✅ 訊息處理成功');

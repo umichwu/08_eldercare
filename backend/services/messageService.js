@@ -154,8 +154,9 @@ class MessageService {
    * @param {string} authUserId - auth.users 的 ID
    * @param {string} userMessage - 使用者訊息
    * @param {string} llmProvider - LLM提供商 (可選)
+   * @param {boolean} webSearchEnabled - 是否啟用網路搜尋 (可選，預設為 true)
    */
-  async generateAIResponse(conversationId, authUserId, userMessage, llmProvider = null) {
+  async generateAIResponse(conversationId, authUserId, userMessage, llmProvider = null, webSearchEnabled = true) {
     try {
       // 取得對話歷史
       const messagesResult = await this.getMessages(conversationId, authUserId, 20);
@@ -182,7 +183,7 @@ class MessageService {
           }
         }
       } catch (prefError) {
-        console.warn('⚠️ 無法取得心靈偏好，使用一般模式:', prefError.message);
+        console.error('❌ 取得心靈偏好失敗:', prefError.message);
       }
 
       // 🧠 如果啟用心靈陪伴，使用 Agentic RAG 處理
@@ -228,7 +229,34 @@ class MessageService {
         throw new Error(`LLM API 未配置: ${llmProvider || '默認提供商'}`);
       }
 
-      // 建立對話上下文（包含系統提示詞）
+      // 建立對話上下文（包含系統提示詞 + 即時資訊查詢指引）
+      const realtimeInfoGuidance = webSearchEnabled === false
+        ? `
+【重要提醒：網路搜尋功能已關閉】
+⚠️ 使用者已**停用網路搜尋功能**，你無法查詢任何即時資訊。
+
+當使用者詢問即時資訊時，請誠實且親切地回應：
+「抱歉，網路搜尋功能目前已關閉。如需查詢即時資訊，建議您：
+  1. 訪問中央氣象局網站（天氣查詢）
+  2. 使用手機的新聞 App（新聞資訊）
+  3. 或請家人協助查詢」
+
+❌ 絕對不要：編造或猜測任何即時資訊（天氣、新聞、災害等）`
+        : `
+【重要提醒：即時資訊查詢限制】
+⚠️ 你目前**無法主動查詢即時資訊**，包括：
+- 當前天氣、氣溫、降雨機率
+- 最新新聞、颱風動態、災害資訊
+- 即時交通、路況、活動資訊
+
+當使用者詢問這類即時資訊時，請誠實且親切地回應：
+「抱歉，我目前無法查詢即時資訊。建議您可以：
+  1. 查看中央氣象局網站（www.cwa.gov.tw）
+  2. 使用手機的天氣/新聞 App
+  3. 打開電視新聞或詢問家人」
+
+❌ 絕對不要：編造或根據過時知識猜測即時資訊`;
+
       const messages = [
         {
           role: 'system',
@@ -246,6 +274,8 @@ class MessageService {
 - 第一次對話：可以簡短問候（1句話）+ 回答問題
 - 後續對話：直接回答問題，不需要額外的寒暄、天氣、建議等
 - 只在使用者主動尋求建議時才提供建議
+
+${realtimeInfoGuidance}
 
 【地理位置與時間資訊使用規範】
 
@@ -345,8 +375,9 @@ class MessageService {
   /**
    * 處理完整的對話流程（使用者訊息 → AI 回應）
    * @param {string} llmProvider - LLM提供商 (可選)
+   * @param {boolean} webSearchEnabled - 是否啟用網路搜尋 (可選)
    */
-  async processUserMessage(conversationId, userId, userMessage, llmProvider = null) {
+  async processUserMessage(conversationId, userId, userMessage, llmProvider = null, webSearchEnabled = true) {
     try {
       // 分離地理位置資訊和實際使用者訊息
       let actualUserMessage = userMessage;
@@ -375,12 +406,13 @@ class MessageService {
         throw new Error('無法儲存使用者訊息');
       }
 
-      // 2. 產生 AI 回應（傳遞完整訊息包含地理位置給 AI）
+      // 2. 產生 AI 回應（傳遞完整訊息包含地理位置給 AI，以及網路搜尋設定）
       const aiResult = await this.generateAIResponse(
         conversationId,
         userId,
         userMessage,  // 保留完整訊息給 AI
-        llmProvider
+        llmProvider,
+        webSearchEnabled
       );
 
       if (!aiResult.success) {

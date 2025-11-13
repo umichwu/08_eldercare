@@ -891,7 +891,11 @@ async function sendMessage() {
         console.warn('⚠️ 尚未獲取地理位置資訊');
       }
 
-      console.log('📦 資料:', { userId: currentUserId, content: messageContent });
+      // 讀取網路搜尋設定
+      const webSearchEnabled = localStorage.getItem('webSearchEnabled') === 'false' ? false :
+                               (localStorage.getItem('webSearchEnabled') === 'true' ? true : DEFAULT_WEB_SEARCH_ENABLED);
+
+      console.log('📦 資料:', { userId: currentUserId, content: messageContent, webSearchEnabled });
 
       const response = await apiCall(
         `/conversations/${currentConversation.id}/messages`,
@@ -903,7 +907,9 @@ async function sendMessage() {
           // 'gemini' → 使用後端 Gemini Key Pool（推薦）
           // 'openai' → 使用 OpenAI
           // 'deepseek' → 使用 DeepSeek
-          llmProvider: llmProvider
+          llmProvider: llmProvider,
+          // 🔍 傳遞網路搜尋設定
+          webSearchEnabled: webSearchEnabled
         }
       );
 

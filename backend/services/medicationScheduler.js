@@ -39,10 +39,17 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config(); // 嘗試載入，但不強制要求檔案存在
 }
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// 使用懶加載方式創建 Supabase 客戶端，避免在模組加載時就需要環境變數
+let supabase = null;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 let schedulerTask = null;
 let missedCheckTask = null;
@@ -133,7 +140,8 @@ async function checkAndSendReminders() {
     const checkStart = new Date(now.getTime() - compensationWindow * 60 * 1000);
 
     // 獲取所有啟用的提醒排程
-    const { data: reminders, error } = await supabase
+    const sb = getSupabase();
+    const { data: reminders, error } = await sb
       .from('medication_reminders')
       .select(`
         *,
@@ -172,7 +180,7 @@ async function checkAndSendReminders() {
             console.log(`⏭️  跳過已結束的短期用藥: ${reminder.medications.medication_name} (結束日期: ${reminder.reminder_times.endDate})`);
 
             // 自動停用已結束的提醒
-            await supabase
+            await sb
               .from('medication_reminders')
               .update({ is_enabled: false })
               .eq('id', reminder.id);
@@ -237,7 +245,8 @@ async function processReminder(reminder, scheduledTime) {
     const medication = reminder.medications;
 
     // 檢查今天是否已經有這個時間點的記錄
-    const { data: existingLogs, error: logError } = await supabase
+    const sb = getSupabase();
+    const { data: existingLogs, error: logError } = await sb
       .from('medication_logs')
       .select('id, status, push_sent')
       .eq('medication_id', medication.id)
@@ -292,7 +301,7 @@ async function processReminder(reminder, scheduledTime) {
 
     // 發送 Email 通知（如果長輩有設定 Email）
     let emailSent = false;
-    const { data: elder } = await supabase
+    const { data: elder } = await sb
       .from('elders')
       .select('name, email, preferred_language')
       .eq('id', reminder.elder_id)
@@ -317,7 +326,7 @@ async function processReminder(reminder, scheduledTime) {
     }
 
     // 更新記錄的推送狀態
-    await supabase
+    await sb
       .from('medication_logs')
       .update({
         push_sent: pushResult.success || emailSent,
@@ -329,11 +338,11 @@ async function processReminder(reminder, scheduledTime) {
       console.log(`✅ [${scheduledTime.getHours()}:${scheduledTime.getMinutes()}] 提醒已發送: ${medication.medication_name}`);
 
       // 更新提醒統計
-      await supabase
+      await sb
         .from('medication_reminders')
         .update({
           last_triggered_at: scheduledTime.toISOString(),
-          total_reminders_sent: supabase.sql`total_reminders_sent + 1`,
+          total_reminders_sent: sb.sql`total_reminders_sent + 1`,
         })
         .eq('id', reminder.id);
     } else {
@@ -364,11 +373,13 @@ async function checkAndNotifyMissedMedications() {
 
     console.log(`⚠️  發現 ${markResult.data.length} 筆錯過的用藥`);
 
+    const sb = getSupabase();
+
     // 對每筆錯過的用藥，通知家屬
     for (const missedLog of markResult.data) {
       try {
         // 獲取藥物資訊
-        const { data: medication, error: medError } = await supabase
+        const { data: medication, error: medError } = await sb
           .from('medications')
           .select('medication_name, dosage')
           .eq('id', missedLog.medication_id)
@@ -380,7 +391,7 @@ async function checkAndNotifyMissedMedications() {
         }
 
         // 檢查是否需要通知家屬
-        const { data: reminder, error: reminderError } = await supabase
+        const { data: reminder, error: reminderError } = await sb
           .from('medication_reminders')
           .select('notify_family_if_missed')
           .eq('medication_id', missedLog.medication_id)
@@ -406,7 +417,7 @@ async function checkAndNotifyMissedMedications() {
 
         // 發送家屬 Email 通知
         let emailSent = false;
-        const { data: elder } = await supabase
+        const { data: elder } = await sb
           .from('elders')
           .select('name')
           .eq('id', missedLog.elder_id)
@@ -414,7 +425,7 @@ async function checkAndNotifyMissedMedications() {
 
         if (elder) {
           // 獲取家屬的 Email
-          const { data: familyMembers } = await supabase
+          const { data: familyMembers } = await sb
             .from('elder_family_relations')
             .select(`
               family_members!inner (
@@ -450,7 +461,7 @@ async function checkAndNotifyMissedMedications() {
         }
 
         // 更新通知狀態
-        await supabase
+        await sb
           .from('medication_logs')
           .update({
             family_notified: notifyResult.success || emailSent,
@@ -490,7 +501,8 @@ export async function generateTodayMedicationLogs(elderId = null) {
   try {
     console.log('📝 生成今日用藥記錄...');
 
-    let query = supabase
+    const sb = getSupabase();
+    let query = sb
       .from('medication_reminders')
       .select(`
         *,
@@ -566,7 +578,7 @@ export async function generateTodayMedicationLogs(elderId = null) {
 
         // 為每個時間點建立記錄（如果不存在）
         for (const scheduledTime of todayTimes) {
-          const { data: existing, error: existError } = await supabase
+          const { data: existing, error: existError } = await sb
             .from('medication_logs')
             .select('id')
             .eq('medication_id', reminder.medications.id)

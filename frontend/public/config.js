@@ -18,17 +18,17 @@
 //   const DEFAULT_LLM_PROVIDER = 'gemini';    // 使用 Gemini
 //   const DEFAULT_LLM_PROVIDER = 'deepseek';  // 使用 DeepSeek
 // 
-//  1. 修改成 OpenAI - ChatGPT (修改兩處)
+//  1. 修改成 OpenAI - ChatGPT (當前設定)
 const DEFAULT_LLM_PROVIDER = 'openai';  // ⬅️ 在這裡修改預設 AI 模型
-const LLM_CONFIG_VERSION = '2025-11-12-openai';  // ⬅️ 修改 LLM 時也要改這裡
+const LLM_CONFIG_VERSION = '2025-11-13-openai';  // ⬅️ 修改 LLM 時也要改這裡
 
-//  2. 想改用 Gemini
+//  2. 使用 Gemini
 //  const DEFAULT_LLM_PROVIDER = 'gemini';  // ⬅️ 改這裡
-//  const LLM_CONFIG_VERSION = '2024-11-12-gemini';  // ⬅️ 也要改這裡（任何不同的字串都可以）
+//  const LLM_CONFIG_VERSION = '2025-11-13-gemini';  // ⬅️ 也要改這裡（任何不同的字串都可以）
 
-//  3. 想改用 DeepSeek
+//  3. 使用 DeepSeek
 //  const DEFAULT_LLM_PROVIDER = 'deepseek';  // ⬅️ 改這裡
-//  const LLM_CONFIG_VERSION = '2024-11-12-deepseek';  // ⬅️ 也要改這裡
+//  const LLM_CONFIG_VERSION = '2025-11-13-deepseek';  // ⬅️ 也要改這裡
 
 // ===================================
 

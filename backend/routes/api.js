@@ -4,14 +4,21 @@ import messageService from '../services/messageService.js';
 import summaryService from '../services/summaryService.js';
 import userService from '../services/userService.js';
 import { createClient } from '@supabase/supabase-js';
+import geminiKeyPool from '../config/geminiKeyPool.js';
 
 const router = express.Router();
 
-// Supabase client for elders API
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// 使用懶加載方式創建 Supabase 客戶端，避免在模組加載時就需要環境變數
+let supabase = null;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 // ============================================
 // 對話 API
@@ -544,7 +551,6 @@ router.get('/health', (req, res) => {
   // ✅ 檢查 Gemini Key Pool
   let geminiKeyPoolInfo = { keys: 0, healthy: 0 };
   try {
-    const geminiKeyPool = require('../config/geminiKeyPool.js').default;
     const stats = geminiKeyPool.getStats();
     geminiKeyPoolInfo = {
       keys: stats.totalKeys,

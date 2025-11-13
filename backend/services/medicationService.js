@@ -25,10 +25,17 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config(); // 嘗試載入，但不強制要求檔案存在
 }
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// 使用懶加載方式創建 Supabase 客戶端，避免在模組加載時就需要環境變數
+let supabase = null;
+function getSupabase() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+  }
+  return supabase;
+}
 
 /**
  * 建立新的藥物記錄

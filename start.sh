@@ -48,7 +48,7 @@ cd ..
 
 # 等待後端啟動
 echo "⏳ 等待後端啟動..."
-sleep 3
+sleep 6
 
 # 檢查後端是否成功啟動
 if curl -s http://localhost:3000/api/health > /dev/null; then

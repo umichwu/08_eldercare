@@ -860,7 +860,10 @@ async function sendMessage() {
 
       if (userLocation) {
         // 更新當地時間（確保時間是最新的）
-        userLocation.localTime = new Date().toLocaleString('zh-TW', {
+        const now = new Date();
+
+        // 獲取完整的日期時間字串（包含年份和星期）
+        const dateTimeStr = now.toLocaleString('zh-TW', {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
@@ -871,8 +874,17 @@ async function sendMessage() {
           timeZone: 'Asia/Taipei'
         });
 
-        // 將地理位置資訊附加到訊息前面
-        const geoInfo = `[地理位置資訊]\n座標: ${userLocation.lat}, ${userLocation.lng}\n城市: ${userLocation.city}\n當地時間: ${userLocation.localTime}\n[/地理位置資訊]\n\n`;
+        // 獲取星期幾
+        const weekday = now.toLocaleString('zh-TW', {
+          weekday: 'long',
+          timeZone: 'Asia/Taipei'
+        });
+
+        userLocation.localTime = dateTimeStr;
+        userLocation.weekday = weekday;
+
+        // 將地理位置資訊附加到訊息前面（包含完整的日期、星期、時間）
+        const geoInfo = `[地理位置資訊]\n座標: ${userLocation.lat}, ${userLocation.lng}\n城市: ${userLocation.city}\n日期時間: ${userLocation.localTime} (${userLocation.weekday})\n[/地理位置資訊]\n\n`;
         messageContent = geoInfo + content;
         console.log('📍 已附加地理位置資訊:', userLocation);
       } else {

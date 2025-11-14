@@ -1208,8 +1208,8 @@ body {
     background: white;
     border: 3px solid #d1d5db;
     border-radius: 12px;
-    padding: 16px 12px;
-    font-size: 20px;
+    padding: 14px 8px;
+    font-size: 18px;
     font-weight: 700;
     color: #333;
     cursor: pointer;
@@ -1531,7 +1531,7 @@ body {
 .duration-quick-select {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+    gap: 8px;
 }
 
 .interval-btn,

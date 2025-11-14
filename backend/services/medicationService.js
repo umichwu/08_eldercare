@@ -45,7 +45,8 @@ function getSupabase() {
  */
 export async function createMedication(medicationData) {
   try {
-    const { data, error } = await supabase
+    const sb = getSupabase();
+    const { data, error } = await sb
       .from('medications')
       .insert([{
         elder_id: medicationData.elderId,
@@ -88,7 +89,8 @@ export async function createMedication(medicationData) {
  */
 export async function updateMedication(medicationId, updates) {
   try {
-    const { data, error } = await supabase
+    const sb = getSupabase();
+    const { data, error } = await sb
       .from('medications')
       .update(updates)
       .eq('id', medicationId)
@@ -116,9 +118,10 @@ export async function updateMedication(medicationId, updates) {
  */
 export async function deleteMedication(medicationId) {
   try {
+    const sb = getSupabase();
     // 注意：medications 表格的 status 限制為 'active', 'discontinued', 'expired', 'temporary'
     // 使用 'discontinued' 來代表已刪除的藥物
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('medications')
       .update({
         status: 'discontinued',
@@ -134,7 +137,7 @@ export async function deleteMedication(medicationId) {
     }
 
     // 同時停用該藥物的所有提醒
-    const { error: reminderError } = await supabase
+    const { error: reminderError } = await sb
       .from('medication_reminders')
       .update({
         is_enabled: false,
@@ -166,7 +169,8 @@ export async function deleteMedication(medicationId) {
  */
 export async function getMedicationsByElder(elderId, status = 'active') {
   try {
-    let query = supabase
+    const sb = getSupabase();
+    let query = sb
       .from('medications')
       .select('*')
       .eq('elder_id', elderId)
@@ -198,6 +202,7 @@ export async function getMedicationsByElder(elderId, status = 'active') {
  */
 export async function createMedicationReminder(reminderData) {
   try {
+    const sb = getSupabase();
     // 驗證 cron 表達式
     try {
       parseExpression(reminderData.cronSchedule);
@@ -207,14 +212,14 @@ export async function createMedicationReminder(reminderData) {
     }
 
     // 獲取長輩的 FCM token
-    const { data: elder } = await supabase
+    const { data: elder } = await sb
       .from('elders')
       .select('fcm_token')
       .eq('id', reminderData.elderId)
       .single();
 
     // 獲取家屬的 FCM tokens
-    const { data: familyRelations } = await supabase
+    const { data: familyRelations } = await sb
       .from('elder_family_relations')
       .select(`
         family_members!inner (
@@ -231,7 +236,7 @@ export async function createMedicationReminder(reminderData) {
           .filter(token => token && token.trim().length > 0)
       : [];
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('medication_reminders')
       .insert([{
         medication_id: reminderData.medicationId,
@@ -270,6 +275,7 @@ export async function createMedicationReminder(reminderData) {
  */
 export async function updateMedicationReminder(reminderId, updates) {
   try {
+    const sb = getSupabase();
     // 如果更新 cron 排程，驗證格式
     if (updates.cronSchedule) {
       try {
@@ -280,7 +286,7 @@ export async function updateMedicationReminder(reminderId, updates) {
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('medication_reminders')
       .update(updates)
       .eq('id', reminderId)
@@ -308,7 +314,8 @@ export async function updateMedicationReminder(reminderId, updates) {
  */
 export async function getRemindersByElder(elderId) {
   try {
-    const { data, error } = await supabase
+    const sb = getSupabase();
+    const { data, error } = await sb
       .from('medication_reminders')
       .select(`
         *,
@@ -341,7 +348,8 @@ export async function getRemindersByElder(elderId) {
  */
 export async function createMedicationLog(logData) {
   try {
-    const { data, error } = await supabase
+    const sb = getSupabase();
+    const { data, error } = await sb
       .from('medication_logs')
       .insert([{
         medication_id: logData.medicationId,
@@ -378,8 +386,9 @@ export async function createMedicationLog(logData) {
  */
 export async function confirmMedication(logId, confirmData = {}) {
   try {
+    const sb = getSupabase();
     // 先獲取原始記錄以計算延遲時間
-    const { data: log, error: fetchError } = await supabase
+    const { data: log, error: fetchError } = await sb
       .from('medication_logs')
       .select('scheduled_time')
       .eq('id', logId)
@@ -399,7 +408,7 @@ export async function confirmMedication(logId, confirmData = {}) {
       status = 'late';
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('medication_logs')
       .update({
         actual_time: actualTime.toISOString(),
@@ -435,7 +444,8 @@ export async function confirmMedication(logId, confirmData = {}) {
  */
 export async function markMedicationAsMissed(logId) {
   try {
-    const { data, error } = await supabase
+    const sb = getSupabase();
+    const { data, error } = await sb
       .from('medication_logs')
       .update({
         status: 'missed',
@@ -471,9 +481,10 @@ export async function markMedicationAsMissed(logId) {
  */
 export async function autoMarkMissedMedications(thresholdMinutes = 30) {
   try {
+    const sb = getSupabase();
     const thresholdTime = new Date(Date.now() - thresholdMinutes * 60000);
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('medication_logs')
       .update({
         status: 'missed',
@@ -504,7 +515,8 @@ export async function autoMarkMissedMedications(thresholdMinutes = 30) {
  */
 export async function getPendingMedicationLogs(elderId = null) {
   try {
-    let query = supabase
+    const sb = getSupabase();
+    let query = sb
       .from('medication_logs')
       .select(`
         *,
@@ -546,9 +558,10 @@ export async function getPendingMedicationLogs(elderId = null) {
  */
 export async function getMedicationStatistics(elderId, days = 7) {
   try {
+    const sb = getSupabase();
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('medication_logs')
       .select('status')
       .eq('elder_id', elderId)

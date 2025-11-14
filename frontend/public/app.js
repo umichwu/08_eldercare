@@ -286,6 +286,17 @@ function setupEventListeners() {
   // 產生總結按鈕
   document.getElementById('generateSummaryBtn').addEventListener('click', generateSummary);
 
+  // 網路搜尋開關
+  const webSearchToggle = document.getElementById('webSearchToggle');
+  if (webSearchToggle) {
+    // 初始化開關狀態
+    initializeWebSearchToggle();
+
+    // 監聽開關變化
+    webSearchToggle.addEventListener('change', handleWebSearchToggle);
+    console.log('✅ 網路搜尋開關已綁定');
+  }
+
   // 快速功能按鈕（行動版）
   const quickFunctionsBtn = document.getElementById('quickFunctionsBtn');
   if (quickFunctionsBtn) {
@@ -330,6 +341,61 @@ function hideQuickFunctionsModal() {
   if (modal) {
     modal.style.display = 'none';
     console.log('⚡ 快速功能選單已關閉');
+  }
+}
+
+// ===================================
+// 網路搜尋開關控制
+// ===================================
+
+function initializeWebSearchToggle() {
+  const webSearchToggle = document.getElementById('webSearchToggle');
+  const webSearchStatus = document.getElementById('webSearchStatus');
+
+  if (!webSearchToggle || !webSearchStatus) {
+    console.warn('⚠️ 找不到網路搜尋開關元素');
+    return;
+  }
+
+  // 從 localStorage 讀取設定，如果沒有則使用 config.js 的預設值
+  const savedSetting = localStorage.getItem('webSearchEnabled');
+  let isEnabled;
+
+  if (savedSetting === null) {
+    // 首次載入，使用 config.js 的預設值
+    isEnabled = typeof DEFAULT_WEB_SEARCH_ENABLED !== 'undefined' ? DEFAULT_WEB_SEARCH_ENABLED : true;
+    console.log(`🔍 首次載入網路搜尋設定，使用預設值: ${isEnabled ? '啟用' : '停用'}`);
+  } else {
+    // 使用儲存的設定
+    isEnabled = savedSetting === 'true';
+    console.log(`🔍 載入網路搜尋設定: ${isEnabled ? '啟用' : '停用'}`);
+  }
+
+  // 設定開關狀態
+  webSearchToggle.checked = isEnabled;
+
+  // 更新狀態文字
+  updateWebSearchStatus(isEnabled);
+}
+
+function handleWebSearchToggle(event) {
+  const isEnabled = event.target.checked;
+
+  // 儲存到 localStorage
+  localStorage.setItem('webSearchEnabled', isEnabled.toString());
+
+  // 更新狀態文字
+  updateWebSearchStatus(isEnabled);
+
+  console.log(`🔍 網路搜尋設定已變更: ${isEnabled ? '啟用' : '停用'}`);
+}
+
+function updateWebSearchStatus(isEnabled) {
+  const webSearchStatus = document.getElementById('webSearchStatus');
+
+  if (webSearchStatus) {
+    webSearchStatus.textContent = isEnabled ? '已啟用' : '已停用';
+    webSearchStatus.style.color = isEnabled ? '#28a745' : '#dc3545';
   }
 }
 

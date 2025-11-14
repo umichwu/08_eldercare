@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m \"$(cat <<''EOF''\n修復語音播放問題並新增詳細除錯日誌\n\n問題：\n- ❌ 開啟語音後無法聽到「語音已開啟」確認訊息\n- ❌ 之後的詢問也沒有語音回應\n- ❌ Web Speech API 在 cancel 後立即播放可能失敗\n\n解決方案：\n- ✅ 在 synthesis.cancel() 後新增 100ms 延遲\n- ✅ 新增詳細的 console.log 除錯訊息\n- ✅ 新增 onerror 事件處理，捕捉播放錯誤\n- ✅ 分離 isVoiceEnabled 和 isSpeaking 的檢查邏輯\n\n修改內容：\n- 📝 speakText() 函數改進：\n  * 輸出當前狀態（isVoiceEnabled, isSpeaking）\n  * 使用 setTimeout 延遲 100ms 再播放\n  * 新增 onstart, onend, onerror 事件處理\n  * 每個步驟都有清楚的 console 輸出\n\n除錯訊息範例：\n  🔊 speakText called: \"語音已開啟\"\n     isVoiceEnabled: true, isSpeaking: false\n     🎤 開始播放語音...\n     ✅ 語音開始播放\n     ✅ 語音播放結束\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(timeout 10 bash -c \"NODE_ENV=development node backend/server.js 2>&1 &\nBACKEND_PID=$!__NEW_LINE__\necho ''Backend PID: ''$BACKEND_PID\nsleep 7\necho ''=== Testing health endpoint ===''\ncurl -s http://localhost:3000/api/health\necho ''''\necho ''=== Process status ===''\nps -p $BACKEND_PID\nkill $BACKEND_PID 2>/dev/null\")"
     ],
     "deny": [],
     "ask": []

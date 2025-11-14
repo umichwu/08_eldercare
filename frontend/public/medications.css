@@ -896,8 +896,18 @@ body {
     }
 
     .modal-content {
-        max-width: 95%;
+        max-width: 98%;
+        width: 98%;
         max-height: 85vh;
+        margin: 0 1%;
+    }
+
+    .modal-header {
+        padding: 16px;
+    }
+
+    .modal-content form {
+        padding: 16px;
     }
 
     .tab-btn {

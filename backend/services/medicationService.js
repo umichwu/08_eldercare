@@ -324,14 +324,24 @@ export async function updateMedicationReminder(reminderId, updates) {
       return { success: false, error: error.message };
     }
 
-    // 如果更新了 cron_schedule 或 reminder_times，刪除今天尚未服用的舊記錄
-    if (updates.cronSchedule || updates.cron_schedule || updates.reminder_times) {
-      console.log('🗑️  清理今天舊的未服用記錄...');
+    // 如果更新了 cron_schedule 或 reminderTimes，刪除今天尚未服用的舊記錄
+    const isTimeUpdated = updates.cronSchedule || updates.cron_schedule || updates.reminderTimes || updates.reminder_times;
+
+    if (isTimeUpdated) {
+      console.log('🗑️  偵測到時間更新，清理今天舊的未服用記錄...');
+      console.log('📊 更新內容:', {
+        cronSchedule: updates.cronSchedule,
+        cron_schedule: updates.cron_schedule,
+        reminderTimes: updates.reminderTimes,
+        reminder_times: updates.reminder_times
+      });
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
+
+      console.log(`🔍 查詢範圍: ${today.toISOString()} ~ ${tomorrow.toISOString()}`);
 
       const { data: deletedLogs, error: deleteError } = await sb
         .from('medication_logs')
@@ -347,7 +357,18 @@ export async function updateMedicationReminder(reminderId, updates) {
         console.error('❌ 刪除舊記錄失敗:', deleteError.message);
       } else {
         console.log(`✅ 已刪除 ${deletedLogs?.length || 0} 筆今日未服用的舊記錄`);
+        if (deletedLogs && deletedLogs.length > 0) {
+          deletedLogs.forEach(log => {
+            const time = new Date(log.scheduled_time).toLocaleTimeString('zh-TW', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            console.log(`   - 已刪除: ${time}`);
+          });
+        }
       }
+    } else {
+      console.log('ℹ️  未偵測到時間更新，跳過清理舊記錄');
     }
 
     console.log('✅ 提醒排程更新成功:', reminderId);

@@ -21,7 +21,8 @@
       "Bash(node verify-constraint.js)",
       "Bash(node check-medication-reminders.js)",
       "Bash(node fix-sleep-medication.js)",
-      "Bash(node cleanup-sleep-medication.js)"
+      "Bash(node cleanup-sleep-medication.js)",
+      "Bash(node fix-duplicate-reminders.js)"
     ],
     "deny": [],
     "ask": []

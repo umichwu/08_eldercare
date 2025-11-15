@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(timeout 10 bash -c \"NODE_ENV=development node backend/server.js 2>&1 &\nBACKEND_PID=$!__NEW_LINE__\necho ''Backend PID: ''$BACKEND_PID\nsleep 7\necho ''=== Testing health endpoint ===''\ncurl -s http://localhost:3000/api/health\necho ''''\necho ''=== Process status ===''\nps -p $BACKEND_PID\nkill $BACKEND_PID 2>/dev/null\")"
+      "Bash(timeout 10 bash -c \"NODE_ENV=development node backend/server.js 2>&1 &\nBACKEND_PID=$!__NEW_LINE__\necho ''Backend PID: ''$BACKEND_PID\nsleep 7\necho ''=== Testing health endpoint ===''\ncurl -s http://localhost:3000/api/health\necho ''''\necho ''=== Process status ===''\nps -p $BACKEND_PID\nkill $BACKEND_PID 2>/dev/null\")",
+      "Bash(mkdir -p docs_delete)",
+      "Bash(mv ./backend/Phase1_完成報告.md ./docs_delete/)",
+      "Bash(mv ./backend/用藥提醒問題分析與改進方案.md ./docs_delete/)",
+      "Bash(mv ./DOCUMENTATION_ORGANIZED.md ./docs_delete/)",
+      "Bash(mv ./SQL_INTEGRATION_COMPLETE.md ./docs_delete/)",
+      "Bash(mv ./backend/README_GOOGLE_CALENDAR.md ./docs/google-calendar-integration.md)",
+      "Bash(mv ./backend/VOICE_MEDICATION_README.md ./docs/voice-medication-guide.md)",
+      "Bash(mv ./frontend/TAIWANESE_TTS_SOLUTION.md ./docs/taiwanese-tts-solution.md)",
+      "Bash(mv ./frontend/README_PWA.md ./docs/pwa-setup-guide.md)",
+      "Bash(mv ./GEMINI_KEY_POOL.md ./docs/gemini-key-pool-guide.md)",
+      "Bash(tree -L 2 -I 'node_modules' docs/ docs_delete/)",
+      "Bash(timeout 10 bash -c \"NODE_ENV=development node server.js 2>&1 &\nBACKEND_PID=$!__NEW_LINE__\necho ''Backend PID: ''$BACKEND_PID\nsleep 7\necho ''=== Testing health endpoint ===''\ncurl -s http://localhost:3000/api/health\necho ''''\necho ''=== Process status ===''\nps -p $BACKEND_PID\nkill $BACKEND_PID 2>/dev/null\")"
     ],
     "deny": [],
     "ask": []

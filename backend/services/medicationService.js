@@ -288,6 +288,19 @@ export async function createMedicationReminder(reminderData) {
 export async function updateMedicationReminder(reminderId, updates) {
   try {
     const sb = getSupabase();
+
+    // 先取得現有的提醒資料
+    const { data: existingReminder, error: fetchError } = await sb
+      .from('medication_reminders')
+      .select('medication_id, elder_id, cron_schedule')
+      .eq('id', reminderId)
+      .single();
+
+    if (fetchError) {
+      console.error('❌ 取得提醒排程失敗:', fetchError.message);
+      return { success: false, error: fetchError.message };
+    }
+
     // 如果更新 cron 排程，驗證格式
     if (updates.cronSchedule) {
       try {
@@ -298,6 +311,7 @@ export async function updateMedicationReminder(reminderId, updates) {
       }
     }
 
+    // 更新提醒排程
     const { data, error } = await sb
       .from('medication_reminders')
       .update(updates)
@@ -308,6 +322,32 @@ export async function updateMedicationReminder(reminderId, updates) {
     if (error) {
       console.error('❌ 更新提醒排程失敗:', error.message);
       return { success: false, error: error.message };
+    }
+
+    // 如果更新了 cron_schedule 或 reminder_times，刪除今天尚未服用的舊記錄
+    if (updates.cronSchedule || updates.cron_schedule || updates.reminder_times) {
+      console.log('🗑️  清理今天舊的未服用記錄...');
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data: deletedLogs, error: deleteError } = await sb
+        .from('medication_logs')
+        .delete()
+        .eq('medication_id', existingReminder.medication_id)
+        .eq('elder_id', existingReminder.elder_id)
+        .eq('status', 'pending')
+        .gte('scheduled_time', today.toISOString())
+        .lt('scheduled_time', tomorrow.toISOString())
+        .select();
+
+      if (deleteError) {
+        console.error('❌ 刪除舊記錄失敗:', deleteError.message);
+      } else {
+        console.log(`✅ 已刪除 ${deletedLogs?.length || 0} 筆今日未服用的舊記錄`);
+      }
     }
 
     console.log('✅ 提醒排程更新成功:', reminderId);

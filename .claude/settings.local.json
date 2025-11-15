@@ -18,7 +18,10 @@
       "Bash(node add-unique-constraint.js)",
       "Bash(node backend/add-unique-constraint.js)",
       "Bash(node apply-constraint-via-api.js)",
-      "Bash(node verify-constraint.js)"
+      "Bash(node verify-constraint.js)",
+      "Bash(node check-medication-reminders.js)",
+      "Bash(node fix-sleep-medication.js)",
+      "Bash(node cleanup-sleep-medication.js)"
     ],
     "deny": [],
     "ask": []

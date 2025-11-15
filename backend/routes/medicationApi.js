@@ -1108,6 +1108,75 @@ router.post('/fcm/test-medication-reminder', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/medication-logs/today-pending/:medicationId
+ * 刪除指定藥物今日尚未服用的記錄
+ * 用於更新提醒時間時，清除舊的待服用記錄
+ */
+router.delete('/medication-logs/today-pending/:medicationId', async (req, res) => {
+  try {
+    const { medicationId } = req.params;
+    const { elderId } = req.query;
+
+    if (!elderId) {
+      return res.status(400).json({
+        error: '缺少必要參數',
+        message: 'elderId 為必填',
+      });
+    }
+
+    // 取得今日的開始和結束時間
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    console.log('🗑️ 刪除今日尚未服用的記錄:', {
+      medicationId,
+      elderId,
+      todayStart: today.toISOString(),
+      todayEnd: tomorrow.toISOString()
+    });
+
+    // 使用 Supabase 刪除
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { data, error } = await supabase
+      .from('medication_logs')
+      .delete()
+      .eq('medication_id', medicationId)
+      .eq('elder_id', elderId)
+      .eq('status', 'pending')
+      .gte('scheduled_time', today.toISOString())
+      .lt('scheduled_time', tomorrow.toISOString())
+      .select();
+
+    if (error) {
+      console.error('❌ 刪除記錄失敗:', error);
+      return res.status(400).json({
+        error: '刪除記錄失敗',
+        message: error.message,
+      });
+    }
+
+    console.log(`✅ 已刪除 ${data?.length || 0} 筆今日尚未服用的記錄`);
+
+    res.json({
+      success: true,
+      message: '今日尚未服用的記錄已刪除',
+      deletedCount: data?.length || 0,
+      data: data,
+    });
+  } catch (error) {
+    console.error('API 錯誤 (DELETE /medication-logs/today-pending/:medicationId):', error);
+    res.status(500).json({ error: '伺服器錯誤' });
+  }
+});
+
 router.get('/health', (req, res) => {
   res.json({
     status: 'ok',

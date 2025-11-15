@@ -1391,6 +1391,20 @@ async function saveMedication(event) {
         if (existingReminderId) {
             // 更新現有提醒
             console.log('🔄 更新現有提醒 (PUT):', existingReminderId);
+
+            // ✅ 先刪除今日尚未服用的舊記錄
+            try {
+                console.log('🗑️ 刪除今日尚未服用的舊記錄...');
+                const deleteResponse = await fetch(
+                    `${API_BASE_URL}/api/medication-logs/today-pending/${medicationId}?elderId=${currentElderId}`,
+                    { method: 'DELETE' }
+                );
+                const deleteResult = await deleteResponse.json();
+                console.log('✅ 刪除結果:', deleteResult);
+            } catch (deleteError) {
+                console.warn('⚠️ 刪除舊記錄失敗（可能沒有記錄）:', deleteError);
+            }
+
             reminderResponse = await fetch(
                 `${API_BASE_URL}/api/medication-reminders/${existingReminderId}`,
                 {
@@ -1419,11 +1433,33 @@ async function saveMedication(event) {
         } else {
             const reminderResult = await reminderResponse.json();
             console.log('✅ 提醒設定成功:', reminderResult);
+
+            // ✅ 更新提醒成功後，重新生成今日用藥記錄
+            if (existingReminderId) {
+                try {
+                    console.log('🔄 重新生成今日用藥記錄...');
+                    const generateResponse = await fetch(`${API_BASE_URL}/api/scheduler/generate-today-logs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ elderId: currentElderId })
+                    });
+                    const generateResult = await generateResponse.json();
+                    console.log('✅ 重新生成結果:', generateResult);
+                } catch (genError) {
+                    console.warn('⚠️ 重新生成今日記錄失敗:', genError);
+                }
+            }
         }
 
         showToast('✅ 用藥提醒設定完成！', 'success');
         closeMedicationModal();
         await loadMedications();
+
+        // ✅ 如果當前在「今日用藥」分頁，也重新載入
+        const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+        if (activeTab === 'today') {
+            await loadTodayMedications();
+        }
     } catch (error) {
         console.error('儲存藥物失敗:', error);
         showToast('儲存失敗，請稍後再試', 'error');

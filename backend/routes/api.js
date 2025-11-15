@@ -3,6 +3,7 @@ import conversationService from '../services/conversationService.js';
 import messageService from '../services/messageService.js';
 import summaryService from '../services/summaryService.js';
 import userService from '../services/userService.js';
+import googleCalendarService from '../services/googleCalendarService.js';
 import { createClient } from '@supabase/supabase-js';
 import geminiKeyPool from '../config/geminiKeyPool.js';
 
@@ -696,6 +697,220 @@ router.get('/test-llm', async (req, res) => {
       stack: error.stack,
       name: error.name
     });
+  }
+});
+
+// ============================================
+// Google Calendar API
+// ============================================
+
+/**
+ * 取得 Google Calendar 授權 URL
+ * GET /api/google-calendar/auth-url?userId=xxx
+ */
+router.get('/google-calendar/auth-url', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId' });
+    }
+
+    const result = await googleCalendarService.getAuthUrl(userId);
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ 取得授權 URL 失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 處理 Google OAuth 回調（交換授權碼為 Token）
+ * POST /api/google-calendar/callback
+ * Body: { code: string, userId: string }
+ */
+router.post('/google-calendar/callback', async (req, res) => {
+  try {
+    const { code, userId } = req.body;
+
+    if (!code || !userId) {
+      return res.status(400).json({ error: '缺少必要參數' });
+    }
+
+    console.log('📥 收到 Google OAuth 回調:', { userId, codeLength: code.length });
+
+    const result = await googleCalendarService.exchangeAuthCode(code, userId);
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ 處理 OAuth 回調失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 檢查 Google Calendar 授權狀態
+ * GET /api/google-calendar/status?userId=xxx
+ */
+router.get('/google-calendar/status', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId' });
+    }
+
+    const result = await googleCalendarService.checkAuthStatus(userId);
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ 檢查授權狀態失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 同步單個用藥提醒到 Google Calendar
+ * POST /api/google-calendar/sync/:medicationId
+ * Body: { userId: string }
+ */
+router.post('/google-calendar/sync/:medicationId', async (req, res) => {
+  try {
+    const { medicationId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId' });
+    }
+
+    console.log(`📅 同步用藥提醒: ${medicationId}`);
+
+    const result = await googleCalendarService.syncMedicationToCalendar(userId, medicationId);
+
+    if (result.success) {
+      res.json(result);
+    } else if (result.needsAuth) {
+      res.status(401).json({
+        error: result.error,
+        needsAuth: true,
+        message: '請先授權 Google Calendar'
+      });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ 同步用藥提醒失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 同步所有用藥提醒到 Google Calendar
+ * POST /api/google-calendar/sync-all
+ * Body: { userId: string, elderId: string }
+ */
+router.post('/google-calendar/sync-all', async (req, res) => {
+  try {
+    const { userId, elderId } = req.body;
+
+    if (!userId || !elderId) {
+      return res.status(400).json({ error: '缺少必要參數' });
+    }
+
+    console.log(`📅 同步所有用藥提醒: elderId=${elderId}`);
+
+    const result = await googleCalendarService.syncAllMedicationsToCalendar(userId, elderId);
+
+    if (result.success) {
+      res.json(result);
+    } else if (result.needsAuth) {
+      res.status(401).json({
+        error: result.error,
+        needsAuth: true,
+        message: '請先授權 Google Calendar'
+      });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ 同步所有用藥提醒失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 刪除用藥的 Google Calendar 事件
+ * DELETE /api/google-calendar/medication/:medicationId
+ * Body: { userId: string }
+ */
+router.delete('/google-calendar/medication/:medicationId', async (req, res) => {
+  try {
+    const { medicationId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId' });
+    }
+
+    console.log(`🗑️ 刪除用藥的 Calendar 事件: ${medicationId}`);
+
+    const result = await googleCalendarService.deleteMedicationCalendarEvents(userId, medicationId);
+
+    if (result.success) {
+      res.json(result);
+    } else if (result.needsAuth) {
+      res.status(401).json({
+        error: result.error,
+        needsAuth: true,
+        message: '請先授權 Google Calendar'
+      });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ 刪除 Calendar 事件失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * 撤銷 Google Calendar 授權
+ * DELETE /api/google-calendar/auth
+ * Body: { userId: string }
+ */
+router.delete('/google-calendar/auth', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId' });
+    }
+
+    console.log(`🔓 撤銷 Google Calendar 授權: ${userId}`);
+
+    const result = await googleCalendarService.revokeAuthorization(userId);
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error('❌ 撤銷授權失敗:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

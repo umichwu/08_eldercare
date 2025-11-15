@@ -2372,3 +2372,132 @@ window.addEventListener('DOMContentLoaded', () => {
   // 初始化通知權限檢查
   initNotificationCheck();
 });
+
+// ==================== Google Calendar 同步功能 ====================
+
+/**
+ * 同步今日用藥到 Google Calendar
+ * 使用 Google Calendar 的 URL 參數來建立事件
+ */
+async function syncToGoogleCalendar() {
+  try {
+    showToast('正在準備同步...', 'info');
+
+    // 取得今日所有用藥提醒
+    const response = await fetch(`${API_BASE_URL}/api/medications/elder/${currentElderId}`);
+    const result = await response.json();
+
+    if (!response.ok || !result.data) {
+      throw new Error('無法載入用藥資料');
+    }
+
+    const medications = result.data;
+
+    if (medications.length === 0) {
+      showToast('目前沒有用藥資料需要同步', 'warning');
+      return;
+    }
+
+    // 為每個用藥建立 Google Calendar 事件
+    let syncedCount = 0;
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    for (const med of medications) {
+      // 取得該藥物的提醒時間
+      const reminderResponse = await fetch(
+        `${API_BASE_URL}/api/medication-reminders/elder/${currentElderId}`
+      );
+      const reminderResult = await reminderResponse.json();
+
+      if (!reminderResult.data) continue;
+
+      // 找到對應的提醒
+      const reminder = reminderResult.data.find(r => r.medication_id === med.id);
+      if (!reminder || !reminder.is_enabled) continue;
+
+      // 解析提醒時間
+      let times = [];
+      if (reminder.reminder_times && reminder.reminder_times.times) {
+        times = reminder.reminder_times.times;
+      }
+
+      // 為每個時間建立 Calendar 事件
+      for (const time of times) {
+        const calendarUrl = createGoogleCalendarEventUrl({
+          title: `💊 ${med.medication_name}`,
+          description: `劑量: ${med.dosage || '未設定'}\n${med.instructions || ''}`,
+          location: '',
+          startDate: todayStr,
+          startTime: time,
+          duration: 15, // 15分鐘
+          recurrence: 'DAILY' // 每天重複
+        });
+
+        // 開啟新視窗
+        window.open(calendarUrl, '_blank');
+        syncedCount++;
+
+        // 延遲避免瀏覽器阻擋多個彈窗
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    if (syncedCount > 0) {
+      showToast(`✅ 已開啟 ${syncedCount} 個 Google Calendar 視窗，請在每個視窗中確認儲存`, 'success');
+    } else {
+      showToast('沒有找到需要同步的用藥提醒', 'warning');
+    }
+
+  } catch (error) {
+    console.error('同步到 Google Calendar 失敗:', error);
+    showToast('同步失敗: ' + error.message, 'error');
+  }
+}
+
+/**
+ * 建立 Google Calendar 事件 URL
+ */
+function createGoogleCalendarEventUrl(options) {
+  const {
+    title,
+    description,
+    location,
+    startDate,
+    startTime,
+    duration = 30,
+    recurrence = null
+  } = options;
+
+  // 組合開始時間
+  const startDateTime = `${startDate}T${startTime}:00`;
+  const start = new Date(startDateTime);
+
+  // 計算結束時間
+  const end = new Date(start.getTime() + duration * 60000);
+
+  // 格式化為 Google Calendar 需要的格式 (YYYYMMDDTHHmmss)
+  const formatGoogleDate = (date) => {
+    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  };
+
+  // 建立 URL 參數
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    details: description || '',
+    location: location || '',
+    dates: `${formatGoogleDate(start)}/${formatGoogleDate(end)}`
+  });
+
+  // 如果有重複規則
+  if (recurrence) {
+    params.append('recur', `RRULE:FREQ=${recurrence}`);
+  }
+
+  // 加入提醒（提前5分鐘和15分鐘）
+  params.append('reminder', '5');
+  params.append('reminder', '15');
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}

@@ -7,11 +7,13 @@
  * - 用藥記錄管理
  * - 自動標記錯過的用藥
  * - 統計和查詢功能
+ * - Google Calendar 自動同步（可選）
  */
 
 import { createClient } from '@supabase/supabase-js';
 import cronParser from 'cron-parser';
 import dotenv from 'dotenv';
+import * as googleCalendarService from './googleCalendarService.js';
 
 const { parseExpression } = cronParser;
 
@@ -152,6 +154,12 @@ export async function deleteMedication(medicationId) {
       console.log('✅ 已停用該藥物的所有提醒');
     }
 
+    // 自動刪除 Google Calendar 事件（如果用戶已授權）
+    // 從 data 中取得 elder_id
+    if (data && data.elder_id) {
+      await autoDeleteFromGoogleCalendar(data.elder_id, medicationId);
+    }
+
     console.log('✅ 藥物刪除成功 (標記為 discontinued):', medicationId);
     return { success: true, data };
   } catch (error) {
@@ -259,6 +267,10 @@ export async function createMedicationReminder(reminderData) {
     }
 
     console.log('✅ 提醒排程建立成功:', data.id);
+
+    // 自動同步到 Google Calendar（如果用戶已授權）
+    await autoSyncToGoogleCalendar(reminderData.elderId, reminderData.medicationId);
+
     return { success: true, data };
   } catch (error) {
     console.error('❌ 建立提醒排程異常:', error.message);
@@ -589,6 +601,124 @@ export async function getMedicationStatistics(elderId, days = 7) {
   } catch (error) {
     console.error('❌ 查詢用藥統計異常:', error.message);
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 自動同步用藥提醒到 Google Calendar
+ * 此函數會靜默失敗，不影響主要業務邏輯
+ *
+ * @param {string} elderId - 長輩 ID
+ * @param {string} medicationId - 藥物 ID
+ */
+async function autoSyncToGoogleCalendar(elderId, medicationId) {
+  try {
+    // 從 elders 表取得 user_profile_id
+    const sb = getSupabase();
+    const { data: elder } = await sb
+      .from('elders')
+      .select('user_profile_id')
+      .eq('id', elderId)
+      .single();
+
+    if (!elder || !elder.user_profile_id) {
+      console.log('⚠️ 無法取得 user_profile_id，跳過 Calendar 同步');
+      return;
+    }
+
+    // 從 user_profiles 取得 auth_user_id
+    const { data: profile } = await sb
+      .from('user_profiles')
+      .select('auth_user_id')
+      .eq('id', elder.user_profile_id)
+      .single();
+
+    if (!profile || !profile.auth_user_id) {
+      console.log('⚠️ 無法取得 auth_user_id，跳過 Calendar 同步');
+      return;
+    }
+
+    const userId = profile.auth_user_id;
+
+    // 檢查用戶是否已授權 Google Calendar
+    const authStatus = await googleCalendarService.checkAuthStatus(userId);
+
+    if (!authStatus.success || !authStatus.isAuthorized) {
+      console.log('📅 用戶尚未授權 Google Calendar，跳過同步');
+      return;
+    }
+
+    // 執行同步
+    console.log(`📅 自動同步用藥提醒到 Google Calendar: ${medicationId}`);
+    const syncResult = await googleCalendarService.syncMedicationToCalendar(userId, medicationId);
+
+    if (syncResult.success) {
+      console.log(`✅ Google Calendar 同步成功: ${syncResult.eventCount} 個事件`);
+    } else {
+      console.log(`⚠️ Google Calendar 同步失敗: ${syncResult.error}`);
+    }
+  } catch (error) {
+    // 靜默失敗，不影響主要業務邏輯
+    console.log('⚠️ Google Calendar 自動同步失敗（已忽略）:', error.message);
+  }
+}
+
+/**
+ * 自動刪除 Google Calendar 事件
+ *
+ * @param {string} elderId - 長輩 ID
+ * @param {string} medicationId - 藥物 ID
+ */
+async function autoDeleteFromGoogleCalendar(elderId, medicationId) {
+  try {
+    const sb = getSupabase();
+
+    // 從 elders 表取得 user_profile_id
+    const { data: elder } = await sb
+      .from('elders')
+      .select('user_profile_id')
+      .eq('id', elderId)
+      .single();
+
+    if (!elder || !elder.user_profile_id) {
+      console.log('⚠️ 無法取得 user_profile_id，跳過 Calendar 刪除');
+      return;
+    }
+
+    // 從 user_profiles 取得 auth_user_id
+    const { data: profile } = await sb
+      .from('user_profiles')
+      .select('auth_user_id')
+      .eq('id', elder.user_profile_id)
+      .single();
+
+    if (!profile || !profile.auth_user_id) {
+      console.log('⚠️ 無法取得 auth_user_id，跳過 Calendar 刪除');
+      return;
+    }
+
+    const userId = profile.auth_user_id;
+
+    // 檢查用戶是否已授權 Google Calendar
+    const authStatus = await googleCalendarService.checkAuthStatus(userId);
+
+    if (!authStatus.success || !authStatus.isAuthorized) {
+      console.log('📅 用戶尚未授權 Google Calendar，跳過刪除');
+      return;
+    }
+
+    // 執行刪除
+    console.log(`🗑️ 自動刪除 Google Calendar 事件: ${medicationId}`);
+    const deleteResult = await googleCalendarService.deleteMedicationCalendarEvents(userId, medicationId);
+
+    if (deleteResult.success) {
+      console.log(`✅ Google Calendar 事件已刪除`);
+    } else {
+      console.log(`⚠️ Google Calendar 事件刪除失敗: ${deleteResult.error}`);
+    }
+  } catch (error) {
+    // 靜默失敗，不影響主要業務邏輯
+    console.log('⚠️ Google Calendar 自動刪除失敗（已忽略）:', error.message);
   }
 }
 

@@ -1335,6 +1335,34 @@ async function saveMedication(event) {
         // 取得藥物 ID
         medicationId = result.data?.id || id;
 
+        // 查詢是否已有提醒設定
+        let existingReminderId = null;
+
+        if (medicationId) {
+            console.log('🔍 檢查是否已有提醒設定...');
+            try {
+                const reminderListResponse = await fetch(
+                    `${API_BASE_URL}/api/medication-reminders/elder/${currentElderId}`
+                );
+
+                if (reminderListResponse.ok) {
+                    const reminderList = await reminderListResponse.json();
+                    const existingReminder = reminderList.data?.find(
+                        r => r.medication_id === medicationId
+                    );
+
+                    if (existingReminder) {
+                        existingReminderId = existingReminder.id;
+                        console.log('✅ 找到現有提醒，將使用 PUT 更新:', existingReminderId);
+                    } else {
+                        console.log('ℹ️  未找到現有提醒，將使用 POST 創建新提醒');
+                    }
+                }
+            } catch (error) {
+                console.warn('查詢現有提醒失敗，將使用 POST 創建:', error);
+            }
+        }
+
         // 準備提醒資料
         let finalReminderData = {
             medicationId: medicationId,
@@ -1357,14 +1385,40 @@ async function saveMedication(event) {
             };
         }
 
-        const reminderResponse = await fetch(`${API_BASE_URL}/api/medication-reminders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(finalReminderData)
-        });
+        // 根據是否已有提醒來決定使用 POST 或 PUT
+        let reminderResponse;
+
+        if (existingReminderId) {
+            // 更新現有提醒
+            console.log('🔄 更新現有提醒 (PUT):', existingReminderId);
+            reminderResponse = await fetch(
+                `${API_BASE_URL}/api/medication-reminders/${existingReminderId}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalReminderData)
+                }
+            );
+        } else {
+            // 創建新提醒
+            console.log('➕ 創建新提醒 (POST)');
+            reminderResponse = await fetch(
+                `${API_BASE_URL}/api/medication-reminders`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalReminderData)
+                }
+            );
+        }
 
         if (!reminderResponse.ok) {
             console.warn('提醒設定儲存失敗，但藥物已新增');
+            const errorData = await reminderResponse.json();
+            console.error('提醒API錯誤:', errorData);
+        } else {
+            const reminderResult = await reminderResponse.json();
+            console.log('✅ 提醒設定成功:', reminderResult);
         }
 
         showToast('✅ 用藥提醒設定完成！', 'success');

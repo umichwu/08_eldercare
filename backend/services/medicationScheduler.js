@@ -568,16 +568,18 @@ export async function generateTodayMedicationLogs(elderId = null) {
             const nextDate = next.toDate();
             if (nextDate >= tomorrow) break;
 
-            // 只加入未來的時間點（不建立已經過去的記錄）
-            if (nextDate >= now) {
-              todayTimes.push(nextDate);
-            }
+            // ✅ 修正：建立今天的所有時間點（不論是否已過）
+            // 這樣才能確保每天的記錄都完整
+            todayTimes.push(nextDate);
           } catch {
             break;
           }
         }
 
+        console.log(`📋 ${reminder.medications.medication_name} 今日時間點: ${todayTimes.length} 個`, todayTimes.map(t => t.toTimeString().slice(0, 5)));
+
         // 為每個時間點建立記錄（如果不存在）
+        // ✅ 修正：移除時間檢查，確保今天的所有時間點都會被建立
         for (const scheduledTime of todayTimes) {
           const { data: existing, error: existError } = await sb
             .from('medication_logs')
@@ -602,6 +604,7 @@ export async function generateTodayMedicationLogs(elderId = null) {
 
             if (logResult.success) {
               totalCreated++;
+              console.log(`✅ 建立記錄: ${reminder.medications.medication_name} at ${scheduledTime.toISOString()}`);
             }
           }
         }

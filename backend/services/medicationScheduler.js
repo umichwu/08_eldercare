@@ -297,6 +297,7 @@ async function processReminder(reminder, scheduledTime) {
       medicationName: medication.medication_name,
       dosage: medication.dosage,
       scheduledTime: scheduledTime.toISOString(),
+      logId: logId, // ✅ 傳送 logId 給通知服務
     });
 
     // 發送 Email 通知（如果長輩有設定 Email）

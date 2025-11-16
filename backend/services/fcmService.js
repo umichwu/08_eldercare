@@ -245,7 +245,10 @@ export async function sendMedicationReminder(elderId, medicationInfo) {
       type: 'medication_reminder',
       elderId: elderId,
       medicationId: medicationInfo.medicationId || '',
+      medicationName: medicationInfo.medicationName || '',
+      dosage: medicationInfo.dosage || '',
       scheduledTime: medicationInfo.scheduledTime,
+      logId: medicationInfo.logId || '', // ✅ 傳送 logId 給前端 Service Worker
     };
 
     return await sendPushNotification(elder.fcm_token, notification, data);

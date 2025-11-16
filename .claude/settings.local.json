@@ -29,7 +29,12 @@
       "Bash(node delete-all-today-tomorrow-logs.js)",
       "Bash(node test-generate-today.js)",
       "Bash(curl -X POST https://eldercare-backend-8o4k.onrender.com/api/scheduler/generate-today-logs )",
-      "Bash(node show-all-logs.js)"
+      "Bash(node show-all-logs.js)",
+      "Bash(node diagnose-sleep-medication.js)",
+      "Bash(chmod +x test-render-generate-logs.sh)",
+      "Bash(bash test-render-generate-logs.sh)",
+      "Bash(chmod +x check-medication-data.sh)",
+      "Bash(bash check-medication-data.sh)"
     ],
     "deny": [],
     "ask": []

@@ -22,10 +22,18 @@ let todayLogs = [];
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('📱 頁面開始初始化...');
+
     await checkAuth();
     await loadCurrentUser();
     await loadMedications();
     setTodayDate();
+
+    // 初始化裝置偵測（確保在所有元素載入後執行）
+    console.log('🔍 準備初始化裝置偵測...');
+    setTimeout(() => {
+        initDeviceBasedReminder();
+    }, 1000);
 });
 
 // 檢查登入狀態
@@ -2716,14 +2724,26 @@ if (document.getElementById('notificationStatus')) {
  * 偵測裝置類型並顯示對應的提醒設定選項
  */
 function initDeviceBasedReminder() {
+  console.log('🔍 開始裝置偵測...');
+  console.log('   User Agent:', navigator.userAgent);
+  console.log('   Screen Width:', window.innerWidth);
+
   const isMobile = DeviceDetector.isMobile();
+  console.log('   isMobile 結果:', isMobile);
+
   const mobileAlarmSection = document.getElementById('mobileAlarmSection');
   const desktopCalendarBtn = document.getElementById('desktopCalendarBtn');
+
+  console.log('   找到 mobileAlarmSection:', mobileAlarmSection ? '✅' : '❌');
+  console.log('   找到 desktopCalendarBtn:', desktopCalendarBtn ? '✅' : '❌');
 
   if (isMobile) {
     // 手機：顯示鬧鐘設定
     if (mobileAlarmSection) {
       mobileAlarmSection.style.display = 'block';
+      console.log('✅ 已顯示手機鬧鐘區域');
+    } else {
+      console.error('❌ 找不到 mobileAlarmSection 元素！');
     }
     if (desktopCalendarBtn) {
       desktopCalendarBtn.style.display = 'none';
@@ -2736,6 +2756,9 @@ function initDeviceBasedReminder() {
     }
     if (desktopCalendarBtn) {
       desktopCalendarBtn.style.display = 'block';
+      console.log('✅ 已顯示 Google Calendar 按鈕');
+    } else {
+      console.error('❌ 找不到 desktopCalendarBtn 元素！');
     }
     console.log('💻 偵測到桌面裝置，顯示 Google Calendar 功能');
   }
@@ -2879,10 +2902,4 @@ function getMealTimeLabel(time) {
   }
 }
 
-// 頁面載入時初始化裝置偵測
-document.addEventListener('DOMContentLoaded', () => {
-  // 等待一下確保元素已載入
-  setTimeout(() => {
-    initDeviceBasedReminder();
-  }, 500);
-});
+// 註解：裝置偵測已移至主要的 DOMContentLoaded 事件中

@@ -1367,9 +1367,7 @@ async function saveMedication(event) {
         let finalReminderData = {
             medicationId: medicationId,
             elderId: currentElderId,
-            isEnabled: true,
-            autoMarkMissedAfterMinutes: 30,
-            notifyFamilyIfMissed: true
+            isEnabled: true
         };
 
         if (durationType === 'chronic') {

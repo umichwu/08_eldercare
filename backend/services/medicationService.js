@@ -301,20 +301,50 @@ export async function updateMedicationReminder(reminderId, updates) {
       return { success: false, error: fetchError.message };
     }
 
+    // ✅ 將駝峰式命名轉換為資料庫的底線命名
+    const dbUpdates = {};
+
+    // 基本欄位映射
+    const fieldMapping = {
+      medicationId: 'medication_id',
+      elderId: 'elder_id',
+      cronSchedule: 'cron_schedule',
+      reminderTimes: 'reminder_times',
+      isEnabled: 'is_enabled',
+      timezone: 'timezone',
+      frequencyDescription: 'frequency_description',
+      reminderMessage: 'reminder_message',
+      reminderSound: 'reminder_sound',
+      vibrate: 'vibrate',
+      reminderAdvanceMinutes: 'reminder_advance_minutes',
+      autoMarkMissedAfterMinutes: 'auto_mark_missed_after_minutes',
+      notifyFamilyIfMissed: 'notify_family_if_missed',
+      startDate: 'start_date',
+      endDate: 'end_date'
+    };
+
+    // 轉換欄位名稱
+    Object.keys(updates).forEach(key => {
+      const dbKey = fieldMapping[key] || key; // 如果沒有映射，就用原始 key
+      dbUpdates[dbKey] = updates[key];
+    });
+
+    console.log('🔄 欄位轉換:', { 原始: Object.keys(updates), 轉換後: Object.keys(dbUpdates) });
+
     // 如果更新 cron 排程，驗證格式
-    if (updates.cronSchedule) {
+    if (dbUpdates.cron_schedule) {
       try {
-        parseExpression(updates.cronSchedule);
+        parseExpression(dbUpdates.cron_schedule);
       } catch (cronError) {
         console.error('❌ 無效的 cron 表達式:', cronError.message);
         return { success: false, error: 'Invalid cron schedule' };
       }
     }
 
-    // 更新提醒排程
+    // 更新提醒排程（使用轉換後的欄位名稱）
     const { data, error } = await sb
       .from('medication_reminders')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', reminderId)
       .select()
       .single();
@@ -324,16 +354,14 @@ export async function updateMedicationReminder(reminderId, updates) {
       return { success: false, error: error.message };
     }
 
-    // 如果更新了 cron_schedule 或 reminderTimes，刪除今天尚未服用的舊記錄
-    const isTimeUpdated = updates.cronSchedule || updates.cron_schedule || updates.reminderTimes || updates.reminder_times;
+    // 如果更新了 cron_schedule 或 reminder_times，刪除今天尚未服用的舊記錄
+    const isTimeUpdated = dbUpdates.cron_schedule || dbUpdates.reminder_times;
 
     if (isTimeUpdated) {
       console.log('🗑️  偵測到時間更新，清理今天舊的未服用記錄...');
       console.log('📊 更新內容:', {
-        cronSchedule: updates.cronSchedule,
-        cron_schedule: updates.cron_schedule,
-        reminderTimes: updates.reminderTimes,
-        reminder_times: updates.reminder_times
+        cron_schedule: dbUpdates.cron_schedule,
+        reminder_times: dbUpdates.reminder_times
       });
 
       const today = new Date();

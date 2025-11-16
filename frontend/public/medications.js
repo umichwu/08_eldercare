@@ -2709,3 +2709,180 @@ if (document.getElementById('notificationStatus')) {
     checkNotificationStatus();
   }, 1000);
 }
+
+// ==================== 手機鬧鐘設定功能 ====================
+
+/**
+ * 偵測裝置類型並顯示對應的提醒設定選項
+ */
+function initDeviceBasedReminder() {
+  const isMobile = DeviceDetector.isMobile();
+  const mobileAlarmSection = document.getElementById('mobileAlarmSection');
+  const desktopCalendarBtn = document.getElementById('desktopCalendarBtn');
+
+  if (isMobile) {
+    // 手機：顯示鬧鐘設定
+    if (mobileAlarmSection) {
+      mobileAlarmSection.style.display = 'block';
+    }
+    if (desktopCalendarBtn) {
+      desktopCalendarBtn.style.display = 'none';
+    }
+    console.log('📱 偵測到手機裝置，顯示鬧鐘設定功能');
+  } else {
+    // 桌面：顯示 Google Calendar
+    if (mobileAlarmSection) {
+      mobileAlarmSection.style.display = 'none';
+    }
+    if (desktopCalendarBtn) {
+      desktopCalendarBtn.style.display = 'block';
+    }
+    console.log('💻 偵測到桌面裝置，顯示 Google Calendar 功能');
+  }
+}
+
+/**
+ * 開啟手機鬧鐘設定彈窗
+ */
+async function setupPhoneAlarms() {
+  console.log('📱 開始設定手機鬧鐘...');
+
+  // 檢查是否有今日用藥記錄
+  if (!todayLogs || todayLogs.length === 0) {
+    showToast('⚠️ 今日沒有用藥計劃', 'warning');
+    return;
+  }
+
+  // 開啟彈窗
+  const modal = document.getElementById('phoneAlarmModal');
+  const alarmListContent = document.getElementById('alarmListContent');
+
+  if (!modal || !alarmListContent) {
+    console.error('❌ 找不到鬧鐘設定 Modal');
+    return;
+  }
+
+  // 清空列表
+  alarmListContent.innerHTML = '';
+
+  // 依時間排序
+  const sortedLogs = [...todayLogs].sort((a, b) => {
+    return a.scheduled_time.localeCompare(b.scheduled_time);
+  });
+
+  // 建立鬧鐘列表
+  sortedLogs.forEach((log, index) => {
+    const alarmItem = document.createElement('div');
+    alarmItem.className = 'alarm-item';
+    alarmItem.innerHTML = `
+      <div class="alarm-item-info">
+        <div class="alarm-time">${log.scheduled_time}</div>
+        <div class="alarm-label">${getMealTimeLabel(log.scheduled_time)}</div>
+        <div class="alarm-medicine">💊 ${log.medication_name} - ${log.dosage}</div>
+      </div>
+      <div class="alarm-item-action">
+        <button class="btn-set-alarm" onclick="setPhoneAlarm('${log.scheduled_time}', '${log.medication_name}', '${log.dosage}', ${index})">
+          ⏰ 設定鬧鐘
+        </button>
+      </div>
+    `;
+    alarmListContent.appendChild(alarmItem);
+  });
+
+  // 顯示彈窗
+  modal.style.display = 'flex';
+
+  showToast(`✅ 找到 ${sortedLogs.length} 個用藥時間`, 'success');
+}
+
+/**
+ * 設定單個手機鬧鐘
+ */
+function setPhoneAlarm(time, medicineName, dosage, index) {
+  console.log(`⏰ 設定鬧鐘: ${time} - ${medicineName}`);
+
+  // 解析時間
+  const [hours, minutes] = time.split(':').map(num => parseInt(num));
+
+  // 建立鬧鐘標籤
+  const label = `用藥提醒：${medicineName} ${dosage}`;
+
+  // Android: 使用 Intent URI 開啟鬧鐘設定
+  const androidIntent = `intent://alarm?hour=${hours}&minutes=${minutes}&message=${encodeURIComponent(label)}&skipUi=false#Intent;scheme=android.intent.action.SET_ALARM;end`;
+
+  // iOS: 使用 clock: URI (有限支援)
+  const iosScheme = `clock://`;
+
+  // 偵測系統
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  const isAndroid = /android/i.test(userAgent);
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+
+  if (isAndroid) {
+    // Android: 開啟鬧鐘設定
+    console.log('📱 偵測到 Android，開啟鬧鐘設定');
+    window.location.href = androidIntent;
+  } else if (isIOS) {
+    // iOS: 開啟時鐘 App（需手動設定）
+    console.log('📱 偵測到 iOS，開啟時鐘 App');
+    showToast('iOS 需要手動設定鬧鐘', 'info');
+
+    // 嘗試開啟時鐘 App
+    setTimeout(() => {
+      window.location.href = iosScheme;
+    }, 500);
+
+    // 顯示提示
+    alert(`請在時鐘 App 中手動設定鬧鐘：\n\n時間：${time}\n標籤：${label}`);
+  } else {
+    // 其他裝置
+    showToast('⚠️ 此功能僅支援 Android 和 iOS 手機', 'warning');
+    return;
+  }
+
+  // 標記為已設定
+  const buttons = document.querySelectorAll('.btn-set-alarm');
+  if (buttons[index]) {
+    buttons[index].classList.add('set');
+    buttons[index].innerHTML = '✅ 已設定';
+  }
+
+  showToast(`✅ 已開啟 ${time} 的鬧鐘設定`, 'success');
+}
+
+/**
+ * 關閉手機鬧鐘設定彈窗
+ */
+function closePhoneAlarmModal() {
+  const modal = document.getElementById('phoneAlarmModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+/**
+ * 根據時間取得餐次標籤
+ */
+function getMealTimeLabel(time) {
+  const [hours] = time.split(':').map(num => parseInt(num));
+
+  if (hours >= 5 && hours < 10) {
+    return '🌅 早餐時間';
+  } else if (hours >= 10 && hours < 14) {
+    return '🌞 午餐時間';
+  } else if (hours >= 14 && hours < 18) {
+    return '☀️ 下午時間';
+  } else if (hours >= 18 && hours < 22) {
+    return '🌆 晚餐時間';
+  } else {
+    return '🌙 睡前時間';
+  }
+}
+
+// 頁面載入時初始化裝置偵測
+document.addEventListener('DOMContentLoaded', () => {
+  // 等待一下確保元素已載入
+  setTimeout(() => {
+    initDeviceBasedReminder();
+  }, 500);
+});

@@ -140,7 +140,31 @@
             <div class="today-header">
                 <h2>📅 今日用藥計劃</h2>
                 <p class="today-date" id="todayDate"></p>
-                <button class="btn-secondary" onclick="syncToGoogleCalendar()" style="margin-top: 12px;">
+
+                <!-- 手機鬧鐘設定區域（僅在手機上顯示） -->
+                <div id="mobileAlarmSection" class="mobile-alarm-section" style="display: none;">
+                    <div class="alarm-info-card">
+                        <div class="alarm-icon">⏰</div>
+                        <div class="alarm-content">
+                            <h3>設定手機鬧鐘提醒</h3>
+                            <p>系統會根據您的用藥計劃，自動幫您設定手機鬧鐘</p>
+                        </div>
+                    </div>
+                    <button class="btn-primary btn-large" onclick="setupPhoneAlarms()" style="width: 100%; margin-top: 15px;">
+                        📱 一鍵設定手機鬧鐘
+                    </button>
+                    <div class="alarm-guide" style="margin-top: 12px; padding: 12px; background: #fff3cd; border-radius: 8px; font-size: 14px;">
+                        <strong>💡 使用說明：</strong>
+                        <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                            <li>點擊按鈕後，系統會列出今日所有用藥時間</li>
+                            <li>每個時間都可以直接設定手機鬧鐘</li>
+                            <li>設定後，手機會在用藥時間自動響鈴提醒</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 桌面版：Google Calendar 同步 -->
+                <button id="desktopCalendarBtn" class="btn-secondary" onclick="syncToGoogleCalendar()" style="margin-top: 12px; display: none;">
                     📆 同步到 Google Calendar
                 </button>
             </div>
@@ -619,6 +643,26 @@
             </div>
             <div id="reminderContent">
                 <!-- 動態載入 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 手機鬧鐘設定 Modal -->
+    <div id="phoneAlarmModal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📱 設定手機鬧鐘</h2>
+                <button class="modal-close" onclick="closePhoneAlarmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alarm-intro">
+                    <p style="font-size: 16px; color: #555; line-height: 1.8;">
+                        以下是今日的用藥時間，點擊「設定鬧鐘」按鈕，系統會自動開啟手機的鬧鐘設定。
+                    </p>
+                </div>
+                <div id="alarmListContent" class="alarm-list">
+                    <!-- 動態載入鬧鐘列表 -->
+                </div>
             </div>
         </div>
     </div>

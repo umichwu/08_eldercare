@@ -2236,3 +2236,115 @@ body {
     text-align: center;
     color: #dc2626;
 }
+
+/* ==================== 測試通知面板 ==================== */
+
+.test-notification-panel {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.test-notification-panel h3 {
+    color: #333;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.notification-status {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.status-label {
+    font-weight: 600;
+    color: #555;
+    font-size: 15px;
+}
+
+.status-value {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.notification-info {
+    line-height: 1.6;
+}
+
+.notification-info strong {
+    color: #0066cc;
+}
+
+.notification-info ul {
+    color: #555;
+}
+
+/* 導航欄測試按鈕樣式 */
+.nav-notification-test {
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nav-notification-test:hover {
+    background: #f57c00;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-notification-test:active {
+    transform: scale(0.95);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .test-notification-panel {
+        padding: 15px;
+    }
+
+    .test-notification-panel h3 {
+        font-size: 18px;
+    }
+
+    .notification-status {
+        padding: 12px;
+    }
+
+    .status-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .status-label,
+    .status-value {
+        font-size: 14px;
+    }
+
+    .notification-info {
+        font-size: 13px;
+    }
+}

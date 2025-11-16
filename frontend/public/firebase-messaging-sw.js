@@ -73,46 +73,68 @@ self.addEventListener('notificationclick', async (event) => {
 
   // 根據不同的按鈕執行不同的操作
   if (action === 'taken') {
-    // 已服用：調用 API 標記為已服用
-    event.waitUntil(
-      fetch(`https://eldercare-backend-8o4k.onrender.com/api/medication-logs/${data.logId}/confirm`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          confirmationMethod: 'notification',
-          notes: '透過通知快速確認'
-        })
-      })
-      .then(response => {
-        console.log('[SW] 已標記為已服用');
-        // 顯示成功訊息
-        return self.registration.showNotification('✅ 已記錄', {
-          body: '已標記為已服用',
-          tag: 'confirmation-success',
+    // 檢查是否為測試通知
+    if (data.type === 'test') {
+      // 測試通知：只顯示成功訊息，不調用 API
+      event.waitUntil(
+        self.registration.showNotification('✅ 測試成功', {
+          body: '快速操作按鈕運作正常！真實用藥時會自動標記為已服用。',
+          tag: 'test-confirmation-success',
           requireInteraction: false,
-          vibrate: [100]
-        });
-      })
-      .catch(error => {
-        console.error('[SW] 標記失敗:', error);
-      })
-    );
+          vibrate: [100, 50, 100]
+        })
+      );
+    } else {
+      // 真實用藥：調用 API 標記為已服用
+      event.waitUntil(
+        fetch(`https://eldercare-backend-8o4k.onrender.com/api/medication-logs/${data.logId}/confirm`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            confirmationMethod: 'notification',
+            notes: '透過通知快速確認'
+          })
+        })
+        .then(response => {
+          console.log('[SW] 已標記為已服用');
+          // 顯示成功訊息
+          return self.registration.showNotification('✅ 已記錄', {
+            body: '已標記為已服用',
+            tag: 'confirmation-success',
+            requireInteraction: false,
+            vibrate: [100]
+          });
+        })
+        .catch(error => {
+          console.error('[SW] 標記失敗:', error);
+          // 顯示錯誤訊息
+          return self.registration.showNotification('❌ 標記失敗', {
+            body: '請打開 App 手動標記',
+            tag: 'confirmation-error',
+            requireInteraction: false
+          });
+        })
+      );
+    }
   } else if (action === 'snooze') {
     // 延後 10 分鐘
+    const isTest = data.type === 'test';
+    const snoozeTime = isTest ? 10000 : (10 * 60 * 1000); // 測試模式：10 秒，正式：10 分鐘
+
     event.waitUntil(
       self.registration.showNotification('⏰ 已延後', {
-        body: '10 分鐘後將再次提醒',
+        body: isTest ? '10 秒後將再次提醒（測試模式）' : '10 分鐘後將再次提醒',
         tag: 'snooze-confirmation',
         requireInteraction: false,
         vibrate: [100]
       })
       .then(() => {
-        // 10 分鐘後重新顯示提醒
+        // 延後後重新顯示提醒
         return new Promise(resolve => {
           setTimeout(() => {
-            self.registration.showNotification('💊 用藥提醒', {
+            self.registration.showNotification('💊 用藥提醒' + (isTest ? ' (測試)' : ''), {
               body: data.medicationName + ' - 請記得服藥',
               tag: 'medication-reminder-snooze-' + data.logId,
               requireInteraction: true,
@@ -124,15 +146,16 @@ self.addEventListener('notificationclick', async (event) => {
               data: data
             });
             resolve();
-          }, 10 * 60 * 1000); // 10 分鐘
+          }, snoozeTime);
         });
       })
     );
   } else if (action === 'skip') {
     // 跳過此次用藥
+    const isTest = data.type === 'test';
     event.waitUntil(
-      self.registration.showNotification('ℹ️ 已跳過', {
-        body: '此次用藥已跳過',
+      self.registration.showNotification(isTest ? '✅ 測試成功' : 'ℹ️ 已跳過', {
+        body: isTest ? '跳過按鈕運作正常！' : '此次用藥已跳過',
         tag: 'skip-confirmation',
         requireInteraction: false,
         vibrate: [100]

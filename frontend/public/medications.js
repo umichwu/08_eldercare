@@ -2296,9 +2296,9 @@ async function requestNotificationPermission() {
 }
 
 /**
- * 測試推送通知
+ * 測試推送通知（使用 Service Worker 的完整 PWA 通知）
  */
-function testNotification() {
+async function testNotification() {
   const permission = checkNotificationPermission();
 
   if (permission === 'unsupported') {
@@ -2319,43 +2319,73 @@ function testNotification() {
 
   // permission === 'granted'
   try {
-    console.log('🔔 準備發送測試通知...');
+    console.log('🔔 準備發送 PWA 測試通知（包含快速操作按鈕）...');
 
-    const notification = new Notification('💊 用藥提醒測試', {
-      body: '這是一個測試通知。如果您看到此訊息，表示通知功能正常運作！',
-      tag: 'medication-test',
-      requireInteraction: true, // 讓通知保持顯示，直到用戶關閉
-      timestamp: Date.now()
+    // 檢查 Service Worker 是否已註冊
+    if (!('serviceWorker' in navigator)) {
+      console.warn('⚠️ 瀏覽器不支援 Service Worker，使用簡單通知');
+      // 降級為簡單通知
+      new Notification('💊 用藥提醒測試', {
+        body: '這是一個測試通知（簡化版）',
+        tag: 'medication-test',
+        requireInteraction: true
+      });
+      showToast('✅ 測試通知已發送（簡化版）', 'success');
+      return;
+    }
+
+    // 獲取 Service Worker registration
+    const registration = await navigator.serviceWorker.ready;
+
+    // 使用 Service Worker 顯示通知（支援快速操作按鈕）
+    await registration.showNotification('💊 用藥提醒測試', {
+      body: '該服用 助眠藥 (1顆) 了\n\n這是測試通知，請試試下方的快速操作按鈕！',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/badge-72x72.png',
+      tag: 'medication-test-' + Date.now(),
+      requireInteraction: true,
+      vibrate: [500, 200, 500, 200, 500],
+      silent: false,
+      renotify: true,
+      // 快速操作按鈕
+      actions: [
+        {
+          action: 'taken',
+          title: '✅ 已服用',
+          icon: '/icons/check-icon.png'
+        },
+        {
+          action: 'snooze',
+          title: '⏰ 10分鐘後提醒',
+          icon: '/icons/snooze-icon.png'
+        },
+        {
+          action: 'skip',
+          title: '❌ 跳過',
+          icon: '/icons/skip-icon.png'
+        }
+      ],
+      data: {
+        type: 'test',
+        medicationName: '助眠藥',
+        dosage: '1顆',
+        logId: 'test-log-id',
+        timestamp: Date.now(),
+        url: '/medications.html'
+      }
     });
 
-    notification.onclick = function() {
-      console.log('✅ 通知被點擊了！');
-      alert('您點擊了通知！這表示通知功能完全正常 ✅');
-      window.focus();
-      notification.close();
-    };
+    console.log('✅ PWA 測試通知已發送');
+    showToast('✅ 測試通知已發送！請查看通知區域並試試快速操作按鈕', 'success');
 
-    notification.onshow = function() {
-      console.log('✅ 通知已顯示在系統通知區域！');
-    };
-
-    notification.onerror = function(error) {
-      console.error('❌ 通知顯示失敗:', error);
-    };
-
-    notification.onclose = function() {
-      console.log('ℹ️ 通知已關閉');
-    };
-
-    // 延遲顯示 alert，讓用戶先看到通知
+    // 延遲顯示提示
     setTimeout(() => {
-      alert('✅ 測試通知已發送！\n\n請查看螢幕右下角（Windows）或右上角（Mac）的通知區域\n\n如果看到通知，請點擊它進行確認！');
-    }, 500);
+      showToast('💡 提示：點擊通知或使用快速操作按鈕（✅ 已服用、⏰ 延後、❌ 跳過）', 'info');
+    }, 2000);
 
-    console.log('✅ 測試通知已發送');
   } catch (error) {
     console.error('❌ 發送測試通知失敗:', error);
-    alert('❌ 發送測試通知失敗: ' + error.message);
+    showToast('❌ 發送測試通知失敗: ' + error.message, 'error');
   }
 }
 
@@ -2588,4 +2618,71 @@ function createGoogleCalendarEventUrl(options) {
   params.append('reminder', '15');
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+// ==================== 通知狀態檢查 ====================
+
+/**
+ * 檢查並顯示通知狀態
+ */
+async function checkNotificationStatus() {
+  const permissionStatus = document.getElementById('permissionStatus');
+  const swStatus = document.getElementById('swStatus');
+
+  // 檢查通知權限
+  if (!('Notification' in window)) {
+    permissionStatus.innerHTML = '<span style="color: #dc3545;">❌ 不支援</span>';
+    permissionStatus.title = '您的瀏覽器不支援推送通知';
+  } else {
+    const permission = Notification.permission;
+    if (permission === 'granted') {
+      permissionStatus.innerHTML = '<span style="color: #28a745;">✅ 已允許</span>';
+      permissionStatus.title = '通知權限已授予';
+    } else if (permission === 'denied') {
+      permissionStatus.innerHTML = '<span style="color: #dc3545;">❌ 已拒絕</span>';
+      permissionStatus.title = '請在瀏覽器設定中允許通知';
+    } else {
+      permissionStatus.innerHTML = '<span style="color: #ffc107;">⚠️ 未設定</span>';
+      permissionStatus.title = '請點擊測試按鈕以請求權限';
+    }
+  }
+
+  // 檢查 Service Worker
+  if (!('serviceWorker' in navigator)) {
+    swStatus.innerHTML = '<span style="color: #dc3545;">❌ 不支援</span>';
+    swStatus.title = '您的瀏覽器不支援 Service Worker';
+  } else {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      if (registration) {
+        if (registration.active) {
+          swStatus.innerHTML = '<span style="color: #28a745;">✅ 已啟用</span>';
+          swStatus.title = 'Service Worker 運作中';
+        } else if (registration.installing) {
+          swStatus.innerHTML = '<span style="color: #ffc107;">⏳ 安裝中</span>';
+          swStatus.title = 'Service Worker 正在安裝';
+        } else {
+          swStatus.innerHTML = '<span style="color: #ffc107;">⚠️ 待啟動</span>';
+          swStatus.title = 'Service Worker 已註冊但尚未啟動';
+        }
+      } else {
+        swStatus.innerHTML = '<span style="color: #dc3545;">❌ 未註冊</span>';
+        swStatus.title = '請重新整理頁面';
+      }
+    } catch (error) {
+      swStatus.innerHTML = '<span style="color: #dc3545;">❌ 檢查失敗</span>';
+      swStatus.title = error.message;
+      console.error('檢查 Service Worker 失敗:', error);
+    }
+  }
+
+  showToast('✅ 已更新通知狀態', 'success');
+}
+
+// 頁面載入時自動檢查通知狀態
+if (document.getElementById('notificationStatus')) {
+  // 等待頁面完全載入後再檢查
+  setTimeout(() => {
+    checkNotificationStatus();
+  }, 1000);
 }

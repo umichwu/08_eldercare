@@ -176,6 +176,40 @@
 
         <!-- 統計標籤 -->
         <div id="stats-tab" class="tab-content">
+            <!-- 測試通知區域 -->
+            <div class="test-notification-panel">
+                <h3 style="margin-bottom: 15px;">🔔 測試推送通知</h3>
+                <div class="notification-status" id="notificationStatus">
+                    <div class="status-item">
+                        <span class="status-label">通知權限：</span>
+                        <span class="status-value" id="permissionStatus">檢查中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Service Worker：</span>
+                        <span class="status-value" id="swStatus">檢查中...</span>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-primary" onclick="testNotification()" style="flex: 1; min-width: 200px;">
+                        🔔 發送測試通知
+                    </button>
+                    <button class="btn-secondary" onclick="checkNotificationStatus()" style="flex: 1; min-width: 200px;">
+                        🔍 檢查通知狀態
+                    </button>
+                </div>
+                <div class="notification-info" style="margin-top: 15px; padding: 12px; background: #f0f8ff; border-radius: 8px; font-size: 14px;">
+                    <strong>📌 測試說明：</strong>
+                    <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
+                        <li>點擊「發送測試通知」會立即發送一個用藥提醒通知</li>
+                        <li>測試通知包含快速操作按鈕：✅ 已服用、⏰ 延後、❌ 跳過</li>
+                        <li>請確保已允許瀏覽器通知權限</li>
+                        <li>如果看不到通知，請檢查瀏覽器的通知設定</li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+
             <div class="stats-header">
                 <h2>📊 用藥統計</h2>
                 <select id="statsPeriod" onchange="loadStatistics(this.value)">
@@ -625,6 +659,21 @@
     <div id="toast" class="toast"></div>
 
     <!-- Scripts -->
+    <script src="firebase-config.js"></script>
     <script src="medications.js"></script>
+
+    <!-- Service Worker 註冊 -->
+    <script>
+        // 註冊 Firebase Messaging Service Worker（用於推送通知）
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                .then((registration) => {
+                    console.log('✅ Firebase Messaging SW 註冊成功:', registration.scope);
+                })
+                .catch((error) => {
+                    console.error('❌ Firebase Messaging SW 註冊失敗:', error);
+                });
+        }
+    </script>
 </body>
 </html>

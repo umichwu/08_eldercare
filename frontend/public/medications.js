@@ -16,7 +16,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 全域變數
 let currentUser = null;
-let currentElderId = null;
+let currentElderId = localStorage.getItem('currentElderId') || null; // ✅ 從 localStorage 讀取
 let medications = [];
 let todayLogs = [];
 
@@ -49,6 +49,26 @@ async function checkAuth() {
 // 載入當前使用者資料
 async function loadCurrentUser() {
     try {
+        // ✅ 如果 localStorage 已經有 elderId，先驗證是否有效
+        if (currentElderId) {
+            console.log('🔍 驗證已保存的 Elder ID:', currentElderId);
+            const { data: existingElder, error: checkError } = await supabaseClient
+                .from('elders')
+                .select('*')
+                .eq('id', currentElderId)
+                .eq('auth_user_id', currentUser.id)
+                .single();
+
+            if (!checkError && existingElder) {
+                console.log('✅ Elder ID 有效，直接使用');
+                return; // Elder ID 有效，直接返回
+            } else {
+                console.log('⚠️ 已保存的 Elder ID 無效，重新查詢');
+                currentElderId = null;
+                localStorage.removeItem('currentElderId');
+            }
+        }
+
         const { data: profile, error: profileError } = await supabaseClient
             .from('user_profiles')
             .select('*')
@@ -78,6 +98,10 @@ async function loadCurrentUser() {
             }
 
             currentElderId = elder?.id;
+            // ✅ 保存到 localStorage
+            if (currentElderId) {
+                localStorage.setItem('currentElderId', currentElderId);
+            }
             console.log('✅ 當前長輩 ID:', currentElderId);
         } else if (!profile.role) {
             // 如果沒有設定角色，預設為長輩並建立資料
@@ -167,6 +191,10 @@ async function createDefaultElder(profileId) {
         }
 
         currentElderId = data.id;
+        // ✅ 保存到 localStorage
+        if (currentElderId) {
+            localStorage.setItem('currentElderId', currentElderId);
+        }
         console.log('✅ Elder 資料建立成功:', currentElderId);
         showToast('✅ 個人資料初始化完成', 'success');
 
@@ -1789,16 +1817,17 @@ async function loadTodayMedications() {
 
         // 查詢今日的用藥記錄（包含所有狀態）
         const today = new Date();
-        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+        // ✅ 修正：使用本地時區的日期字串來比較（只比較日期，不比較時間）
+        const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
         console.log('🔍 查詢今日用藥記錄...', {
             elderId: currentElderId,
-            todayStart: todayStart.toISOString(),
-            todayEnd: todayEnd.toISOString()
+            todayDateStr: todayDateStr,
+            currentTime: today.toISOString()
         });
 
-        const response = await fetch(`${API_BASE_URL}/api/medication-logs/elder/${currentElderId}?days=1`);
+        const response = await fetch(`${API_BASE_URL}/api/medication-logs/elder/${currentElderId}?days=7`);
         const result = await response.json();
 
         console.log('📊 查詢結果:', result);
@@ -1817,7 +1846,7 @@ async function loadTodayMedications() {
             return;
         }
 
-        // 過濾今日的記錄
+        // 過濾今日的記錄（使用本地時區的日期比較）
         const allLogs = result.data || [];
         console.log(`📝 總共 ${allLogs.length} 筆記錄`);
         console.log('🔍 [DEBUG] All logs before filtering:', allLogs.map(log => ({
@@ -1828,11 +1857,15 @@ async function loadTodayMedications() {
         })));
 
         todayLogs = allLogs.filter(log => {
+            // ✅ 修正：將 UTC 時間轉換為本地時間，然後只比較日期部分
             const logDate = new Date(log.scheduled_time);
-            const isToday = logDate >= todayStart && logDate <= todayEnd;
+            const logDateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
+            const isToday = logDateStr === todayDateStr;
+
             console.log(`🔍 [DEBUG] Filtering log ${log.id} (${log.medication_name || log.medications?.medication_name}):`, {
                 scheduled_time: log.scheduled_time,
-                logDate: logDate.toISOString(),
+                logDateStr: logDateStr,
+                todayDateStr: todayDateStr,
                 isToday
             });
             return isToday;

@@ -22,7 +22,14 @@
       "Bash(node check-medication-reminders.js)",
       "Bash(node fix-sleep-medication.js)",
       "Bash(node cleanup-sleep-medication.js)",
-      "Bash(node fix-duplicate-reminders.js)"
+      "Bash(node fix-duplicate-reminders.js)",
+      "Bash(node check-duplicate-logs.js)",
+      "Bash(node ../check-duplicate-logs.js)",
+      "Bash(node cleanup-all-duplicates.js)",
+      "Bash(node delete-all-today-tomorrow-logs.js)",
+      "Bash(node test-generate-today.js)",
+      "Bash(curl -X POST https://eldercare-backend-8o4k.onrender.com/api/scheduler/generate-today-logs )",
+      "Bash(node show-all-logs.js)"
     ],
     "deny": [],
     "ask": []

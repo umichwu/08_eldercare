@@ -422,6 +422,27 @@ export async function getRemindersByElder(elderId) {
 export async function createMedicationLog(logData) {
   try {
     const sb = getSupabase();
+
+    // ✅ 先檢查是否已存在相同的記錄（防止重複）
+    const { data: existing, error: checkError } = await sb
+      .from('medication_logs')
+      .select('id')
+      .eq('medication_id', logData.medicationId)
+      .eq('elder_id', logData.elderId)
+      .eq('scheduled_time', logData.scheduledTime)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ 檢查現有記錄失敗:', checkError.message);
+      // 繼續嘗試插入
+    }
+
+    if (existing) {
+      console.log(`ℹ️  記錄已存在，跳過建立 (medication_id: ${logData.medicationId}, scheduled_time: ${logData.scheduledTime})`);
+      return { success: true, data: existing, alreadyExists: true };
+    }
+
+    // 插入新記錄
     const { data, error } = await sb
       .from('medication_logs')
       .insert([{

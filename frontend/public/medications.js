@@ -2168,12 +2168,12 @@ async function registerFCMToken() {
   const token = localStorage.getItem('fcm_token');
 
   if (!token) {
-    console.warn('⚠️ 未取得 FCM Token');
+    console.log('ℹ️ FCM Token 尚未取得，稍後自動註冊');
     return;
   }
 
   if (!currentUser) {
-    console.warn('⚠️ 使用者未登入');
+    console.log('ℹ️ 等待使用者登入後註冊 FCM Token');
     return;
   }
 
@@ -2320,25 +2320,39 @@ async function testNotification() {
   // permission === 'granted'
   try {
     console.log('🔔 準備發送 PWA 測試通知（包含快速操作按鈕）...');
+    console.log('📱 瀏覽器資訊:', {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      vendor: navigator.vendor
+    });
 
     // 檢查 Service Worker 是否已註冊
     if (!('serviceWorker' in navigator)) {
       console.warn('⚠️ 瀏覽器不支援 Service Worker，使用簡單通知');
       // 降級為簡單通知
-      new Notification('💊 用藥提醒測試', {
+      const notification = new Notification('💊 用藥提醒測試', {
         body: '這是一個測試通知（簡化版）',
         tag: 'medication-test',
         requireInteraction: true
       });
+      console.log('✅ 簡單通知物件已建立:', notification);
       showToast('✅ 測試通知已發送（簡化版）', 'success');
       return;
     }
 
     // 獲取 Service Worker registration
+    console.log('⏳ 等待 Service Worker ready...');
     const registration = await navigator.serviceWorker.ready;
+    console.log('✅ Service Worker ready:', {
+      scope: registration.scope,
+      active: registration.active?.state,
+      installing: registration.installing?.state,
+      waiting: registration.waiting?.state
+    });
 
     // 使用 Service Worker 顯示通知（支援快速操作按鈕）
-    await registration.showNotification('💊 用藥提醒測試', {
+    console.log('📤 準備透過 Service Worker 顯示通知...');
+    const notificationOptions = {
       body: '該服用 助眠藥 (1顆) 了\n\n這是測試通知，請試試下方的快速操作按鈕！',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/badge-72x72.png',
@@ -2373,14 +2387,23 @@ async function testNotification() {
         timestamp: Date.now(),
         url: '/medications.html'
       }
-    });
+    };
+
+    console.log('📋 通知選項:', notificationOptions);
+
+    await registration.showNotification('💊 用藥提醒測試', notificationOptions);
 
     console.log('✅ PWA 測試通知已發送');
+    console.log('💡 請檢查：');
+    console.log('   1. 瀏覽器右上角的通知中心');
+    console.log('   2. 作業系統的通知中心（Windows 通知中心、Mac 通知中心等）');
+    console.log('   3. 如果是行動裝置，請下拉通知列');
+
     showToast('✅ 測試通知已發送！請查看通知區域並試試快速操作按鈕', 'success');
 
     // 延遲顯示提示
     setTimeout(() => {
-      showToast('💡 提示：點擊通知或使用快速操作按鈕（✅ 已服用、⏰ 延後、❌ 跳過）', 'info');
+      showToast('💡 提示：請檢查瀏覽器或系統的通知中心', 'info');
     }, 2000);
 
   } catch (error) {

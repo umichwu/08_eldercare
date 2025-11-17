@@ -2933,18 +2933,9 @@ function setPhoneAlarm(time, medicineName, dosage, index) {
       `點擊「確定」後，請開啟手機的「時鐘」App 來新增鬧鐘。`;
 
     if (confirm(message)) {
-      // 使用者確認後，嘗試開啟時鐘 App
-      // 方法 1: 嘗試使用 Android alarm 的 custom scheme
-      try {
-        window.location.href = 'clock://';
-      } catch (e) {
-        console.log('⚠️ 無法自動開啟時鐘 App');
-      }
-
-      // 方法 2: 顯示 Toast 提示
-      setTimeout(() => {
-        showToast(`⏰ 請設定：${timeStr} - ${medicineName}`, 'info', 5000);
-      }, 500);
+      // 使用者確認後，顯示 Toast 提示
+      showToast(`⏰ 請設定：${timeStr} - ${medicineName}`, 'info', 5000);
+      console.log(`✅ 請手動設定鬧鐘：${timeStr} - ${label}`);
     }
   } else if (isIOS) {
     // iOS: 開啟時鐘 App（需手動設定）

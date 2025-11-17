@@ -1825,22 +1825,25 @@ async function loadTodayMedications() {
         // ✅ 使用全域的 selectedDate 而不是固定的 today
         const targetDate = new Date(selectedDate);
 
-        // 先嘗試生成選定日期的用藥記錄（如果還沒生成的話）
+        // ✅ 先計算目標日期字串
+        const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+
+        // ✅ 先嘗試生成選定日期的用藥記錄（如果還沒生成的話）
         try {
-            console.log('🔄 呼叫生成記錄 API...');
+            console.log('🔄 呼叫生成記錄 API...', { targetDate: targetDateStr });
             const generateResponse = await fetch(`${API_BASE_URL}/api/scheduler/generate-today-logs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ elderId: currentElderId })
+                body: JSON.stringify({
+                    elderId: currentElderId,
+                    targetDate: targetDateStr // ✅ 傳遞目標日期
+                })
             });
             const generateResult = await generateResponse.json();
             console.log('✅ 生成記錄結果:', generateResult);
         } catch (genError) {
             console.warn('⚠️ 生成記錄失敗（可能已存在）:', genError);
         }
-
-        // ✅ 修正：使用 selectedDate 來比較
-        const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
         console.log('🔍 查詢用藥記錄...', {
             elderId: currentElderId,

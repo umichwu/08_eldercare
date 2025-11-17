@@ -498,9 +498,12 @@ export async function manualCheckReminders() {
  * @param {string} elderId - 長輩 ID (optional)
  * @returns {Promise<Object>} - 生成結果
  */
-export async function generateTodayMedicationLogs(elderId = null) {
+export async function generateTodayMedicationLogs(elderId = null, targetDate = null) {
   try {
-    console.log('📝 生成今日用藥記錄...');
+    // ✅ 支援指定目標日期，預設為今天
+    const targetDateObj = targetDate ? new Date(targetDate) : new Date();
+    const dateStr = targetDateObj.toLocaleDateString('zh-TW');
+    console.log(`📝 生成用藥記錄 (${dateStr})...`);
 
     const sb = getSupabase();
     let query = sb
@@ -534,7 +537,8 @@ export async function generateTodayMedicationLogs(elderId = null) {
     }
 
     const now = new Date(); // 當前時間
-    const today = new Date();
+    // ✅ 使用目標日期而非固定的今天
+    const today = new Date(targetDateObj);
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);

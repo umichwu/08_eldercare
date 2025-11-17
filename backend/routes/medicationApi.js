@@ -834,12 +834,12 @@ router.post('/scheduler/check-reminders', async (req, res) => {
 
 /**
  * POST /api/scheduler/generate-today-logs
- * 生成今日用藥記錄
+ * 生成指定日期的用藥記錄
  */
 router.post('/scheduler/generate-today-logs', async (req, res) => {
   try {
-    const { elderId } = req.body;
-    const result = await generateTodayMedicationLogs(elderId);
+    const { elderId, targetDate } = req.body; // ✅ 新增 targetDate 參數
+    const result = await generateTodayMedicationLogs(elderId, targetDate);
 
     if (!result.success) {
       return res.status(400).json({
@@ -849,7 +849,7 @@ router.post('/scheduler/generate-today-logs', async (req, res) => {
     }
 
     res.json({
-      message: '今日用藥記錄生成成功',
+      message: targetDate ? `用藥記錄生成成功 (${targetDate})` : '今日用藥記錄生成成功',
       count: result.count,
     });
   } catch (error) {

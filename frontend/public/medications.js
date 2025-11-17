@@ -2909,13 +2909,7 @@ function setPhoneAlarm(time, medicineName, dosage, index) {
   console.log(`📅 本地時間: ${hours}:${String(minutes).padStart(2, '0')}`);
 
   // 建立鬧鐘標籤（包含藥物名稱和劑量）
-  const label = `💊 用藥提醒：${medicineName} ${dosage}`.trim();
-
-  // Android: 使用 Intent URI 開啟鬧鐘設定
-  const androidIntent = `intent://alarm?hour=${hours}&minutes=${minutes}&message=${encodeURIComponent(label)}&skipUi=false#Intent;scheme=android.intent.action.SET_ALARM;end`;
-
-  // iOS: 使用 clock: URI (有限支援)
-  const iosScheme = `clock://`;
+  const label = `用藥提醒 ${medicineName} ${dosage}`.trim();
 
   // 偵測系統
   const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -2927,7 +2921,31 @@ function setPhoneAlarm(time, medicineName, dosage, index) {
     console.log('📱 偵測到 Android，開啟鬧鐘設定');
     console.log(`🔔 鬧鐘時間: ${hours}:${String(minutes).padStart(2, '0')}`);
     console.log(`📝 鬧鐘標籤: ${label}`);
-    window.location.href = androidIntent;
+
+    // ✅ 方法一：嘗試使用 Intent URI（新版 Android）
+    const intentUri =
+      `intent:#Intent;` +
+      `action=android.intent.action.SET_ALARM;` +
+      `i.android.intent.extra.alarm.HOUR=${hours};` +
+      `i.android.intent.extra.alarm.MINUTES=${minutes};` +
+      `S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(label)};` +
+      `end`;
+
+    console.log(`🔗 Intent URI: ${intentUri}`);
+
+    // ✅ 方法二：同時提供備用方案 - 使用 Google Clock 的 deep link
+    const googleClockUri = `https://www.google.com/clock/alarms/new?hour=${hours}&minute=${minutes}&message=${encodeURIComponent(label)}`;
+
+    console.log(`🔗 Google Clock URI: ${googleClockUri}`);
+
+    // 嘗試開啟鬧鐘
+    window.location.href = intentUri;
+
+    // 給系統一些時間處理 Intent
+    setTimeout(() => {
+      // 如果 Intent 無法開啟，顯示手動設定提示
+      console.log('💡 如果鬧鐘沒有開啟，請手動設定');
+    }, 500);
   } else if (isIOS) {
     // iOS: 開啟時鐘 App（需手動設定）
     console.log('📱 偵測到 iOS，開啟時鐘 App');

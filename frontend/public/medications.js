@@ -2917,35 +2917,35 @@ function setPhoneAlarm(time, medicineName, dosage, index) {
   const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
 
   if (isAndroid) {
-    // Android: 開啟鬧鐘設定
-    console.log('📱 偵測到 Android，開啟鬧鐘設定');
+    // Android: 顯示友善的手動設定指示
+    console.log('📱 偵測到 Android，準備設定鬧鐘');
     console.log(`🔔 鬧鐘時間: ${hours}:${String(minutes).padStart(2, '0')}`);
     console.log(`📝 鬧鐘標籤: ${label}`);
 
-    // ✅ 方法一：嘗試使用 Intent URI（新版 Android）
-    const intentUri =
-      `intent:#Intent;` +
-      `action=android.intent.action.SET_ALARM;` +
-      `i.android.intent.extra.alarm.HOUR=${hours};` +
-      `i.android.intent.extra.alarm.MINUTES=${minutes};` +
-      `S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(label)};` +
-      `end`;
+    // ✅ 由於 Chrome 會封鎖 Intent URI，改用友善的對話框引導使用者
+    const timeStr = `${hours}:${String(minutes).padStart(2, '0')}`;
 
-    console.log(`🔗 Intent URI: ${intentUri}`);
+    // 顯示設定指示（使用更清楚的格式）
+    const message =
+      `請在您的手機時鐘 App 中設定鬧鐘：\n\n` +
+      `⏰ 時間：${timeStr}\n` +
+      `💊 標籤：${label}\n\n` +
+      `點擊「確定」後，請開啟手機的「時鐘」App 來新增鬧鐘。`;
 
-    // ✅ 方法二：同時提供備用方案 - 使用 Google Clock 的 deep link
-    const googleClockUri = `https://www.google.com/clock/alarms/new?hour=${hours}&minute=${minutes}&message=${encodeURIComponent(label)}`;
+    if (confirm(message)) {
+      // 使用者確認後，嘗試開啟時鐘 App
+      // 方法 1: 嘗試使用 Android alarm 的 custom scheme
+      try {
+        window.location.href = 'clock://';
+      } catch (e) {
+        console.log('⚠️ 無法自動開啟時鐘 App');
+      }
 
-    console.log(`🔗 Google Clock URI: ${googleClockUri}`);
-
-    // 嘗試開啟鬧鐘
-    window.location.href = intentUri;
-
-    // 給系統一些時間處理 Intent
-    setTimeout(() => {
-      // 如果 Intent 無法開啟，顯示手動設定提示
-      console.log('💡 如果鬧鐘沒有開啟，請手動設定');
-    }, 500);
+      // 方法 2: 顯示 Toast 提示
+      setTimeout(() => {
+        showToast(`⏰ 請設定：${timeStr} - ${medicineName}`, 'info', 5000);
+      }, 500);
+    }
   } else if (isIOS) {
     // iOS: 開啟時鐘 App（需手動設定）
     console.log('📱 偵測到 iOS，開啟時鐘 App');

@@ -2852,16 +2852,32 @@ async function setupPhoneAlarms() {
 
   // 建立鬧鐘列表
   sortedLogs.forEach((log, index) => {
+    // ✅ 將 UTC 時間轉換為本地時間
+    const scheduledDate = new Date(log.scheduled_time);
+
+    // ✅ 格式化日期時間為易讀格式：2025/11/17 下午11:00
+    const year = scheduledDate.getFullYear();
+    const month = String(scheduledDate.getMonth() + 1).padStart(2, '0');
+    const day = String(scheduledDate.getDate()).padStart(2, '0');
+    const hours = scheduledDate.getHours();
+    const minutes = String(scheduledDate.getMinutes()).padStart(2, '0');
+    const period = hours >= 12 ? '下午' : '上午';
+    const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+
+    const formattedDateTime = `${year}/${month}/${day} ${period}${displayHours}:${minutes}`;
+    const medicationName = log.medication_name || log.medications?.medication_name || '未知藥物';
+    const dosage = log.dosage || '';
+
     const alarmItem = document.createElement('div');
     alarmItem.className = 'alarm-item';
     alarmItem.innerHTML = `
       <div class="alarm-item-info">
-        <div class="alarm-time">${log.scheduled_time}</div>
+        <div class="alarm-time">📅 ${formattedDateTime}</div>
+        <div class="alarm-medicine">💊 ${medicationName} ${dosage ? '- ' + dosage : ''}</div>
         <div class="alarm-label">${getMealTimeLabel(log.scheduled_time)}</div>
-        <div class="alarm-medicine">💊 ${log.medication_name} - ${log.dosage}</div>
       </div>
       <div class="alarm-item-action">
-        <button class="btn-set-alarm" onclick="setPhoneAlarm('${log.scheduled_time}', '${log.medication_name}', '${log.dosage}', ${index})">
+        <button class="btn-set-alarm" onclick="setPhoneAlarm('${log.scheduled_time}', '${medicationName}', '${dosage}', ${index})">
           ⏰ 設定鬧鐘
         </button>
       </div>
@@ -2877,15 +2893,23 @@ async function setupPhoneAlarms() {
 
 /**
  * 設定單個手機鬧鐘
+ * @param {string} time - ISO 8601 格式的時間字串（UTC）
+ * @param {string} medicineName - 藥物名稱
+ * @param {string} dosage - 劑量
+ * @param {number} index - 索引
  */
 function setPhoneAlarm(time, medicineName, dosage, index) {
   console.log(`⏰ 設定鬧鐘: ${time} - ${medicineName}`);
 
-  // 解析時間
-  const [hours, minutes] = time.split(':').map(num => parseInt(num));
+  // ✅ 將 UTC 時間轉換為本地時間
+  const scheduledDate = new Date(time);
+  const hours = scheduledDate.getHours();
+  const minutes = scheduledDate.getMinutes();
 
-  // 建立鬧鐘標籤
-  const label = `用藥提醒：${medicineName} ${dosage}`;
+  console.log(`📅 本地時間: ${hours}:${String(minutes).padStart(2, '0')}`);
+
+  // 建立鬧鐘標籤（包含藥物名稱和劑量）
+  const label = `💊 用藥提醒：${medicineName} ${dosage}`.trim();
 
   // Android: 使用 Intent URI 開啟鬧鐘設定
   const androidIntent = `intent://alarm?hour=${hours}&minutes=${minutes}&message=${encodeURIComponent(label)}&skipUi=false#Intent;scheme=android.intent.action.SET_ALARM;end`;
@@ -2901,6 +2925,8 @@ function setPhoneAlarm(time, medicineName, dosage, index) {
   if (isAndroid) {
     // Android: 開啟鬧鐘設定
     console.log('📱 偵測到 Android，開啟鬧鐘設定');
+    console.log(`🔔 鬧鐘時間: ${hours}:${String(minutes).padStart(2, '0')}`);
+    console.log(`📝 鬧鐘標籤: ${label}`);
     window.location.href = androidIntent;
   } else if (isIOS) {
     // iOS: 開啟時鐘 App（需手動設定）

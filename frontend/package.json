@@ -6,7 +6,18 @@
     "start": "python3 -m http.server 8080",
     "dev": "python3 -m http.server 8080"
   },
-  "keywords": ["eldercare", "chat", "accessibility"],
+  "keywords": [
+    "eldercare",
+    "chat",
+    "accessibility"
+  ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
+    "@capacitor/local-notifications": "^7.0.3"
+  }
 }

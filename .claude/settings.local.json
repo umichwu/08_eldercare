@@ -36,7 +36,9 @@
       "Bash(chmod +x check-medication-data.sh)",
       "Bash(bash check-medication-data.sh)",
       "Bash(node -c medications.js)",
-      "Bash(echo \"Syntax check completed with exit code: $?\")"
+      "Bash(echo \"Syntax check completed with exit code: $?\")",
+      "Bash(chmod +x setup-capacitor.sh)",
+      "Bash(echo \"Exit code: $?\")"
     ],
     "deny": [],
     "ask": []

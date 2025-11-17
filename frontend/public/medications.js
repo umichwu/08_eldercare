@@ -14,6 +14,54 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ==================== Capacitor 整合 ====================
+
+// Capacitor 全域變數
+let Capacitor = null;
+let LocalNotifications = null;
+let isNativeApp = false;
+
+/**
+ * 初始化 Capacitor 環境
+ */
+async function initCapacitor() {
+  try {
+    // 檢查是否在 Capacitor 環境
+    if (typeof window.Capacitor !== 'undefined') {
+      Capacitor = window.Capacitor;
+      isNativeApp = Capacitor.isNativePlatform();
+
+      console.log(`📱 環境檢測：${isNativeApp ? '原生 App ✅' : 'Web 瀏覽器 🌐'}`);
+
+      if (isNativeApp) {
+        // 載入 Local Notifications 插件
+        try {
+          const { LocalNotifications: LN } = await import('@capacitor/local-notifications');
+          LocalNotifications = LN;
+          console.log('✅ Local Notifications 插件已載入');
+
+          // 請求通知權限
+          const permResult = await LocalNotifications.requestPermissions();
+          console.log('📋 通知權限:', permResult.display);
+
+          if (permResult.display === 'granted') {
+            console.log('✅ 已獲得通知權限');
+          } else {
+            console.log('⚠️ 未獲得通知權限，將使用手動方式');
+          }
+        } catch (e) {
+          console.log('⚠️ Local Notifications 載入失敗:', e.message);
+          console.log('將使用手動設定方式');
+        }
+      }
+    } else {
+      console.log('ℹ️ 純 Web 環境，使用手動設定方式');
+    }
+  } catch (e) {
+    console.error('❌ Capacitor 初始化失敗:', e);
+  }
+}
+
 // 全域變數
 let currentUser = null;
 let currentElderId = localStorage.getItem('currentElderId') || null; // ✅ 從 localStorage 讀取
@@ -25,12 +73,16 @@ let selectedDate = new Date(); // 當前選擇的日期，預設為今天
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('📱 頁面開始初始化...');
 
+    // ✅ 1. 首先初始化 Capacitor（新增）
+    await initCapacitor();
+
+    // 2. 原有的初始化流程
     await checkAuth();
     await loadCurrentUser();
     await loadMedications();
     setTodayDate();
 
-    // 初始化裝置偵測（確保在所有元素載入後執行）
+    // 3. 初始化裝置偵測（確保在所有元素載入後執行）
     console.log('🔍 準備初始化裝置偵測...');
     setTimeout(() => {
         initDeviceBasedReminder();
@@ -2898,7 +2950,7 @@ async function setupPhoneAlarms() {
  * @param {string} dosage - 劑量
  * @param {number} index - 索引
  */
-function setPhoneAlarm(time, medicineName, dosage, index) {
+async function setPhoneAlarm(time, medicineName, dosage, index) {
   console.log(`⏰ 設定鬧鐘: ${time} - ${medicineName}`);
 
   // ✅ 將 UTC 時間轉換為本地時間
@@ -2916,13 +2968,66 @@ function setPhoneAlarm(time, medicineName, dosage, index) {
   const isAndroid = /android/i.test(userAgent);
   const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
 
+  // ==================== Capacitor 原生模式 ====================
+  if (isNativeApp && LocalNotifications) {
+    try {
+      console.log('📱 使用原生通知 API 設定提醒');
+
+      const timeStr = `${hours}:${String(minutes).padStart(2, '0')}`;
+
+      // 計算通知時間（轉換為毫秒時間戳）
+      const notificationTime = scheduledDate.getTime();
+      const notificationId = Math.floor(Math.random() * 100000); // 生成唯一 ID
+
+      // 設定本地通知（每天重複）
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: notificationId,
+            title: '💊 用藥提醒',
+            body: `${timeStr} - ${label}`,
+            schedule: {
+              at: new Date(notificationTime),
+              every: 'day', // 每天重複
+              allowWhileIdle: true
+            },
+            sound: 'default',
+            actionTypeId: 'MEDICATION_REMINDER',
+            extra: {
+              medicationName: medicineName,
+              dosage: dosage,
+              time: timeStr
+            }
+          }
+        ]
+      });
+
+      showToast(`✅ 提醒已設定：每天 ${timeStr}`, 'success', 3000);
+      console.log(`✅ 通知已排程：ID ${notificationId}, 時間 ${timeStr}`);
+
+      // 更新按鈕狀態
+      const buttons = document.querySelectorAll('.btn-set-alarm');
+      if (buttons[index]) {
+        buttons[index].classList.add('set');
+        buttons[index].innerHTML = '✅ 已設定';
+      }
+
+      return; // 原生模式成功，直接返回
+
+    } catch (error) {
+      console.error('❌ 原生通知設定失敗:', error);
+      showToast('⚠️ 原生設定失敗，改用手動方式', 'warning');
+      // 降級到手動方式
+    }
+  }
+
+  // ==================== Web 模式或降級方案 ====================
   if (isAndroid) {
     // Android: 顯示友善的手動設定指示
     console.log('📱 偵測到 Android，準備設定鬧鐘');
     console.log(`🔔 鬧鐘時間: ${hours}:${String(minutes).padStart(2, '0')}`);
     console.log(`📝 鬧鐘標籤: ${label}`);
 
-    // ✅ 由於 Chrome 會封鎖 Intent URI，改用友善的對話框引導使用者
     const timeStr = `${hours}:${String(minutes).padStart(2, '0')}`;
 
     // 顯示設定指示（使用更清楚的格式）

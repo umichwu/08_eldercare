@@ -34,7 +34,9 @@
       "Bash(chmod +x test-render-generate-logs.sh)",
       "Bash(bash test-render-generate-logs.sh)",
       "Bash(chmod +x check-medication-data.sh)",
-      "Bash(bash check-medication-data.sh)"
+      "Bash(bash check-medication-data.sh)",
+      "Bash(node -c medications.js)",
+      "Bash(echo \"Syntax check completed with exit code: $?\")"
     ],
     "deny": [],
     "ask": []

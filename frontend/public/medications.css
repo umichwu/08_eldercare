@@ -564,7 +564,128 @@ body {
 
 .today-date {
     color: #666;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* 日期導航樣式 */
+.date-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.date-nav-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.date-nav-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+.date-nav-btn:active {
+    transform: translateY(0);
+}
+
+.date-display-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.date-picker {
+    padding: 8px 12px;
+    border: 2px solid #667eea;
+    border-radius: 8px;
     font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: white;
+    color: #333;
+}
+
+.date-picker:hover {
+    border-color: #764ba2;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.date-picker:focus {
+    outline: none;
+    border-color: #764ba2;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-today {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-today:hover {
+    background: #d97706;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-today:active {
+    transform: translateY(0);
+}
+
+/* 手機版響應式設計 */
+@media (max-width: 600px) {
+    .date-navigation {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .date-nav-btn {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 18px;
+    }
+
+    .date-display-container {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .today-date {
+        font-size: 20px;
+    }
+
+    .date-picker {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    .btn-today {
+        width: 100%;
+        padding: 14px 24px;
+        font-size: 18px;
+    }
 }
 
 .today-stats {

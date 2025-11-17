@@ -19,6 +19,7 @@ let currentUser = null;
 let currentElderId = localStorage.getItem('currentElderId') || null; // ✅ 從 localStorage 讀取
 let medications = [];
 let todayLogs = [];
+let selectedDate = new Date(); // 當前選擇的日期，預設為今天
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1777,15 +1778,35 @@ function closeReminderModal() {
 
 // ==================== 今日用藥 ====================
 
-function setTodayDate() {
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('zh-TW', {
+function setTodayDate(date = new Date()) {
+    selectedDate = new Date(date); // 更新全域選擇的日期
+
+    const dateStr = selectedDate.toLocaleDateString('zh-TW', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         weekday: 'long'
     });
+
+    // 更新日期顯示
     document.getElementById('todayDate').textContent = dateStr;
+
+    // 更新日期選擇器的值
+    const datePickerValue = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+    const datePicker = document.getElementById('datePicker');
+    if (datePicker) {
+        datePicker.value = datePickerValue;
+    }
+
+    // 如果是今天，加上「今天」標記
+    const today = new Date();
+    const isToday = selectedDate.getFullYear() === today.getFullYear() &&
+                    selectedDate.getMonth() === today.getMonth() &&
+                    selectedDate.getDate() === today.getDate();
+
+    if (isToday) {
+        document.getElementById('todayDate').textContent = dateStr + ' 【今天】';
+    }
 }
 
 async function loadTodayMedications() {
@@ -1799,32 +1820,32 @@ async function loadTodayMedications() {
     }
 
     try {
-        console.log('📅 開始載入今日用藥計畫...');
+        console.log('📅 開始載入用藥計畫...');
 
-        // 先嘗試生成今日用藥記錄（如果還沒生成的話）
+        // ✅ 使用全域的 selectedDate 而不是固定的 today
+        const targetDate = new Date(selectedDate);
+
+        // 先嘗試生成選定日期的用藥記錄（如果還沒生成的話）
         try {
-            console.log('🔄 呼叫生成今日記錄 API...');
+            console.log('🔄 呼叫生成記錄 API...');
             const generateResponse = await fetch(`${API_BASE_URL}/api/scheduler/generate-today-logs`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ elderId: currentElderId })
             });
             const generateResult = await generateResponse.json();
-            console.log('✅ 生成今日記錄結果:', generateResult);
+            console.log('✅ 生成記錄結果:', generateResult);
         } catch (genError) {
-            console.warn('⚠️ 生成今日記錄失敗（可能已存在）:', genError);
+            console.warn('⚠️ 生成記錄失敗（可能已存在）:', genError);
         }
 
-        // 查詢今日的用藥記錄（包含所有狀態）
-        const today = new Date();
+        // ✅ 修正：使用 selectedDate 來比較
+        const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
-        // ✅ 修正：使用本地時區的日期字串來比較（只比較日期，不比較時間）
-        const todayDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-        console.log('🔍 查詢今日用藥記錄...', {
+        console.log('🔍 查詢用藥記錄...', {
             elderId: currentElderId,
-            todayDateStr: todayDateStr,
-            currentTime: today.toISOString()
+            targetDateStr: targetDateStr,
+            selectedDate: targetDate.toISOString()
         });
 
         const response = await fetch(`${API_BASE_URL}/api/medication-logs/elder/${currentElderId}?days=7`);
@@ -1846,7 +1867,7 @@ async function loadTodayMedications() {
             return;
         }
 
-        // 過濾今日的記錄（使用本地時區的日期比較）
+        // ✅ 過濾選定日期的記錄（使用本地時區的日期比較）
         const allLogs = result.data || [];
         console.log(`📝 總共 ${allLogs.length} 筆記錄`);
         console.log('🔍 [DEBUG] All logs before filtering:', allLogs.map(log => ({
@@ -1860,18 +1881,18 @@ async function loadTodayMedications() {
             // ✅ 修正：將 UTC 時間轉換為本地時間，然後只比較日期部分
             const logDate = new Date(log.scheduled_time);
             const logDateStr = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
-            const isToday = logDateStr === todayDateStr;
+            const isTargetDate = logDateStr === targetDateStr;
 
             console.log(`🔍 [DEBUG] Filtering log ${log.id} (${log.medication_name || log.medications?.medication_name}):`, {
                 scheduled_time: log.scheduled_time,
                 logDateStr: logDateStr,
-                todayDateStr: todayDateStr,
-                isToday
+                targetDateStr: targetDateStr,
+                isTargetDate
             });
-            return isToday;
+            return isTargetDate;
         });
 
-        console.log(`✅ 今日記錄: ${todayLogs.length} 筆`);
+        console.log(`✅ 選定日期記錄: ${todayLogs.length} 筆`);
         console.log('🔍 [DEBUG] Today logs after filtering:', todayLogs.map(log => ({
             id: log.id,
             medication_id: log.medication_id,
@@ -2914,6 +2935,54 @@ function closePhoneAlarmModal() {
   if (modal) {
     modal.style.display = 'none';
   }
+}
+
+// ==================== 日期切換功能 ====================
+
+/**
+ * 切換日期（前一天或後一天）
+ * @param {number} offset - 天數偏移量（-1 表示前一天，1 表示後一天）
+ */
+function changeDate(offset) {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + offset);
+    selectedDate = newDate;
+
+    // 更新日期顯示
+    setTodayDate(selectedDate);
+
+    // 重新載入該日期的用藥資料
+    loadTodayMedications();
+}
+
+/**
+ * 選擇特定日期
+ * @param {string} dateString - 日期字串（YYYY-MM-DD 格式）
+ */
+function selectSpecificDate(dateString) {
+    if (!dateString) return;
+
+    const newDate = new Date(dateString + 'T00:00:00'); // 確保使用本地時區
+    selectedDate = newDate;
+
+    // 更新日期顯示
+    setTodayDate(selectedDate);
+
+    // 重新載入該日期的用藥資料
+    loadTodayMedications();
+}
+
+/**
+ * 回到今天
+ */
+function goToToday() {
+    selectedDate = new Date();
+
+    // 更新日期顯示
+    setTodayDate(selectedDate);
+
+    // 重新載入今日用藥資料
+    loadTodayMedications();
 }
 
 /**

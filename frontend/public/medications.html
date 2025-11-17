@@ -138,8 +138,25 @@
         <!-- 今日用藥標籤 -->
         <div id="today-tab" class="tab-content">
             <div class="today-header">
-                <h2>📅 今日用藥計劃</h2>
-                <p class="today-date" id="todayDate"></p>
+                <h2>📅 用藥計劃</h2>
+
+                <!-- 日期導航 -->
+                <div class="date-navigation">
+                    <button class="date-nav-btn" onclick="changeDate(-1)" title="前一天">
+                        ◀ 前一天
+                    </button>
+                    <div class="date-display-container">
+                        <p class="today-date" id="todayDate"></p>
+                        <input type="date" id="datePicker" class="date-picker" onchange="selectSpecificDate(this.value)">
+                    </div>
+                    <button class="date-nav-btn" onclick="changeDate(1)" title="後一天">
+                        後一天 ▶
+                    </button>
+                </div>
+
+                <button class="btn-today" onclick="goToToday()" style="margin-top: 12px;">
+                    🏠 回到今天
+                </button>
 
                 <!-- 手機鬧鐘設定區域（僅在手機上顯示） -->
                 <div id="mobileAlarmSection" class="mobile-alarm-section" style="display: none;">

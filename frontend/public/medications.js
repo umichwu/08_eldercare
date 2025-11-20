@@ -34,20 +34,29 @@ async function initCapacitor() {
       console.log(`📱 環境檢測：${isNativeApp ? '原生 App ✅' : 'Web 瀏覽器 🌐'}`);
 
       if (isNativeApp) {
-        // 載入 Local Notifications 插件
+        // 載入 Local Notifications 插件（使用 Capacitor Plugins 全域物件）
         try {
-          const { LocalNotifications: LN } = await import('@capacitor/local-notifications');
-          LocalNotifications = LN;
-          console.log('✅ Local Notifications 插件已載入');
-
-          // 請求通知權限
-          const permResult = await LocalNotifications.requestPermissions();
-          console.log('📋 通知權限:', permResult.display);
-
-          if (permResult.display === 'granted') {
-            console.log('✅ 已獲得通知權限');
+          // 在 Capacitor 中，插件會自動註冊到 Capacitor.Plugins
+          if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+            LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+            console.log('✅ Local Notifications 插件已載入 (從 Capacitor.Plugins)');
           } else {
-            console.log('⚠️ 未獲得通知權限，將使用手動方式');
+            console.log('⚠️ 嘗試使用動態 import 載入...');
+            const { LocalNotifications: LN } = await import('@capacitor/local-notifications');
+            LocalNotifications = LN;
+            console.log('✅ Local Notifications 插件已載入 (動態 import)');
+          }
+
+          if (LocalNotifications) {
+            // 請求通知權限
+            const permResult = await LocalNotifications.requestPermissions();
+            console.log('📋 通知權限:', permResult.display);
+
+            if (permResult.display === 'granted') {
+              console.log('✅ 已獲得通知權限');
+            } else {
+              console.log('⚠️ 未獲得通知權限，將使用手動方式');
+            }
           }
         } catch (e) {
           console.log('⚠️ Local Notifications 載入失敗:', e.message);
@@ -2968,12 +2977,12 @@ async function setPhoneAlarm(time, medicineName, dosage, index) {
   const isAndroid = /android/i.test(userAgent);
   const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
 
+  const timeStr = `${hours}:${String(minutes).padStart(2, '0')}`;
+
   // ==================== Capacitor 原生模式 ====================
   if (isNativeApp && LocalNotifications) {
     try {
       console.log('📱 使用原生通知 API 設定提醒');
-
-      const timeStr = `${hours}:${String(minutes).padStart(2, '0')}`;
 
       // 計算通知時間（轉換為毫秒時間戳）
       const notificationTime = scheduledDate.getTime();
@@ -3002,7 +3011,7 @@ async function setPhoneAlarm(time, medicineName, dosage, index) {
         ]
       });
 
-      showToast(`✅ 提醒已設定：每天 ${timeStr}`, 'success', 3000);
+      showToast(`✅ App通知已設定：每天 ${timeStr}`, 'success', 3000);
       console.log(`✅ 通知已排程：ID ${notificationId}, 時間 ${timeStr}`);
 
       // 更新按鈕狀態
@@ -3023,37 +3032,69 @@ async function setPhoneAlarm(time, medicineName, dosage, index) {
 
   // ==================== Web 模式或降級方案 ====================
   if (isAndroid) {
-    // Android: 顯示友善的手動設定指示
-    console.log('📱 偵測到 Android，準備設定鬧鐘');
-    console.log(`🔔 鬧鐘時間: ${hours}:${String(minutes).padStart(2, '0')}`);
+    // Android: 嘗試開啟系統鬧鐘設定
+    console.log('📱 偵測到 Android，嘗試開啟系統鬧鐘');
+    console.log(`🔔 鬧鐘時間: ${timeStr}`);
     console.log(`📝 鬧鐘標籤: ${label}`);
 
-    const timeStr = `${hours}:${String(minutes).padStart(2, '0')}`;
+    // 嘗試使用 Android Intent 開啟鬧鐘 App
+    // 格式: content://com.android.deskclock/alarm 或使用 Intent
+    const alarmIntent = `intent://android.intent.action.SET_ALARM#Intent;` +
+      `i.hour=${hours};` +
+      `i.minutes=${minutes};` +
+      `S.message=${encodeURIComponent(label)};` +
+      `b.skip_ui=false;` +
+      `end`;
 
-    // 顯示設定指示（使用更清楚的格式）
+    // 顯示說明對話框
     const message =
-      `請在您的手機時鐘 App 中設定鬧鐘：\n\n` +
+      `系統將為您開啟鬧鐘設定：\n\n` +
       `⏰ 時間：${timeStr}\n` +
-      `💊 標籤：${label}\n\n` +
-      `點擊「確定」後，請開啟手機的「時鐘」App 來新增鬧鐘。`;
+      `💊 說明：${label}\n\n` +
+      `請在鬧鐘 App 中確認並儲存。`;
 
     if (confirm(message)) {
-      // 使用者確認後，顯示 Toast 提示
-      showToast(`⏰ 請設定：${timeStr} - ${medicineName}`, 'info', 5000);
-      console.log(`✅ 請手動設定鬧鐘：${timeStr} - ${label}`);
+      try {
+        // 嘗試開啟系統鬧鐘
+        window.location.href = alarmIntent;
+        showToast(`✅ 正在開啟鬧鐘設定...`, 'success', 3000);
+        console.log(`✅ 嘗試開啟系統鬧鐘：${timeStr} - ${label}`);
+
+        // 更新按鈕狀態
+        const buttons = document.querySelectorAll('.btn-set-alarm');
+        if (buttons[index]) {
+          buttons[index].classList.add('set');
+          buttons[index].innerHTML = '✅ 已設定';
+        }
+      } catch (error) {
+        console.error('❌ 無法開啟系統鬧鐘:', error);
+        showToast(`⚠️ 請手動設定：${timeStr} - ${medicineName}`, 'warning', 5000);
+      }
     }
   } else if (isIOS) {
     // iOS: 開啟時鐘 App（需手動設定）
     console.log('📱 偵測到 iOS，開啟時鐘 App');
-    showToast('iOS 需要手動設定鬧鐘', 'info');
 
-    // 嘗試開啟時鐘 App
-    setTimeout(() => {
-      window.location.href = iosScheme;
-    }, 500);
+    const message =
+      `系統將為您開啟時鐘 App：\n\n` +
+      `⏰ 請設定時間：${timeStr}\n` +
+      `💊 請設定標籤：${label}`;
 
-    // 顯示提示
-    alert(`請在時鐘 App 中手動設定鬧鐘：\n\n時間：${time}\n標籤：${label}`);
+    if (confirm(message)) {
+      showToast('正在開啟時鐘 App...', 'info', 2000);
+
+      // iOS clock scheme
+      setTimeout(() => {
+        window.location.href = 'clock-alarm:';
+      }, 500);
+
+      // 更新按鈕狀態
+      const buttons = document.querySelectorAll('.btn-set-alarm');
+      if (buttons[index]) {
+        buttons[index].classList.add('set');
+        buttons[index].innerHTML = '✅ 已設定';
+      }
+    }
   } else {
     // 其他裝置
     showToast('⚠️ 此功能僅支援 Android 和 iOS 手機', 'warning');

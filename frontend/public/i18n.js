@@ -21,7 +21,7 @@ const translations = {
     'welcome.subtitle': '有什麼我可以幫您的嗎？',
     'quickAction.weather': '☀️ 天氣查詢',
     'quickAction.medication': '💊 用藥提醒',
-    'quickAction.joke': '😄 聽笑話',
+    'quickAction.social': '👥 好友聊天',
     'quickAction.health': '🏥 健康諮詢',
 
     // 輸入區域
@@ -76,7 +76,6 @@ const translations = {
     // 快速訊息
     'quickMessage.weather': '今天天氣如何？',
     'quickMessage.medication': '提醒我吃藥',
-    'quickMessage.joke': '講個笑話給我聽',
     'quickMessage.health': '我覺得有點不舒服'
   },
 
@@ -93,7 +92,7 @@ const translations = {
     'welcome.subtitle': '有什么我可以帮您的吗？',
     'quickAction.weather': '☀️ 天气查询',
     'quickAction.medication': '💊 用药提醒',
-    'quickAction.joke': '😄 听笑话',
+    'quickAction.social': '👥 好友聊天',
     'quickAction.health': '🏥 健康咨询',
 
     'input.placeholder': '输入消息...',
@@ -138,7 +137,6 @@ const translations = {
 
     'quickMessage.weather': '今天天气如何？',
     'quickMessage.medication': '提醒我吃药',
-    'quickMessage.joke': '讲个笑话给我听',
     'quickMessage.health': '我觉得有点不舒服'
   },
 
@@ -155,7 +153,7 @@ const translations = {
     'welcome.subtitle': 'How can I help you today?',
     'quickAction.weather': '☀️ Weather',
     'quickAction.medication': '💊 Medication',
-    'quickAction.joke': '😄 Tell a Joke',
+    'quickAction.social': '👥 Social',
     'quickAction.health': '🏥 Health',
 
     'input.placeholder': 'Type a message...',
@@ -200,7 +198,6 @@ const translations = {
 
     'quickMessage.weather': 'How\'s the weather today?',
     'quickMessage.medication': 'Remind me to take medicine',
-    'quickMessage.joke': 'Tell me a joke',
     'quickMessage.health': 'I\'m not feeling well'
   },
 
@@ -217,7 +214,7 @@ const translations = {
     'welcome.subtitle': '何かお手伝いできることはありますか？',
     'quickAction.weather': '☀️ 天気',
     'quickAction.medication': '💊 服薬',
-    'quickAction.joke': '😄 ジョーク',
+    'quickAction.social': '👥 友達チャット',
     'quickAction.health': '🏥 健康相談',
 
     'input.placeholder': 'メッセージを入力...',
@@ -262,7 +259,6 @@ const translations = {
 
     'quickMessage.weather': '今日の天気は？',
     'quickMessage.medication': '薬を飲むリマインダー',
-    'quickMessage.joke': 'ジョークを教えて',
     'quickMessage.health': '体調が悪いです'
   },
 
@@ -279,7 +275,7 @@ const translations = {
     'welcome.subtitle': '무엇을 도와드릴까요?',
     'quickAction.weather': '☀️ 날씨',
     'quickAction.medication': '💊 복약',
-    'quickAction.joke': '😄  농담',
+    'quickAction.social': '👥 친구 채팅',
     'quickAction.health': '🏥 건강 상담',
 
     'input.placeholder': '메시지를 입력하세요...',
@@ -324,7 +320,6 @@ const translations = {
 
     'quickMessage.weather': '오늘 날씨는 어때요?',
     'quickMessage.medication': '약 복용 알림',
-    'quickMessage.joke': '농담 들려주세요',
     'quickMessage.health': '몸이 좀 안 좋아요'
   }
 };
@@ -399,15 +394,11 @@ function updatePageContent() {
   });
 
   // 更新快速訊息按鈕
-  document.querySelectorAll('.quick-btn').forEach((btn, index) => {
-    const messageKeys = [
-      'quickMessage.weather',
-      'quickMessage.medication',
-      'quickMessage.joke',
-      'quickMessage.health'
-    ];
-    if (messageKeys[index]) {
-      btn.setAttribute('data-message', t(messageKeys[index]));
+  document.querySelectorAll('.quick-btn[data-message]').forEach((btn) => {
+    const dataMessage = btn.getAttribute('data-message');
+    // 只更新帶有 quickMessage 開頭的按鈕
+    if (dataMessage && dataMessage.startsWith('quickMessage.')) {
+      btn.setAttribute('data-message', t(dataMessage));
     }
   });
 

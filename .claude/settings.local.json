@@ -38,7 +38,13 @@
       "Bash(node -c medications.js)",
       "Bash(echo \"Syntax check completed with exit code: $?\")",
       "Bash(chmod +x setup-capacitor.sh)",
-      "Bash(echo \"Exit code: $?\")"
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(chmod +x /mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/eldercare-app/rebuild-android.sh)",
+      "Bash(npx cap sync android)",
+      "Bash(./gradlew assembleDebug)",
+      "Read(//usr/lib/**)",
+      "Bash(node diagnose-timezone-issue.js)",
+      "Bash(test -f .env)"
     ],
     "deny": [],
     "ask": []

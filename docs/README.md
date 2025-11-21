@@ -45,6 +45,7 @@
 |------|------|
 | [家屬監控面板狀態](FAMILY_DASHBOARD_STATUS.md) | Dashboard 完成度報告 |
 | [日期篩選功能實作](DATE_FILTER_IMPLEMENTATION.md) | 日期篩選詳細實作 |
+| [UI 導航指南](UI_NAVIGATION_GUIDE.md) | 頁面導航與訪問指南 |
 
 #### 社交功能
 | 文檔 | 說明 |

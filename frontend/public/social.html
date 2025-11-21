@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="好友聊天與生活分享">
-    <meta name="theme-color" content="#667eea">
+    <meta name="theme-color" content="#FFB74D">
     <title>好友聊天 - ElderCare</title>
 
     <!-- PWA Manifest -->
@@ -16,283 +16,320 @@
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="styles-modern.css">
-    <link rel="stylesheet" href="mobile-modern.css">
     <link rel="stylesheet" href="social.css">
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <!-- 導航欄 -->
-    <nav class="top-nav">
-        <button class="nav-back" onclick="window.location.href='index.html'">
-            ← 返回
+    <!-- 頂部導航欄 -->
+    <header class="social-header">
+        <button class="header-back-btn" onclick="window.location.href='index.html'">
+            <span class="back-arrow">←</span>
+            <span>返回</span>
         </button>
-        <h1 class="nav-title">👥 好友聊天</h1>
-        <div style="display: flex; gap: 8px;">
-            <button class="nav-icon-btn" onclick="showNotifications()" title="通知">
+        <h1 class="header-title">
+            <span class="header-icon">💬</span>
+            好友聊天
+        </h1>
+        <div class="header-actions">
+            <button class="header-btn" onclick="showNotifications()" title="通知">
                 <span class="notification-badge" id="notificationBadge" style="display: none;"></span>
                 🔔
             </button>
-            <button class="nav-icon-btn" onclick="showSearch()" title="搜尋好友">
-                🔍
+            <button class="header-btn" onclick="showAddFriend()" title="加好友">
+                ➕
             </button>
         </div>
-    </nav>
+    </header>
 
-    <!-- 主要內容 -->
-    <div class="social-container">
-        <!-- 標籤切換 -->
-        <div class="tab-container">
-            <button class="tab-btn active" data-tab="timeline" onclick="switchTab('timeline')">
-                📰 動態時間軸
-            </button>
-            <button class="tab-btn" data-tab="friends" onclick="switchTab('friends')">
-                👥 好友列表
-            </button>
-            <button class="tab-btn" data-tab="chats" onclick="switchTab('chats')">
-                💬 聊天室
-            </button>
-        </div>
-
-        <!-- 動態時間軸標籤 -->
-        <div id="timeline-tab" class="tab-content active">
-            <!-- 快速發文區域 -->
-            <div class="quick-post-section">
-                <div class="post-composer">
-                    <div class="composer-header">
-                        <img id="userAvatarPost" class="user-avatar-small" src="" alt="頭像">
-                        <input type="text"
-                               id="postInput"
-                               class="post-input"
-                               placeholder="分享您的生活點滴..."
-                               readonly
-                               onclick="openPostModal()">
-                    </div>
-                    <div class="composer-actions">
-                        <button class="composer-btn" onclick="openPostModal('photo')">
-                            📷 照片
-                        </button>
-                        <button class="composer-btn" onclick="openPostModal('mood')">
-                            😊 心情
-                        </button>
-                        <button class="composer-btn" onclick="openPostModal('location')">
-                            📍 位置
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 動態列表 -->
-            <div id="timelineList" class="timeline-list">
-                <!-- 動態載入中 -->
-                <div class="loading-placeholder">
-                    <div class="spinner"></div>
-                    <p>載入動態中...</p>
-                </div>
-            </div>
-
-            <!-- 無動態提示 -->
-            <div id="noPostsPlaceholder" class="empty-placeholder" style="display: none;">
-                <div class="empty-icon">📝</div>
-                <h3>還沒有動態</h3>
-                <p>開始分享您的生活吧！</p>
-                <button class="btn-primary" onclick="openPostModal()">
-                    ✍️ 發布第一則動態
-                </button>
-            </div>
-        </div>
-
-        <!-- 好友列表標籤 -->
-        <div id="friends-tab" class="tab-content">
-            <!-- 好友搜尋 -->
-            <div class="search-section">
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text"
-                           id="friendSearch"
-                           class="search-input"
-                           placeholder="搜尋好友姓名..."
-                           oninput="filterFriends()">
-                </div>
-                <button class="btn-primary" onclick="showAddFriendModal()">
-                    ➕ 新增好友
-                </button>
-            </div>
-
-            <!-- 待處理的好友邀請 -->
-            <div id="friendRequestsSection" class="friend-requests-section" style="display: none;">
-                <h3 class="section-title">📬 好友邀請</h3>
-                <div id="friendRequestsList" class="friend-requests-list">
-                    <!-- 動態載入 -->
-                </div>
+    <!-- 主要內容區 - 左右分欄架構 -->
+    <div class="social-main-container">
+        <!-- 左側：好友列表 -->
+        <aside class="friends-sidebar">
+            <!-- 搜尋框 -->
+            <div class="sidebar-search">
+                <input type="text"
+                       id="friendSearchInput"
+                       class="search-input"
+                       placeholder="🔍 搜尋好友..."
+                       oninput="filterFriends(event)">
             </div>
 
             <!-- 好友列表 -->
-            <div class="friends-section">
-                <h3 class="section-title">👥 我的好友</h3>
-                <div id="friendsList" class="friends-list">
-                    <!-- 動態載入中 -->
-                    <div class="loading-placeholder">
-                        <div class="spinner"></div>
-                        <p>載入好友列表中...</p>
-                    </div>
+            <div class="friends-list" id="friendsList">
+                <!-- 載入中 -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>載入好友列表中...</p>
                 </div>
             </div>
 
             <!-- 無好友提示 -->
-            <div id="noFriendsPlaceholder" class="empty-placeholder" style="display: none;">
-                <div class="empty-icon">👋</div>
+            <div id="noFriendsPlaceholder" class="empty-state" style="display: none;">
+                <div class="empty-icon">👥</div>
                 <h3>還沒有好友</h3>
-                <p>開始加入好友，分享生活點滴！</p>
-                <button class="btn-primary" onclick="showAddFriendModal()">
-                    ➕ 新增第一位好友
+                <p>開始加好友，分享生活吧！</p>
+                <button class="btn-primary" onclick="showAddFriend()">
+                    ➕ 加好友
                 </button>
             </div>
-        </div>
+        </aside>
 
-        <!-- 聊天室列表標籤 -->
-        <div id="chats-tab" class="tab-content">
-            <!-- 聊天室列表 -->
-            <div class="chats-section">
-                <div class="section-header">
-                    <h3 class="section-title">💬 最近聊天</h3>
-                    <button class="btn-secondary" onclick="showNewChatModal()">
-                        ➕ 新聊天
-                    </button>
-                </div>
-                <div id="chatsList" class="chats-list">
-                    <!-- 動態載入中 -->
-                    <div class="loading-placeholder">
-                        <div class="spinner"></div>
-                        <p>載入聊天記錄中...</p>
+        <!-- 右側：內容區域 -->
+        <main class="content-area">
+            <!-- 未選擇好友的歡迎畫面 -->
+            <div id="welcomeScreen" class="welcome-screen">
+                <div class="welcome-content">
+                    <div class="welcome-icon">💬</div>
+                    <h2>歡迎來到好友聊天</h2>
+                    <p class="welcome-text">選擇左側的好友開始聊天，或查看動態時間軸</p>
+                    <div class="welcome-quick-actions">
+                        <button class="quick-action-btn" onclick="showAddFriend()">
+                            <span class="action-icon">➕</span>
+                            <span>加好友</span>
+                        </button>
+                        <button class="quick-action-btn" onclick="switchToTimeline()">
+                            <span class="action-icon">📰</span>
+                            <span>查看動態</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- 無聊天記錄提示 -->
-            <div id="noChatsPlaceholder" class="empty-placeholder" style="display: none;">
-                <div class="empty-icon">💬</div>
-                <h3>還沒有聊天記錄</h3>
-                <p>開始與好友聊天吧！</p>
-                <button class="btn-primary" onclick="showNewChatModal()">
-                    💬 開始聊天
-                </button>
+            <!-- 選中好友後的內容區 -->
+            <div id="friendContentArea" class="friend-content-area" style="display: none;">
+                <!-- 好友資訊 Header -->
+                <div class="friend-header">
+                    <div class="friend-header-info">
+                        <img id="selectedFriendAvatar" class="friend-header-avatar" src="" alt="頭像">
+                        <div class="friend-header-text">
+                            <h2 id="selectedFriendName" class="friend-header-name"></h2>
+                            <span id="selectedFriendStatus" class="friend-header-status">線上</span>
+                        </div>
+                    </div>
+                    <div class="friend-header-actions">
+                        <button class="header-action-btn" onclick="startVideoCall()" title="視訊通話">
+                            📹
+                        </button>
+                        <button class="header-action-btn" onclick="startVoiceCall()" title="語音通話">
+                            📞
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 內容切換 Tab -->
+                <div class="content-tabs">
+                    <button class="content-tab active" data-tab="chat" onclick="switchContentTab('chat')">
+                        💬 聊天
+                    </button>
+                    <button class="content-tab" data-tab="posts" onclick="switchContentTab('posts')">
+                        📰 動態
+                    </button>
+                </div>
+
+                <!-- 聊天內容 -->
+                <div id="chatContent" class="tab-panel active">
+                    <!-- 聊天訊息區域 -->
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-date-divider">
+                            <span>今天</span>
+                        </div>
+                        <!-- 訊息會動態載入在這裡 -->
+                    </div>
+
+                    <!-- 輸入區域 -->
+                    <div class="chat-input-area">
+                        <button class="input-action-btn" onclick="showEmojiPicker()" title="表情符號">
+                            😊
+                        </button>
+                        <button class="input-action-btn" onclick="selectImage()" title="圖片">
+                            📷
+                        </button>
+                        <input type="text"
+                               id="chatInput"
+                               class="chat-input"
+                               placeholder="輸入訊息..."
+                               onkeypress="handleChatKeyPress(event)">
+                        <button class="send-btn" onclick="sendMessage()">
+                            <span class="send-icon">📤</span>
+                            發送
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 動態內容 -->
+                <div id="postsContent" class="tab-panel" style="display: none;">
+                    <!-- 好友的動態列表 -->
+                    <div class="friend-posts-list" id="friendPostsList">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>載入動態中...</p>
+                        </div>
+                    </div>
+
+                    <!-- 無動態提示 -->
+                    <div id="noPostsPlaceholder" class="empty-state" style="display: none;">
+                        <div class="empty-icon">📝</div>
+                        <h3>還沒有動態</h3>
+                        <p>這位好友還沒有發布任何動態</p>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <!-- 動態時間軸（所有好友） -->
+            <div id="timelineArea" class="timeline-area" style="display: none;">
+                <!-- 時間軸 Header -->
+                <div class="timeline-header">
+                    <h2 class="timeline-title">
+                        <span class="timeline-icon">📰</span>
+                        動態時間軸
+                    </h2>
+                    <button class="btn-primary" onclick="openPostModal()">
+                        ✏️ 發布動態
+                    </button>
+                </div>
+
+                <!-- 快速發文 -->
+                <div class="quick-post-card">
+                    <div class="quick-post-header">
+                        <img id="userAvatarPost" class="user-avatar" src="" alt="頭像">
+                        <input type="text"
+                               class="quick-post-input"
+                               placeholder="分享您的生活點滴..."
+                               readonly
+                               onclick="openPostModal()">
+                    </div>
+                    <div class="quick-post-actions">
+                        <button class="post-action-btn" onclick="openPostModal('photo')">
+                            📷 照片
+                        </button>
+                        <button class="post-action-btn" onclick="openPostModal('mood')">
+                            😊 心情
+                        </button>
+                        <button class="post-action-btn" onclick="openPostModal('location')">
+                            📍 位置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 動態列表 -->
+                <div id="timelineList" class="timeline-list">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>載入動態中...</p>
+                    </div>
+                </div>
+
+                <!-- 無動態提示 -->
+                <div id="noTimelinePostsPlaceholder" class="empty-state" style="display: none;">
+                    <div class="empty-icon">📝</div>
+                    <h3>還沒有動態</h3>
+                    <p>開始分享您的生活吧！</p>
+                    <button class="btn-primary" onclick="openPostModal()">
+                        ✏️ 發布第一則動態
+                    </button>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- 發文模態框 -->
+    <!-- 發文 Modal -->
     <div id="postModal" class="modal" style="display: none;">
-        <div class="modal-overlay" onclick="closePostModal()"></div>
-        <div class="modal-content modal-post">
+        <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2 class="modal-title">✍️ 發布動態</h2>
+                <h3>📝 發布動態</h3>
                 <button class="modal-close" onclick="closePostModal()">✕</button>
             </div>
             <div class="modal-body">
                 <textarea id="postContent"
                           class="post-textarea"
                           placeholder="分享您的生活點滴..."
-                          maxlength="500"></textarea>
+                          rows="5"></textarea>
+
                 <div class="post-options">
-                    <div class="option-group">
-                        <label class="option-label">📷 添加照片</label>
-                        <input type="file"
-                               id="postImage"
-                               accept="image/*"
-                               multiple
-                               style="display: none;">
-                        <button class="btn-secondary" onclick="document.getElementById('postImage').click()">
-                            選擇照片
-                        </button>
-                        <div id="imagePreview" class="image-preview"></div>
-                    </div>
-                    <div class="option-group">
-                        <label class="option-label">😊 心情</label>
+                    <div class="post-option">
+                        <label>心情</label>
                         <select id="postMood" class="mood-select">
-                            <option value="">選擇心情（可選）</option>
+                            <option value="">選擇心情</option>
                             <option value="happy">😊 開心</option>
-                            <option value="excited">🤩 興奮</option>
+                            <option value="excited">🎉 興奮</option>
                             <option value="relaxed">😌 放鬆</option>
                             <option value="grateful">🙏 感恩</option>
-                            <option value="thoughtful">🤔 沉思</option>
+                            <option value="thoughtful">🤔 若有所思</option>
                             <option value="sad">😢 難過</option>
                         </select>
                     </div>
-                    <div class="option-group">
-                        <label class="option-label">👁️ 可見範圍</label>
+
+                    <div class="post-option">
+                        <label>可見範圍</label>
                         <select id="postVisibility" class="visibility-select">
-                            <option value="friends">👥 好友可見</option>
+                            <option value="friends">👥 好友</option>
                             <option value="public">🌍 公開</option>
-                            <option value="private">🔒 僅自己</option>
+                            <option value="private">🔒 私密</option>
                         </select>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closePostModal()">取消</button>
-                <button class="btn-primary" onclick="submitPost()">發布</button>
+                <button class="btn-primary" onclick="publishPost()">發布</button>
             </div>
         </div>
     </div>
 
-    <!-- 新增好友模態框 -->
+    <!-- 加好友 Modal -->
     <div id="addFriendModal" class="modal" style="display: none;">
-        <div class="modal-overlay" onclick="closeAddFriendModal()"></div>
-        <div class="modal-content modal-small">
+        <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">➕ 新增好友</h2>
+                <h3>➕ 加好友</h3>
                 <button class="modal-close" onclick="closeAddFriendModal()">✕</button>
             </div>
             <div class="modal-body">
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text"
-                           id="friendSearchInput"
-                           class="search-input"
-                           placeholder="輸入好友的 Email 或名稱..."
-                           onkeyup="searchUsers(event)">
-                </div>
+                <input type="text"
+                       id="friendSearchInput"
+                       class="search-input-large"
+                       placeholder="搜尋姓名、Email 或電話..."
+                       oninput="searchUsers(event)">
+
                 <div id="searchResults" class="search-results">
-                    <!-- 搜尋結果動態載入 -->
+                    <!-- 搜尋結果會顯示在這裡 -->
+                </div>
+
+                <div class="modal-divider"></div>
+
+                <h4>好友邀請</h4>
+                <div id="friendRequests" class="friend-requests-list">
+                    <!-- 好友邀請會顯示在這裡 -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 通知列表模態框 -->
+    <!-- 通知 Modal -->
     <div id="notificationsModal" class="modal" style="display: none;">
-        <div class="modal-overlay" onclick="closeNotificationsModal()"></div>
-        <div class="modal-content modal-medium">
+        <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">🔔 通知</h2>
+                <h3>🔔 通知</h3>
                 <button class="modal-close" onclick="closeNotificationsModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div id="notificationsList" class="notifications-list">
-                    <!-- 通知動態載入 -->
-                    <div class="loading-placeholder">
-                        <div class="spinner"></div>
-                        <p>載入通知中...</p>
-                    </div>
+                    <!-- 通知會顯示在這裡 -->
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="markAllNotificationsRead()">全部標為已讀</button>
             </div>
         </div>
     </div>
 
-    <!-- 載入指示器 -->
+    <!-- 載入提示 -->
     <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">處理中...</p>
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>處理中...</p>
+        </div>
     </div>
 
-    <!-- JavaScript -->
-    <script src="config.js"></script>
+    <!-- Scripts -->
     <script src="social.js"></script>
 </body>
 </html>

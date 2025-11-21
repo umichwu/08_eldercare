@@ -329,6 +329,76 @@
         </div>
     </div>
 
+    <!-- 通話視窗 -->
+    <div id="callModal" class="call-modal" style="display: none;">
+        <div class="call-container">
+            <!-- 通話狀態標題 -->
+            <div class="call-header">
+                <h3 id="callStatus" class="call-status">連線中...</h3>
+                <button class="call-close-btn" onclick="endCall()" title="結束通話">✕</button>
+            </div>
+
+            <!-- 視訊區域 -->
+            <div class="call-video-area">
+                <!-- 對方的視訊 -->
+                <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
+                <!-- 自己的視訊（小視窗） -->
+                <video id="localVideo" class="local-video" autoplay playsinline muted></video>
+
+                <!-- 無視訊時的頭像顯示 -->
+                <div id="remoteAvatar" class="call-avatar remote-avatar" style="display: none;">
+                    <img id="remoteAvatarImg" src="" alt="對方頭像">
+                    <p id="remoteName" class="call-name"></p>
+                </div>
+                <div id="localAvatar" class="call-avatar local-avatar" style="display: none;">
+                    <img id="localAvatarImg" src="" alt="我的頭像">
+                    <p class="call-name">我</p>
+                </div>
+            </div>
+
+            <!-- 通話時長 -->
+            <div class="call-duration">
+                <span id="callTimer">00:00</span>
+            </div>
+
+            <!-- 控制按鈕 -->
+            <div class="call-controls">
+                <button id="toggleMicBtn" class="call-control-btn" onclick="toggleMic()" title="靜音/取消靜音">
+                    <span id="micIcon">🎤</span>
+                </button>
+                <button id="toggleVideoBtn" class="call-control-btn" onclick="toggleVideo()" title="開啟/關閉視訊" style="display: none;">
+                    <span id="videoIcon">📹</span>
+                </button>
+                <button class="call-control-btn end-call-btn" onclick="endCall()" title="結束通話">
+                    <span>📞</span>
+                    <span class="btn-text">結束</span>
+                </button>
+                <button id="switchCameraBtn" class="call-control-btn" onclick="switchCamera()" title="切換鏡頭" style="display: none;">
+                    <span>🔄</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 來電通知 -->
+        <div id="incomingCallAlert" class="incoming-call-alert" style="display: none;">
+            <div class="incoming-call-content">
+                <img id="incomingCallerAvatar" class="incoming-caller-avatar" src="" alt="來電者">
+                <h3 id="incomingCallerName" class="incoming-caller-name"></h3>
+                <p id="incomingCallType" class="incoming-call-type"></p>
+                <div class="incoming-call-actions">
+                    <button class="incoming-call-btn accept-btn" onclick="acceptCall()">
+                        <span>📞</span>
+                        <span>接聽</span>
+                    </button>
+                    <button class="incoming-call-btn reject-btn" onclick="rejectCall()">
+                        <span>✕</span>
+                        <span>拒絕</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="social.js"></script>
 </body>

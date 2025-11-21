@@ -20,6 +20,22 @@ let currentUser = null;
 let userProfile = null;
 let currentTab = 'timeline';
 
+// WebRTC 相關變數
+let localStream = null;
+let remoteStream = null;
+let peerConnection = null;
+let currentCallType = null; // 'video' 或 'audio'
+let currentCallPeer = null; // 當前通話對象
+let callChannel = null; // Supabase Realtime 頻道
+
+// WebRTC 配置
+const rtcConfig = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+};
+
 // ===================================
 // 初始化
 // ===================================
@@ -39,6 +55,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 載入頁面內容
         await loadPageContent();
+
+        // 訂閱通話信令頻道
+        await setupCallSignaling();
 
         console.log('✅ 好友聊天頁面初始化完成');
     } catch (error) {
@@ -1251,16 +1270,549 @@ function viewFriendProfile(friendUserId) {
     showError('個人資料頁面開發中...');
 }
 
+// ===================================
+// WebRTC 通話功能
+// ===================================
+
 // 開始視訊通話
-function startVideoCall() {
+async function startVideoCall() {
     console.log('📹 開始視訊通話');
-    showError('視訊通話功能開發中...');
+
+    if (!window.currentChatFriend) {
+        showError('請先選擇要通話的好友');
+        return;
+    }
+
+    await initiateCall('video', window.currentChatFriend.userId, window.currentChatFriend.name);
 }
 
 // 開始語音通話
-function startVoiceCall() {
+async function startVoiceCall() {
     console.log('📞 開始語音通話');
-    showError('語音通話功能開發中...');
+
+    if (!window.currentChatFriend) {
+        showError('請先選擇要通話的好友');
+        return;
+    }
+
+    await initiateCall('audio', window.currentChatFriend.userId, window.currentChatFriend.name);
+}
+
+// 發起通話
+async function initiateCall(type, targetUserId, targetUserName) {
+    try {
+        console.log(`📞 發起${type === 'video' ? '視訊' : '語音'}通話給:`, targetUserName);
+
+        currentCallType = type;
+        currentCallPeer = {
+            userId: targetUserId,
+            name: targetUserName
+        };
+
+        // 請求媒體權限
+        const constraints = {
+            audio: true,
+            video: type === 'video' ? {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'user'
+            } : false
+        };
+
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        // 顯示通話視窗
+        showCallModal(type);
+
+        // 顯示本地視訊/頭像
+        if (type === 'video') {
+            document.getElementById('localVideo').srcObject = localStream;
+            document.getElementById('localVideo').style.display = 'block';
+            document.getElementById('localAvatar').style.display = 'none';
+            document.getElementById('toggleVideoBtn').style.display = 'block';
+            document.getElementById('switchCameraBtn').style.display = 'block';
+        } else {
+            document.getElementById('localVideo').style.display = 'none';
+            document.getElementById('localAvatar').style.display = 'flex';
+            const avatarUrl = userProfile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.display_name)}&background=FFB74D&color=fff&size=80`;
+            document.getElementById('localAvatarImg').src = avatarUrl;
+        }
+
+        // 設定對方頭像（尚未連線前顯示）
+        const remoteAvatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(targetUserName)}&background=667eea&color=fff&size=200`;
+        document.getElementById('remoteAvatarImg').src = remoteAvatarUrl;
+        document.getElementById('remoteName').textContent = targetUserName;
+        document.getElementById('remoteAvatar').style.display = 'flex';
+        document.getElementById('remoteVideo').style.display = 'none';
+
+        // 更新狀態
+        document.getElementById('callStatus').textContent = `撥打中...`;
+
+        // 建立 PeerConnection
+        await createPeerConnection();
+
+        // 添加本地流到 PeerConnection
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+
+        // 創建 offer
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        // 透過 Supabase Realtime 發送通話邀請
+        await sendCallSignal({
+            type: 'call-offer',
+            from: userProfile.id,
+            fromName: userProfile.display_name,
+            to: targetUserId,
+            toName: targetUserName,
+            callType: type,
+            offer: offer
+        });
+
+        console.log('✅ 通話邀請已發送');
+
+    } catch (error) {
+        console.error('❌ 發起通話失敗:', error);
+
+        if (error.name === 'NotAllowedError') {
+            showError('請允許使用攝影機和麥克風權限');
+        } else if (error.name === 'NotFoundError') {
+            showError('找不到攝影機或麥克風設備');
+        } else {
+            showError('無法發起通話: ' + error.message);
+        }
+
+        endCall();
+    }
+}
+
+// 建立 PeerConnection
+async function createPeerConnection() {
+    peerConnection = new RTCPeerConnection(rtcConfig);
+
+    // 監聽 ICE 候選
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            console.log('🧊 發送 ICE candidate');
+            sendCallSignal({
+                type: 'ice-candidate',
+                from: userProfile.id,
+                to: currentCallPeer.userId,
+                candidate: event.candidate
+            });
+        }
+    };
+
+    // 監聽遠端流
+    peerConnection.ontrack = (event) => {
+        console.log('📥 接收到遠端媒體流');
+        remoteStream = event.streams[0];
+
+        const remoteVideo = document.getElementById('remoteVideo');
+        remoteVideo.srcObject = remoteStream;
+
+        // 如果是視訊通話，顯示視訊
+        if (currentCallType === 'video') {
+            remoteVideo.style.display = 'block';
+            document.getElementById('remoteAvatar').style.display = 'none';
+        }
+
+        // 更新狀態為通話中
+        document.getElementById('callStatus').textContent = `通話中 - ${currentCallPeer.name}`;
+        startCallTimer();
+    };
+
+    // 監聽連線狀態
+    peerConnection.onconnectionstatechange = () => {
+        console.log('🔗 連線狀態:', peerConnection.connectionState);
+
+        if (peerConnection.connectionState === 'connected') {
+            console.log('✅ WebRTC 連線成功');
+        } else if (peerConnection.connectionState === 'disconnected' ||
+                   peerConnection.connectionState === 'failed') {
+            console.log('❌ WebRTC 連線中斷');
+            endCall();
+        }
+    };
+}
+
+// 發送信令訊息
+async function sendCallSignal(signal) {
+    try {
+        // 使用 Supabase Realtime broadcast
+        if (!callChannel) {
+            const channelName = `call:${userProfile.id}`;
+            callChannel = supabaseClient.channel(channelName);
+            await callChannel.subscribe();
+        }
+
+        await callChannel.send({
+            type: 'broadcast',
+            event: 'call-signal',
+            payload: signal
+        });
+
+        console.log('📤 信令已發送:', signal.type);
+    } catch (error) {
+        console.error('❌ 發送信令失敗:', error);
+    }
+}
+
+// 接收來電
+function showIncomingCall(callData) {
+    console.log('📞 收到來電:', callData);
+
+    // 儲存來電資訊
+    window.incomingCallData = callData;
+
+    // 顯示來電通知
+    const incomingCallAlert = document.getElementById('incomingCallAlert');
+    const callerAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(callData.fromName)}&background=667eea&color=fff&size=100`;
+
+    document.getElementById('incomingCallerAvatar').src = callerAvatar;
+    document.getElementById('incomingCallerName').textContent = callData.fromName;
+    document.getElementById('incomingCallType').textContent = callData.callType === 'video' ? '📹 視訊通話' : '📞 語音通話';
+
+    incomingCallAlert.style.display = 'block';
+
+    // 播放鈴聲（可選）
+    // const ringtone = new Audio('/sounds/ringtone.mp3');
+    // ringtone.loop = true;
+    // ringtone.play();
+}
+
+// 接聽來電
+async function acceptCall() {
+    try {
+        console.log('✅ 接聽來電');
+
+        const callData = window.incomingCallData;
+        if (!callData) return;
+
+        // 隱藏來電通知
+        document.getElementById('incomingCallAlert').style.display = 'none';
+
+        currentCallType = callData.callType;
+        currentCallPeer = {
+            userId: callData.from,
+            name: callData.fromName
+        };
+
+        // 請求媒體權限
+        const constraints = {
+            audio: true,
+            video: callData.callType === 'video' ? {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'user'
+            } : false
+        };
+
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        // 顯示通話視窗
+        showCallModal(callData.callType);
+
+        // 顯示本地視訊/頭像
+        if (callData.callType === 'video') {
+            document.getElementById('localVideo').srcObject = localStream;
+            document.getElementById('localVideo').style.display = 'block';
+            document.getElementById('localAvatar').style.display = 'none';
+            document.getElementById('toggleVideoBtn').style.display = 'block';
+        } else {
+            document.getElementById('localVideo').style.display = 'none';
+            document.getElementById('localAvatar').style.display = 'flex';
+            const avatarUrl = userProfile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.display_name)}&background=FFB74D&color=fff&size=80`;
+            document.getElementById('localAvatarImg').src = avatarUrl;
+        }
+
+        // 建立 PeerConnection
+        await createPeerConnection();
+
+        // 添加本地流
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+
+        // 設定遠端 offer
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+
+        // 創建 answer
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        // 發送 answer
+        await sendCallSignal({
+            type: 'call-answer',
+            from: userProfile.id,
+            to: callData.from,
+            answer: answer
+        });
+
+        document.getElementById('callStatus').textContent = `通話中 - ${callData.fromName}`;
+
+        console.log('✅ 已接聽來電');
+
+    } catch (error) {
+        console.error('❌ 接聽來電失敗:', error);
+        showError('無法接聽通話: ' + error.message);
+        endCall();
+    }
+}
+
+// 拒絕來電
+function rejectCall() {
+    console.log('❌ 拒絕來電');
+
+    const callData = window.incomingCallData;
+    if (callData) {
+        // 發送拒絕信令
+        sendCallSignal({
+            type: 'call-rejected',
+            from: userProfile.id,
+            to: callData.from
+        });
+    }
+
+    document.getElementById('incomingCallAlert').style.display = 'none';
+    window.incomingCallData = null;
+}
+
+// 顯示通話視窗
+function showCallModal(type) {
+    const callModal = document.getElementById('callModal');
+    callModal.style.display = 'flex';
+}
+
+// 結束通話
+function endCall() {
+    console.log('📴 結束通話');
+
+    // 停止所有媒體軌道
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+
+    if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+        remoteStream = null;
+    }
+
+    // 關閉 PeerConnection
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+
+    // 關閉 Realtime 頻道
+    if (callChannel) {
+        callChannel.unsubscribe();
+        callChannel = null;
+    }
+
+    // 發送結束通話信令
+    if (currentCallPeer) {
+        sendCallSignal({
+            type: 'call-ended',
+            from: userProfile.id,
+            to: currentCallPeer.userId
+        });
+    }
+
+    // 停止計時器
+    stopCallTimer();
+
+    // 隱藏通話視窗
+    document.getElementById('callModal').style.display = 'none';
+    document.getElementById('incomingCallAlert').style.display = 'none';
+
+    // 重置狀態
+    currentCallType = null;
+    currentCallPeer = null;
+    window.incomingCallData = null;
+}
+
+// 切換麥克風
+function toggleMic() {
+    if (!localStream) return;
+
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        const micIcon = document.getElementById('micIcon');
+        const micBtn = document.getElementById('toggleMicBtn');
+
+        if (audioTrack.enabled) {
+            micIcon.textContent = '🎤';
+            micBtn.classList.remove('muted');
+        } else {
+            micIcon.textContent = '🔇';
+            micBtn.classList.add('muted');
+        }
+
+        console.log('🎤 麥克風:', audioTrack.enabled ? '開啟' : '關閉');
+    }
+}
+
+// 切換視訊
+function toggleVideo() {
+    if (!localStream) return;
+
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        const videoIcon = document.getElementById('videoIcon');
+        const videoBtn = document.getElementById('toggleVideoBtn');
+
+        if (videoTrack.enabled) {
+            videoIcon.textContent = '📹';
+            videoBtn.classList.remove('muted');
+            document.getElementById('localVideo').style.display = 'block';
+            document.getElementById('localAvatar').style.display = 'none';
+        } else {
+            videoIcon.textContent = '🚫';
+            videoBtn.classList.add('muted');
+            document.getElementById('localVideo').style.display = 'none';
+            document.getElementById('localAvatar').style.display = 'flex';
+        }
+
+        console.log('📹 視訊:', videoTrack.enabled ? '開啟' : '關閉');
+    }
+}
+
+// 切換鏡頭（前/後）
+async function switchCamera() {
+    if (!localStream) return;
+
+    try {
+        const videoTrack = localStream.getVideoTracks()[0];
+        const currentFacingMode = videoTrack.getSettings().facingMode;
+        const newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+
+        // 停止當前視訊軌道
+        videoTrack.stop();
+
+        // 獲取新的視訊流
+        const newStream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+                facingMode: newFacingMode,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        });
+
+        const newVideoTrack = newStream.getVideoTracks()[0];
+
+        // 替換 PeerConnection 中的視訊軌道
+        if (peerConnection) {
+            const sender = peerConnection.getSenders().find(s => s.track?.kind === 'video');
+            if (sender) {
+                await sender.replaceTrack(newVideoTrack);
+            }
+        }
+
+        // 更新本地流
+        localStream.removeTrack(videoTrack);
+        localStream.addTrack(newVideoTrack);
+        document.getElementById('localVideo').srcObject = localStream;
+
+        console.log('🔄 已切換鏡頭:', newFacingMode);
+
+    } catch (error) {
+        console.error('❌ 切換鏡頭失敗:', error);
+        showError('無法切換鏡頭');
+    }
+}
+
+// 通話計時器
+let callTimerInterval = null;
+let callStartTime = null;
+
+function startCallTimer() {
+    callStartTime = Date.now();
+    callTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const seconds = (elapsed % 60).toString().padStart(2, '0');
+        document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
+    }, 1000);
+}
+
+function stopCallTimer() {
+    if (callTimerInterval) {
+        clearInterval(callTimerInterval);
+        callTimerInterval = null;
+    }
+    callStartTime = null;
+    document.getElementById('callTimer').textContent = '00:00';
+}
+
+// 設定通話信令監聽
+async function setupCallSignaling() {
+    try {
+        console.log('🔔 設定通話信令監聽...');
+
+        // 訂閱用戶專屬的通話頻道
+        const channelName = `call:${userProfile.id}`;
+        const channel = supabaseClient.channel(channelName);
+
+        // 監聽來自其他用戶的通話信令
+        channel.on('broadcast', { event: 'call-signal' }, async (payload) => {
+            const signal = payload.payload;
+            console.log('📨 收到信令:', signal.type, 'from:', signal.from);
+
+            // 確認是發給自己的信令
+            if (signal.to !== userProfile.id) {
+                return;
+            }
+
+            switch (signal.type) {
+                case 'call-offer':
+                    // 收到通話邀請
+                    showIncomingCall(signal);
+                    break;
+
+                case 'call-answer':
+                    // 對方接聽了通話
+                    if (peerConnection && signal.answer) {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.answer));
+                        console.log('✅ 對方已接聽');
+                    }
+                    break;
+
+                case 'ice-candidate':
+                    // 收到 ICE 候選
+                    if (peerConnection && signal.candidate) {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                        console.log('🧊 已添加 ICE candidate');
+                    }
+                    break;
+
+                case 'call-rejected':
+                    // 對方拒絕了通話
+                    console.log('❌ 對方拒絕了通話');
+                    showError('對方拒絕了通話');
+                    endCall();
+                    break;
+
+                case 'call-ended':
+                    // 對方結束了通話
+                    console.log('📴 對方結束了通話');
+                    endCall();
+                    break;
+            }
+        });
+
+        await channel.subscribe();
+        console.log('✅ 通話信令監聽已設定');
+
+    } catch (error) {
+        console.error('❌ 設定通話信令監聽失敗:', error);
+    }
 }
 
 // 顯示表情符號選擇器

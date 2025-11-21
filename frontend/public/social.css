@@ -1178,3 +1178,368 @@ body {
         font-size: 24px;
     }
 }
+
+/* ============================================================================
+   通話視窗
+   ============================================================================ */
+
+.call-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.call-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    z-index: 10;
+}
+
+.call-status {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.call-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.call-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.call-video-area {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+}
+
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+.local-video {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 3px solid white;
+    box-shadow: var(--shadow-lg);
+    background: #000;
+    z-index: 5;
+}
+
+.call-avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+}
+
+.remote-avatar {
+    width: 100%;
+    height: 100%;
+}
+
+.remote-avatar img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 5px solid white;
+    box-shadow: var(--shadow-xl);
+}
+
+.local-avatar {
+    position: absolute;
+    bottom: 80px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    border-radius: var(--radius-md);
+    border: 3px solid white;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 5;
+}
+
+.local-avatar img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid white;
+}
+
+.call-name {
+    color: white;
+    font-size: 24px;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    margin: 0;
+}
+
+.local-avatar .call-name {
+    font-size: 14px;
+}
+
+.call-duration {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-full);
+    z-index: 10;
+}
+
+.call-duration span {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.call-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-xl);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-lg);
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+    z-index: 10;
+}
+
+.call-control-btn {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.call-control-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.call-control-btn:active {
+    transform: scale(0.95);
+}
+
+.call-control-btn.end-call-btn {
+    background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+    border-color: #ef5350;
+    width: 80px;
+}
+
+.call-control-btn.end-call-btn:hover {
+    background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+}
+
+.call-control-btn .btn-text {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.call-control-btn.muted {
+    background: rgba(239, 83, 80, 0.9);
+}
+
+/* 來電通知 */
+.incoming-call-alert {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    padding: var(--spacing-xl);
+    z-index: 10001;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.incoming-call-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    min-width: 300px;
+}
+
+.incoming-caller-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px solid var(--primary-color);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 183, 77, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 20px rgba(255, 183, 77, 0);
+    }
+}
+
+.incoming-caller-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.incoming-call-type {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.incoming-call-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.incoming-call-btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-full);
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.incoming-call-btn.accept-btn {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+}
+
+.incoming-call-btn.accept-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.incoming-call-btn.reject-btn {
+    background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+    color: white;
+}
+
+.incoming-call-btn.reject-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+/* 手機版通話界面 */
+@media (max-width: 768px) {
+    .local-video {
+        width: 120px;
+        height: 90px;
+        bottom: 100px;
+        right: 10px;
+    }
+
+    .local-avatar {
+        width: 120px;
+        height: 90px;
+        bottom: 100px;
+        right: 10px;
+    }
+
+    .local-avatar img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .call-control-btn {
+        width: 56px;
+        height: 56px;
+        font-size: 24px;
+    }
+
+    .call-control-btn.end-call-btn {
+        width: 72px;
+    }
+
+    .remote-avatar img {
+        width: 150px;
+        height: 150px;
+    }
+
+    .call-name {
+        font-size: 20px;
+    }
+}

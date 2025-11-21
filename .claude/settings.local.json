@@ -44,7 +44,8 @@
       "Bash(./gradlew assembleDebug)",
       "Read(//usr/lib/**)",
       "Bash(node diagnose-timezone-issue.js)",
-      "Bash(test -f .env)"
+      "Bash(test -f .env)",
+      "Bash(npm install @sendgrid/mail twilio)"
     ],
     "deny": [],
     "ask": []

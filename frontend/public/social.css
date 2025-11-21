@@ -1019,3 +1019,83 @@
         font-size: 16px;
     }
 }
+
+/* ============================================
+   邀請新使用者樣式
+   ============================================ */
+
+.invite-new-user {
+    border: 2px dashed #667eea;
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+}
+
+.invite-new-user:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    border-color: #5568d3;
+}
+
+.invite-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 邀請對話框樣式 */
+#inviteNewUserModal .modal-content {
+    max-width: 500px;
+}
+
+#inviteNewUserModal .form-group {
+    margin-bottom: 20px;
+}
+
+#inviteNewUserModal .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+#inviteNewUserModal .form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e6ed;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+#inviteNewUserModal .form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#inviteNewUserModal textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+@media (max-width: 768px) {
+    .invite-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+    }
+
+    #inviteNewUserModal .modal-content {
+        margin: 20px;
+        max-width: calc(100% - 40px);
+    }
+}

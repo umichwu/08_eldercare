@@ -7,6 +7,7 @@ import apiRouter from './routes/api.js';
 import medicationRouter from './routes/medicationApi.js';
 import spiritualCareRouter from './routes/spiritualCareApi.js';
 import googleCalendarRouter from './routes/googleCalendarApi.js';
+import socialRouter from './routes/socialApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 
@@ -79,6 +80,7 @@ app.use('/api', apiRouter);
 app.use('/api', medicationRouter);
 app.use('/api/spiritual', spiritualCareRouter);
 app.use('/api/google-calendar', googleCalendarRouter);
+app.use('/api/social', socialRouter);
 
 // 根路由
 app.get('/', (req, res) => {
@@ -94,7 +96,15 @@ app.get('/', (req, res) => {
       medicationReminders: '/api/medication-reminders',
       medicationLogs: '/api/medication-logs',
       fcmRegister: '/api/fcm/register',
-      schedulerCheck: '/api/scheduler/check-reminders'
+      schedulerCheck: '/api/scheduler/check-reminders',
+      social: {
+        friends: '/api/social/friends',
+        friendRequests: '/api/social/friends/requests',
+        friendSearch: '/api/social/friends/search',
+        posts: '/api/social/posts',
+        timeline: '/api/social/posts/timeline',
+        notifications: '/api/social/notifications'
+      }
     }
   });
 });
@@ -146,6 +156,17 @@ app.listen(PORT, HOST, () => {
   console.log(`   GET  /api/medication-logs/statistics/:id      - 用藥統計`);
   console.log(`   POST /api/fcm/register                        - 註冊 FCM Token`);
   console.log(`   POST /api/scheduler/check-reminders           - 手動檢查提醒`);
+  console.log('');
+  console.log('社交功能端點:');
+  console.log(`   GET  /api/social/friends                      - 取得好友列表`);
+  console.log(`   GET  /api/social/friends/requests             - 取得好友邀請`);
+  console.log(`   POST /api/social/friends/search               - 搜尋使用者`);
+  console.log(`   POST /api/social/friends/request              - 發送好友邀請`);
+  console.log(`   POST /api/social/friends/accept               - 接受好友邀請`);
+  console.log(`   POST /api/social/friends/reject               - 拒絕好友邀請`);
+  console.log(`   GET  /api/social/posts/timeline               - 取得動態時間軸`);
+  console.log(`   POST /api/social/posts                        - 發布動態`);
+  console.log(`   GET  /api/social/notifications                - 取得通知`);
   console.log('');
   console.log('='.repeat(60));
   console.log('');

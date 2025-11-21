@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>好友邀請 - ElderCare Companion</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .email-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .email-header .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .email-body {
+            padding: 40px 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        .custom-message {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+        .custom-message p {
+            margin: 0;
+            font-style: italic;
+            color: #555;
+        }
+        .invitation-code {
+            background: #f0f4ff;
+            border: 2px dashed #667eea;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        .invitation-code .label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .invitation-code .code {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            letter-spacing: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .features {
+            margin: 40px 0;
+        }
+        .feature {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .feature-icon {
+            font-size: 28px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .feature-content h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .feature-content p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .email-footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #e0e6ed;
+        }
+        .email-footer p {
+            margin: 5px 0;
+        }
+        .email-footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e0e6ed, transparent);
+            margin: 30px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 20px;
+                border-radius: 8px;
+            }
+            .email-header {
+                padding: 30px 20px;
+            }
+            .email-header h1 {
+                font-size: 24px;
+            }
+            .email-header .icon {
+                font-size: 48px;
+            }
+            .email-body {
+                padding: 30px 20px;
+            }
+            .invitation-code .code {
+                font-size: 24px;
+                letter-spacing: 2px;
+            }
+            .cta-button {
+                padding: 14px 30px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <div class="icon">👥</div>
+            <h1>好友邀請</h1>
+        </div>
+
+        <!-- Body -->
+        <div class="email-body">
+            <div class="greeting">
+                您好！
+            </div>
+
+            <div class="message">
+                <strong>{{inviterName}}</strong> 邀請您加入 <strong>ElderCare Companion</strong>，一起使用這個專為長輩設計的智能照護平台！
+            </div>
+
+            <!-- Custom Message (if provided) -->
+            {{#if customMessage}}
+            <div class="custom-message">
+                <p>💬 「{{customMessage}}」</p>
+            </div>
+            {{/if}}
+
+            <!-- Invitation Code -->
+            <div class="invitation-code">
+                <div class="label">您的專屬邀請碼</div>
+                <div class="code">{{invitationCode}}</div>
+            </div>
+
+            <!-- CTA Button -->
+            <div class="button-container">
+                <a href="{{invitationUrl}}" class="cta-button">
+                    🚀 立即加入 ElderCare
+                </a>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Features -->
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-content">
+                        <h3>AI 智能對話</h3>
+                        <p>24小時陪伴聊天，關心您的日常生活</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">💊</div>
+                    <div class="feature-content">
+                        <h3>用藥提醒</h3>
+                        <p>準時提醒服藥，守護您的健康</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">👥</div>
+                    <div class="feature-content">
+                        <h3>社交互動</h3>
+                        <p>與家人朋友分享生活動態，保持聯繫</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🙏</div>
+                    <div class="feature-content">
+                        <h3>心靈關懷</h3>
+                        <p>每日經文、祈禱文，心靈的慰藉</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="message" style="font-size: 14px; color: #888;">
+                註冊時請輸入邀請碼，系統會自動與 {{inviterName}} 建立好友關係。<br>
+                邀請碼有效期為 30 天，請盡快註冊喔！
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="email-footer">
+            <p><strong>ElderCare Companion</strong></p>
+            <p>智能長照陪伴系統</p>
+            <p style="margin-top: 15px;">
+                <a href="{{appUrl}}">前往網站</a> |
+                <a href="{{appUrl}}/help.html">使用說明</a> |
+                <a href="{{appUrl}}/privacy.html">隱私政策</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                © {{currentYear}} ElderCare Companion. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

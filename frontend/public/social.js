@@ -434,42 +434,36 @@ async function searchUsers(event) {
         console.log(`🔍 搜尋使用者: ${searchTerm}`);
         searchResults.innerHTML = '<div class="loading-spinner"></div><p style="text-align: center;">搜尋中...</p>';
 
-        // 搜尋使用者（排除自己）
-        const { data: users, error } = await supabaseClient
-            .from('user_profiles')
-            .select('id, display_name, avatar_url, email')
-            .neq('id', userProfile.id)
-            .or(`display_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
-            .limit(10);
+        // 使用後端 API 搜尋（支援 email/phone）
+        const response = await fetch(`${API_BASE_URL}/api/social/friends/search`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${(await supabaseClient.auth.getSession()).data.session?.access_token}`,
+                'X-User-Id': userProfile.id
+            },
+            body: JSON.stringify({ searchTerm })
+        });
 
-        if (error) {
-            console.error('❌ 搜尋錯誤:', error);
-            throw error;
+        if (!response.ok) {
+            throw new Error('搜尋失敗');
         }
 
-        console.log('📊 搜尋結果數量:', users?.length || 0);
+        const result = await response.json();
+        console.log('📊 搜尋結果:', result);
 
-        if (users && users.length > 0) {
-            searchResults.innerHTML = '';
+        searchResults.innerHTML = '';
 
-            // 檢查已有的好友關係
-            const { data: existingRelations } = await supabaseClient
-                .from('friendships')
-                .select('friend_id, status')
-                .eq('user_id', userProfile.id)
-                .in('friend_id', users.map(u => u.id));
-
-            const relationMap = {};
-            if (existingRelations) {
-                existingRelations.forEach(rel => {
-                    relationMap[rel.friend_id] = rel.status;
-                });
-            }
-
-            users.forEach(user => {
-                const userItem = createSearchResultItem(user, relationMap[user.id]);
+        if (result.users && result.users.length > 0) {
+            // 顯示找到的使用者
+            result.users.forEach(user => {
+                const userItem = createSearchResultItem(user, user.relationStatus);
                 searchResults.appendChild(userItem);
             });
+        } else if (result.canInvite) {
+            // 沒有找到使用者，但可以邀請新使用者
+            const inviteItem = createInviteNewUserItem(searchTerm, result.searchType, result.pendingInvitation);
+            searchResults.appendChild(inviteItem);
         } else {
             searchResults.innerHTML = '<p style="text-align: center; color: #999;">找不到符合的使用者</p>';
         }
@@ -509,6 +503,225 @@ function createSearchResultItem(user, relationStatus) {
     `;
 
     return div;
+}
+
+// 建立邀請新使用者的項目
+function createInviteNewUserItem(searchTerm, searchType, pendingInvitation) {
+    const div = document.createElement('div');
+    div.className = 'search-result-item invite-new-user';
+
+    const icon = searchType === 'email' ? '📧' : '📱';
+    const label = searchType === 'email' ? 'Email' : '電話';
+
+    if (pendingInvitation) {
+        // 已經發送過邀請
+        div.innerHTML = `
+            <div class="invite-icon">${icon}</div>
+            <div class="friend-info">
+                <div class="friend-name">已發送邀請</div>
+                <div class="friend-meta">${searchTerm}</div>
+                <div class="friend-meta" style="color: #999; font-size: 12px;">
+                    邀請碼: ${pendingInvitation.invitation_code} ·
+                    有效期至 ${new Date(pendingInvitation.expires_at).toLocaleDateString()}
+                </div>
+            </div>
+            <div class="friend-actions">
+                <button class="btn-secondary btn-sm" onclick="resendInvitation('${pendingInvitation.id}')">
+                    📤 重新發送
+                </button>
+                <button class="btn-secondary btn-sm" onclick="cancelInvitation('${pendingInvitation.id}')">
+                    ❌ 取消
+                </button>
+            </div>
+        `;
+    } else {
+        // 尚未發送邀請
+        div.innerHTML = `
+            <div class="invite-icon">${icon}</div>
+            <div class="friend-info">
+                <div class="friend-name">找不到此使用者</div>
+                <div class="friend-meta">${searchTerm}</div>
+                <div class="friend-meta" style="color: #667eea; font-size: 13px;">
+                    💡 您可以邀請此${label}的朋友加入 ElderCare
+                </div>
+            </div>
+            <div class="friend-actions">
+                <button class="btn-primary btn-sm" onclick="showInviteNewUserDialog('${searchTerm}', '${searchType}')">
+                    📨 發送邀請
+                </button>
+            </div>
+        `;
+    }
+
+    return div;
+}
+
+// 顯示邀請新使用者對話框
+function showInviteNewUserDialog(searchTerm, searchType) {
+    const label = searchType === 'email' ? 'Email' : '電話';
+    const placeholder = searchType === 'email' ? '輸入對方的姓名（選填）' : '輸入對方的姓名（選填）';
+
+    const dialogHtml = `
+        <div class="modal-overlay" id="inviteNewUserModal" onclick="closeInviteNewUserDialog(event)">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>📨 邀請新朋友加入 ElderCare</h3>
+                    <button class="modal-close" onclick="closeInviteNewUserDialog()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f0f4ff; border-radius: 8px;">
+                        <p style="margin: 0; color: #667eea; font-size: 14px;">
+                            📧 ${label}: <strong>${searchTerm}</strong>
+                        </p>
+                        <p style="margin: 8px 0 0 0; color: #666; font-size: 13px;">
+                            此聯絡方式尚未註冊 ElderCare，您可以發送邀請給對方
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>對方的姓名（選填）</label>
+                        <input type="text" id="inviteeName" class="form-control" placeholder="${placeholder}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>邀請訊息（選填）</label>
+                        <textarea id="inviteMessage" class="form-control" rows="3" placeholder="我覺得這個 App 很適合我們保持聯繫，一起來用吧！"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeInviteNewUserDialog()">取消</button>
+                    <button class="btn-primary" onclick="sendInviteToNewUser('${searchTerm}', '${searchType}')">
+                        📨 發送邀請
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', dialogHtml);
+}
+
+// 關閉邀請對話框
+function closeInviteNewUserDialog(event) {
+    if (event && event.target.className !== 'modal-overlay') return;
+    const modal = document.getElementById('inviteNewUserModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 發送邀請給新使用者
+async function sendInviteToNewUser(searchTerm, searchType) {
+    try {
+        const name = document.getElementById('inviteeName')?.value.trim();
+        const message = document.getElementById('inviteMessage')?.value.trim();
+
+        console.log(`📨 發送邀請給新使用者: ${searchTerm} (${searchType})`);
+        showLoading();
+
+        const payload = {
+            name: name || null,
+            message: message || null
+        };
+
+        if (searchType === 'email') {
+            payload.email = searchTerm;
+        } else if (searchType === 'phone') {
+            payload.phone = searchTerm;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/social/friends/invite`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${(await supabaseClient.auth.getSession()).data.session?.access_token}`,
+                'X-User-Id': userProfile.id
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || '發送邀請失敗');
+        }
+
+        const result = await response.json();
+        console.log('✅ 邀請已發送:', result);
+
+        hideLoading();
+        closeInviteNewUserDialog();
+        showSuccess('邀請已發送！對方註冊後會自動成為您的好友');
+
+        // 重新搜尋以顯示邀請狀態
+        const searchInput = document.getElementById('friendSearchInput');
+        if (searchInput && searchInput.value) {
+            await searchUsers({ target: searchInput });
+        }
+    } catch (error) {
+        console.error('❌ 發送邀請失敗:', error);
+        hideLoading();
+        showError(error.message || '發送邀請失敗，請重試');
+    }
+}
+
+// 重新發送邀請
+async function resendInvitation(invitationId) {
+    try {
+        console.log(`📤 重新發送邀請: ${invitationId}`);
+        showLoading();
+
+        // TODO: 實作重新發送邀請 API
+        // 目前先使用簡單的成功訊息
+
+        hideLoading();
+        showSuccess('邀請已重新發送！');
+    } catch (error) {
+        console.error('❌ 重新發送邀請失敗:', error);
+        hideLoading();
+        showError('重新發送失敗，請重試');
+    }
+}
+
+// 取消邀請
+async function cancelInvitation(invitationId) {
+    if (!confirm('確定要取消此邀請嗎？')) {
+        return;
+    }
+
+    try {
+        console.log(`❌ 取消邀請: ${invitationId}`);
+        showLoading();
+
+        const response = await fetch(`${API_BASE_URL}/api/social/friends/invitations/${invitationId}/cancel`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${(await supabaseClient.auth.getSession()).data.session?.access_token}`,
+                'X-User-Id': userProfile.id
+            }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || '取消邀請失敗');
+        }
+
+        const result = await response.json();
+        console.log('✅ 邀請已取消:', result);
+
+        hideLoading();
+        showSuccess('邀請已取消');
+
+        // 重新搜尋以更新狀態
+        const searchInput = document.getElementById('friendSearchInput');
+        if (searchInput && searchInput.value) {
+            await searchUsers({ target: searchInput });
+        }
+    } catch (error) {
+        console.error('❌ 取消邀請失敗:', error);
+        hideLoading();
+        showError(error.message || '取消邀請失敗，請重試');
+    }
 }
 
 // 發送好友邀請

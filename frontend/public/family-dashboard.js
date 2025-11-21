@@ -317,18 +317,40 @@ function renderAdherenceChart(labels, data) {
             datasets: [{
                 label: '用藥遵從率 (%)',
                 data: data,
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgb(76, 175, 80)',
+                backgroundColor: 'rgba(76, 175, 80, 0.2)',
                 tension: 0.4,
-                fill: true
+                fill: true,
+                borderWidth: 3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#4caf50',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverBackgroundColor: '#66bb6a',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 3
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 1500,
+                easing: 'easeInOutQuart'
+            },
             plugins: {
                 legend: {
                     display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    borderColor: '#4caf50',
+                    borderWidth: 2,
+                    displayColors: false
                 }
             },
             scales: {
@@ -338,7 +360,22 @@ function renderAdherenceChart(labels, data) {
                     ticks: {
                         callback: function(value) {
                             return value + '%';
+                        },
+                        color: '#4caf50',
+                        font: {
+                            weight: 'bold'
                         }
+                    },
+                    grid: {
+                        color: 'rgba(76, 175, 80, 0.1)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#4caf50'
+                    },
+                    grid: {
+                        color: 'rgba(76, 175, 80, 0.1)'
                     }
                 }
             }

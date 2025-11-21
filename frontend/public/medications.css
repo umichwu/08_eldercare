@@ -1760,6 +1760,7 @@ body {
 /* ==================== 通知相關樣式 ==================== */
 
 /* 通知測試按鈕 */
+.nav-family-dashboard,
 .nav-notification-test {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -1775,11 +1776,13 @@ body {
     justify-content: center;
 }
 
+.nav-family-dashboard:hover,
 .nav-notification-test:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
+.nav-family-dashboard:active,
 .nav-notification-test:active {
     transform: scale(0.95);
 }

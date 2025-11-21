@@ -57,6 +57,7 @@ async function loadCurrentUser() {
             return;
         }
 
+        // 檢查是否為家屬角色
         if (profile && profile.role === 'family_member') {
             const { data: familyMember, error: familyError } = await supabaseClient
                 .from('family_members')
@@ -72,9 +73,22 @@ async function loadCurrentUser() {
 
             currentFamilyMemberId = familyMember?.id;
             console.log('✅ 當前家屬 ID:', currentFamilyMemberId);
+        } else if (profile && profile.role === 'elder') {
+            // 如果是長輩角色，允許訪問但顯示提示
+            showToast('您可以查看自己的監控資料', 'info');
+            // 可以選擇讓長輩查看自己的資料，或是跳轉
+            // 暫時允許訪問，但不跳轉
+            console.log('⚠️ 長輩角色訪問家屬監控面板');
         } else {
-            showToast('此功能僅供家屬使用', 'warning');
-            setTimeout(() => window.location.href = 'index.html', 2000);
+            // 其他角色或未設定角色，顯示警告但不立即跳轉
+            showToast('建議使用家屬帳號訪問此頁面', 'warning');
+            console.log('⚠️ 非家屬角色:', profile?.role);
+            // 給使用者 5 秒時間查看，然後提示是否要跳轉
+            setTimeout(() => {
+                if (confirm('此功能主要供家屬使用。是否要返回主頁？')) {
+                    window.location.href = 'index.html';
+                }
+            }, 3000);
         }
     } catch (error) {
         console.error('載入使用者失敗:', error);

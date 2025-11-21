@@ -45,7 +45,9 @@
       "Read(//usr/lib/**)",
       "Bash(node diagnose-timezone-issue.js)",
       "Bash(test -f .env)",
-      "Bash(npm install @sendgrid/mail twilio)"
+      "Bash(npm install @sendgrid/mail twilio)",
+      "Bash(tree -L 2 -I 'node_modules|.git|build|dist|android|ios' --dirsfirst)",
+      "Bash(ls -1 docs_delete/*.{md,sql})"
     ],
     "deny": [],
     "ask": []

@@ -21,6 +21,10 @@ let currentElderId = null;
 let elders = [];
 let adherenceChart = null;
 
+// 快取資料用於篩選
+let allMedicationLogs = [];
+let allConversations = [];
+
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
@@ -380,7 +384,9 @@ async function loadMedicationLogs() {
             return;
         }
 
-        renderMedicationLogs(result.data || []);
+        // 儲存所有記錄供篩選使用
+        allMedicationLogs = result.data || [];
+        renderMedicationLogs(allMedicationLogs);
         loadMedicationStats();
     } catch (error) {
         console.error('載入用藥記錄失敗:', error);
@@ -475,13 +481,42 @@ async function loadMedicationStats() {
 }
 
 function filterMedicationLogs(status) {
-    // TODO: 實作篩選邏輯
-    console.log('Filter by status:', status);
+    // 套用狀態和日期篩選
+    applyMedicationFilters();
 }
 
 function filterByDate(date) {
-    // TODO: 實作日期篩選
-    console.log('Filter by date:', date);
+    // 套用狀態和日期篩選
+    applyMedicationFilters();
+}
+
+function applyMedicationFilters() {
+    const statusFilter = document.getElementById('medicationFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+
+    let filteredLogs = [...allMedicationLogs];
+
+    // 狀態篩選
+    if (statusFilter && statusFilter !== 'all') {
+        filteredLogs = filteredLogs.filter(log => log.status === statusFilter);
+    }
+
+    // 日期篩選
+    if (dateFilter) {
+        filteredLogs = filteredLogs.filter(log => {
+            const logDate = new Date(log.scheduled_time).toISOString().split('T')[0];
+            return logDate === dateFilter;
+        });
+    }
+
+    // 渲染篩選後的結果
+    renderMedicationLogs(filteredLogs);
+
+    // 顯示篩選提示
+    if (filteredLogs.length === 0) {
+        const container = document.getElementById('medicationLogs');
+        container.innerHTML = '<p class="empty-state">沒有符合條件的用藥記錄</p>';
+    }
 }
 
 // ==================== 對話記錄 ====================
@@ -501,7 +536,9 @@ async function loadConversations() {
             return;
         }
 
-        renderConversations(conversations || []);
+        // 儲存所有對話供篩選使用
+        allConversations = conversations || [];
+        renderConversations(allConversations);
     } catch (error) {
         console.error('載入對話失敗:', error);
         showToast('載入對話記錄失敗', 'error');
@@ -568,8 +605,31 @@ function closeConversationModal() {
 }
 
 function filterConversations(date) {
-    // TODO: 實作日期篩選
-    console.log('Filter conversations by date:', date);
+    // 套用日期篩選
+    applyConversationFilters();
+}
+
+function applyConversationFilters() {
+    const dateFilter = document.getElementById('conversationDateFilter').value;
+
+    let filteredConversations = [...allConversations];
+
+    // 日期篩選
+    if (dateFilter) {
+        filteredConversations = filteredConversations.filter(conv => {
+            const convDate = new Date(conv.created_at).toISOString().split('T')[0];
+            return convDate === dateFilter;
+        });
+    }
+
+    // 渲染篩選後的結果
+    renderConversations(filteredConversations);
+
+    // 顯示篩選提示
+    if (filteredConversations.length === 0) {
+        const container = document.getElementById('conversationsList');
+        container.innerHTML = '<p class="empty-state">沒有符合條件的對話記錄</p>';
+    }
 }
 
 // ==================== 警示系統 ====================

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家屬監控面板 - 日期篩選測試</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .test-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-case {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-case h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .test-steps {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .test-steps li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .test-steps li:before {
+            content: "➤";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+
+        .expected {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .expected strong {
+            color: #155724;
+        }
+
+        .code {
+            background: #f1f3f5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #e83e8c;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .feature-icon {
+            font-size: 24px;
+        }
+
+        .feature-content h4 {
+            color: #495057;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .feature-content p {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-new {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-improved {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .note strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 家屬監控面板 - 日期篩選測試</h1>
+        <p class="subtitle">測試用藥記錄與對話記錄的日期篩選功能</p>
+
+        <!-- 新功能概述 -->
+        <div class="test-section">
+            <h2>✨ 新增功能</h2>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon">📅</div>
+                    <div class="feature-content">
+                        <h4>用藥記錄日期篩選 <span class="status-badge status-new">NEW</span></h4>
+                        <p>可依日期查看特定日期的用藥記錄</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-content">
+                        <h4>對話記錄日期篩選 <span class="status-badge status-new">NEW</span></h4>
+                        <p>可依日期查看特定日期的對話記錄</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔄</div>
+                    <div class="feature-content">
+                        <h4>組合篩選 <span class="status-badge status-improved">IMPROVED</span></h4>
+                        <p>用藥記錄支援狀態+日期組合篩選</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-content">
+                        <h4>即時篩選 <span class="status-badge status-new">NEW</span></h4>
+                        <p>無需重新載入，即時顯示篩選結果</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 測試案例 1: 用藥記錄日期篩選 -->
+        <div class="test-section">
+            <h2>🧪 測試案例 1：用藥記錄日期篩選</h2>
+
+            <div class="test-case">
+                <h3>測試 1.1：單獨日期篩選</h3>
+                <ul class="test-steps">
+                    <li>開啟家屬監控面板</li>
+                    <li>選擇一位長輩</li>
+                    <li>點擊「💊 用藥記錄」標籤</li>
+                    <li>選擇日期選擇器，選擇今天的日期</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 只顯示今天的用藥記錄
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>測試 1.2：組合篩選（狀態 + 日期）</h3>
+                <ul class="test-steps">
+                    <li>在「用藥記錄」標籤中</li>
+                    <li>狀態篩選選擇「<span class="code">已服用</span>」</li>
+                    <li>日期選擇器選擇昨天的日期</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 只顯示昨天「已服用」的記錄
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>測試 1.3：清除日期篩選</h3>
+                <ul class="test-steps">
+                    <li>清空日期選擇器（刪除日期）</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 恢復顯示所有用藥記錄（保留狀態篩選）
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>測試 1.4：沒有記錄的日期</h3>
+                <ul class="test-steps">
+                    <li>選擇一個沒有用藥記錄的日期（例如：一個月前）</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 顯示「沒有符合條件的用藥記錄」
+                </div>
+            </div>
+        </div>
+
+        <!-- 測試案例 2: 對話記錄日期篩選 -->
+        <div class="test-section">
+            <h2>🧪 測試案例 2：對話記錄日期篩選</h2>
+
+            <div class="test-case">
+                <h3>測試 2.1：篩選今天的對話</h3>
+                <ul class="test-steps">
+                    <li>點擊「💬 對話記錄」標籤</li>
+                    <li>選擇日期選擇器，選擇今天的日期</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 只顯示今天建立的對話記錄
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>測試 2.2：篩選過去某天的對話</h3>
+                <ul class="test-steps">
+                    <li>選擇日期選擇器，選擇過去某天的日期</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 只顯示該日期的對話記錄
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>測試 2.3：清除日期篩選</h3>
+                <ul class="test-steps">
+                    <li>清空日期選擇器</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 顯示所有對話記錄（最近 50 筆）
+                </div>
+            </div>
+
+            <div class="test-case">
+                <h3>測試 2.4：重新整理按鈕</h3>
+                <ul class="test-steps">
+                    <li>點擊「🔄 重新整理」按鈕</li>
+                </ul>
+                <div class="expected">
+                    <strong>✅ 預期結果：</strong> 重新載入對話記錄，清除日期篩選
+                </div>
+            </div>
+        </div>
+
+        <!-- 技術細節 -->
+        <div class="test-section">
+            <h2>⚙️ 技術實作細節</h2>
+
+            <div class="test-case">
+                <h3>實作方式</h3>
+                <ul class="test-steps">
+                    <li>新增全域變數 <span class="code">allMedicationLogs</span> 和 <span class="code">allConversations</span> 快取資料</li>
+                    <li>實作 <span class="code">applyMedicationFilters()</span> 函數處理組合篩選</li>
+                    <li>實作 <span class="code">applyConversationFilters()</span> 函數處理日期篩選</li>
+                    <li>使用 JavaScript Date 物件比對日期</li>
+                </ul>
+            </div>
+
+            <div class="note">
+                <strong>📝 注意事項：</strong><br>
+                - 日期篩選使用 ISO 8601 格式（YYYY-MM-DD）進行比對<br>
+                - 篩選是在前端執行，無需額外 API 請求<br>
+                - 快取資料在切換長輩時會自動清空並重新載入
+            </div>
+        </div>
+
+        <!-- 程式碼變更 -->
+        <div class="test-section">
+            <h2>📝 程式碼變更摘要</h2>
+
+            <div class="test-case">
+                <h3>修改的檔案</h3>
+                <ul class="test-steps">
+                    <li><span class="code">frontend/public/family-dashboard.js</span></li>
+                </ul>
+            </div>
+
+            <div class="test-case">
+                <h3>新增的功能</h3>
+                <ul class="test-steps">
+                    <li>Line 25-26: 新增全域快取變數</li>
+                    <li>Line 388: 儲存用藥記錄到快取</li>
+                    <li>Line 493-520: 實作 <span class="code">applyMedicationFilters()</span></li>
+                    <li>Line 540: 儲存對話記錄到快取</li>
+                    <li>Line 612-633: 實作 <span class="code">applyConversationFilters()</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="button-group">
+            <a href="family-dashboard.html" class="btn btn-primary">
+                🚀 開啟家屬監控面板
+            </a>
+            <a href="index.html" class="btn btn-secondary">
+                ← 返回主頁
+            </a>
+        </div>
+
+        <div class="note" style="margin-top: 20px;">
+            <strong>💡 提示：</strong><br>
+            如果看不到資料，請確保：<br>
+            1. 已登入家屬帳號<br>
+            2. 資料庫中有建立家屬與長輩的關聯（elder_family_relationships）<br>
+            3. 長輩有用藥記錄和對話記錄
+        </div>
+    </div>
+</body>
+</html>

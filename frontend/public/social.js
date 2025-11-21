@@ -235,6 +235,7 @@ function createSelfItem() {
     div.className = 'friend-item self-item';
     div.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     div.style.color = 'white';
+    div.style.cursor = 'pointer';
 
     const avatarUrl = userProfile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.display_name || currentUser.email)}&background=FFB74D&color=fff&size=80`;
 
@@ -247,11 +248,22 @@ function createSelfItem() {
             </div>
         </div>
         <div class="friend-actions">
-            <button class="btn-icon" style="background: rgba(255,255,255,0.2); color: white;" onclick="openChatWithSelf()" title="速記">
+            <button class="btn-icon" style="background: rgba(255,255,255,0.2); color: white;" onclick="event.stopPropagation(); openChatWithSelf()" title="速記">
                 💬
             </button>
         </div>
     `;
+
+    // 點擊整個好友項目就開啟聊天
+    div.addEventListener('click', () => {
+        // 高亮選中的好友項目
+        document.querySelectorAll('.friend-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        div.classList.add('active');
+
+        openChatWithSelf();
+    });
 
     return div;
 }
@@ -306,6 +318,7 @@ async function loadFriends() {
 function createFriendItem(friend) {
     const div = document.createElement('div');
     div.className = 'friend-item';
+    div.style.cursor = 'pointer';
 
     const avatarUrl = friend.friend_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.friend_name)}&background=667eea&color=fff&size=80`;
 
@@ -322,14 +335,25 @@ function createFriendItem(friend) {
             </div>
         </div>
         <div class="friend-actions">
-            <button class="btn-icon" onclick="openChatWithFriend('${friend.friend_user_id}')" title="聊天">
+            <button class="btn-icon" onclick="event.stopPropagation(); openChatWithFriend('${friend.friend_user_id}', '${escapeHtml(friend.friend_name)}', '${avatarUrl}')" title="聊天">
                 💬
             </button>
-            <button class="btn-icon" onclick="viewFriendProfile('${friend.friend_user_id}')" title="查看資料">
+            <button class="btn-icon" onclick="event.stopPropagation(); viewFriendProfile('${friend.friend_user_id}')" title="查看資料">
                 👤
             </button>
         </div>
     `;
+
+    // 點擊整個好友項目就開啟聊天
+    div.addEventListener('click', (e) => {
+        // 高亮選中的好友項目
+        document.querySelectorAll('.friend-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        div.classList.add('active');
+
+        openChatWithFriend(friend.friend_user_id, friend.friend_name, avatarUrl);
+    });
 
     return div;
 }
@@ -1122,6 +1146,33 @@ async function loadChatWithSelf() {
     `;
 }
 
+// 載入與好友的聊天記錄
+async function loadChatWithFriend(friendUserId, friendName) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
+    console.log(`📥 載入與 ${friendName} 的聊天記錄...`);
+
+    // TODO: 從資料庫載入聊天記錄
+    // 目前顯示歡迎訊息
+    chatMessages.innerHTML = `
+        <div class="chat-date-divider">
+            <span>今天</span>
+        </div>
+        <div style="text-align: center; padding: 40px 20px; color: #999;">
+            <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+            <p>開始與 ${friendName} 聊天吧！</p>
+            <p style="font-size: 14px; margin-top: 8px;">這是您和 ${friendName} 的對話空間</p>
+        </div>
+    `;
+
+    // 儲存當前聊天對象（用於發送訊息）
+    window.currentChatFriend = {
+        userId: friendUserId,
+        name: friendName
+    };
+}
+
 // 切換內容標籤（聊天/動態）
 function switchContentTab(tabName) {
     console.log(`🔄 切換內容標籤: ${tabName}`);
@@ -1165,10 +1216,32 @@ function switchToTimeline() {
 }
 
 // 開啟與好友聊天
-function openChatWithFriend(friendUserId) {
-    console.log(`💬 開啟與好友的聊天: ${friendUserId}`);
-    // TODO: 實作聊天功能
-    showError('聊天功能開發中...');
+function openChatWithFriend(friendUserId, friendName, friendAvatar) {
+    console.log(`💬 開啟與好友的聊天: ${friendUserId} - ${friendName}`);
+
+    // 隱藏歡迎畫面和動態時間軸
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const timelineArea = document.getElementById('timelineArea');
+    const friendContentArea = document.getElementById('friendContentArea');
+
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    if (timelineArea) timelineArea.style.display = 'none';
+    if (friendContentArea) friendContentArea.style.display = 'block';
+
+    // 設定選中好友的資訊
+    const selectedFriendAvatar = document.getElementById('selectedFriendAvatar');
+    const selectedFriendName = document.getElementById('selectedFriendName');
+    const selectedFriendStatus = document.getElementById('selectedFriendStatus');
+
+    if (selectedFriendAvatar) selectedFriendAvatar.src = friendAvatar;
+    if (selectedFriendName) selectedFriendName.textContent = friendName;
+    if (selectedFriendStatus) selectedFriendStatus.textContent = '線上';
+
+    // 切換到聊天標籤
+    switchContentTab('chat');
+
+    // 載入與好友的聊天記錄
+    loadChatWithFriend(friendUserId, friendName);
 }
 
 // 查看好友資料
@@ -1216,20 +1289,26 @@ function sendMessage() {
 
     console.log('📤 發送訊息:', message);
 
-    // TODO: 實作發送訊息功能
-    // 目前只是清空輸入框
+    // TODO: 實作發送訊息功能到資料庫
+    // 目前只是清空輸入框並顯示訊息
     chatInput.value = '';
 
     // 顯示訊息在聊天室中（暫時的模擬）
     const chatMessages = document.getElementById('chatMessages');
     if (chatMessages) {
+        // 移除歡迎訊息（如果存在）
+        const welcomeMessage = chatMessages.querySelector('div[style*="text-align: center"]');
+        if (welcomeMessage && welcomeMessage.parentElement) {
+            welcomeMessage.parentElement.remove();
+        }
+
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-message sent';
+        messageDiv.className = 'chat-message me';
         messageDiv.innerHTML = `
-            <div class="message-content">
-                <p>${escapeHtml(message)}</p>
+            <div class="message-bubble">
+                <div class="message-text">${escapeHtml(message)}</div>
+                <div class="message-time">${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
             </div>
-            <div class="message-time">${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
         `;
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;

@@ -9,6 +9,10 @@
 const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
 
+const API_BASE_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://eldercare-backend-8o4k.onrender.com';
+
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -100,8 +104,8 @@ async function loadPageContent() {
         }
     }
 
-    // 根據當前標籤載入內容
-    await loadTabContent(currentTab);
+    // 載入好友列表（預設顯示，不需要切換標籤）
+    await loadFriendsList();
 }
 
 // ===================================
@@ -177,6 +181,81 @@ async function loadTimeline() {
 // ===================================
 // 好友列表
 // ===================================
+async function loadFriendsList() {
+    const friendsList = document.getElementById('friendsList');
+    const noFriendsPlaceholder = document.getElementById('noFriendsPlaceholder');
+
+    try {
+        console.log('👥 載入好友列表...');
+
+        // 載入好友列表
+        const { data: friends, error: friendsError } = await supabaseClient
+            .from('v_user_friends')
+            .select('*')
+            .eq('user_id', userProfile.id)
+            .order('friends_since', { ascending: false });
+
+        if (friendsError) {
+            console.error('❌ 載入好友列表錯誤:', friendsError);
+            // 不要拋出錯誤，繼續顯示自己
+        }
+
+        console.log('📊 載入好友數量:', friends?.length || 0);
+
+        // 清空列表
+        friendsList.innerHTML = '';
+
+        // 首先加入「自己」作為第一個好友（用於速記/自我提醒）
+        const selfItem = createSelfItem();
+        friendsList.appendChild(selfItem);
+
+        // 然後加入其他好友
+        if (friends && friends.length > 0) {
+            noFriendsPlaceholder.style.display = 'none';
+
+            friends.forEach(friend => {
+                const friendItem = createFriendItem(friend);
+                friendsList.appendChild(friendItem);
+            });
+        } else {
+            // 即使沒有其他好友，也不顯示空狀態提示（因為至少有自己）
+            noFriendsPlaceholder.style.display = 'none';
+        }
+
+        console.log('✅ 好友列表載入完成');
+    } catch (error) {
+        console.error('❌ 載入好友列表失敗:', error);
+        friendsList.innerHTML = '<p style="text-align: center; color: #999;">載入失敗，請重試</p>';
+    }
+}
+
+// 建立「自己」的列表項目
+function createSelfItem() {
+    const div = document.createElement('div');
+    div.className = 'friend-item self-item';
+    div.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    div.style.color = 'white';
+
+    const avatarUrl = userProfile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.display_name || currentUser.email)}&background=FFB74D&color=fff&size=80`;
+
+    div.innerHTML = `
+        <img class="friend-avatar" src="${avatarUrl}" alt="${userProfile.display_name}" style="border: 2px solid white;">
+        <div class="friend-info">
+            <div class="friend-name" style="color: white; font-weight: 600;">${userProfile.display_name || '我'} (自己)</div>
+            <div class="friend-meta" style="color: rgba(255,255,255,0.9);">
+                <span>📝 速記/自我提醒</span>
+            </div>
+        </div>
+        <div class="friend-actions">
+            <button class="btn-icon" style="background: rgba(255,255,255,0.2); color: white;" onclick="openChatWithSelf()" title="速記">
+                💬
+            </button>
+        </div>
+    `;
+
+    return div;
+}
+
 async function loadFriends() {
     const friendsList = document.getElementById('friendsList');
     const noFriendsPlaceholder = document.getElementById('noFriendsPlaceholder');
@@ -402,6 +481,11 @@ async function submitPost() {
         hideLoading();
         showError('發布失敗，請重試');
     }
+}
+
+// publishPost 的別名（用於 HTML 中）
+function publishPost() {
+    submitPost();
 }
 
 // ===================================
@@ -867,8 +951,8 @@ function showSearch() {
     showAddFriendModal();
 }
 
-function filterFriends() {
-    const searchTerm = document.getElementById('friendSearch').value.toLowerCase();
+function filterFriends(event) {
+    const searchTerm = event.target.value.toLowerCase();
     const friendItems = document.querySelectorAll('.friend-item');
 
     friendItems.forEach(item => {
@@ -989,6 +1073,97 @@ function getRelationshipLabel(type) {
     return labels[type] || type;
 }
 
+// 開啟與自己的聊天（速記功能）
+function openChatWithSelf() {
+    console.log('📝 開啟速記功能（與自己聊天）');
+
+    // 隱藏歡迎畫面和動態時間軸
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const timelineArea = document.getElementById('timelineArea');
+    const friendContentArea = document.getElementById('friendContentArea');
+
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    if (timelineArea) timelineArea.style.display = 'none';
+    if (friendContentArea) friendContentArea.style.display = 'block';
+
+    // 設定選中好友的資訊為自己
+    const selectedFriendAvatar = document.getElementById('selectedFriendAvatar');
+    const selectedFriendName = document.getElementById('selectedFriendName');
+    const selectedFriendStatus = document.getElementById('selectedFriendStatus');
+
+    const avatarUrl = userProfile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.display_name || currentUser.email)}&background=FFB74D&color=fff&size=80`;
+
+    if (selectedFriendAvatar) selectedFriendAvatar.src = avatarUrl;
+    if (selectedFriendName) selectedFriendName.textContent = `${userProfile.display_name || '我'} (速記)`;
+    if (selectedFriendStatus) selectedFriendStatus.textContent = '📝 給自己的提醒與速記';
+
+    // 切換到聊天標籤
+    switchContentTab('chat');
+
+    // 載入與自己的聊天記錄
+    loadChatWithSelf();
+}
+
+// 載入與自己的聊天記錄
+async function loadChatWithSelf() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
+    // TODO: 從資料庫載入與自己的聊天記錄
+    chatMessages.innerHTML = `
+        <div class="chat-date-divider">
+            <span>今天</span>
+        </div>
+        <div style="text-align: center; padding: 40px 20px; color: #999;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+            <p>這是您的私人速記空間</p>
+            <p style="font-size: 14px; margin-top: 8px;">在這裡記錄想法、待辦事項或重要提醒</p>
+        </div>
+    `;
+}
+
+// 切換內容標籤（聊天/動態）
+function switchContentTab(tabName) {
+    console.log(`🔄 切換內容標籤: ${tabName}`);
+
+    // 更新標籤按鈕狀態
+    document.querySelectorAll('.content-tab').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tab === tabName) {
+            btn.classList.add('active');
+        }
+    });
+
+    // 更新標籤內容顯示
+    const chatContent = document.getElementById('chatContent');
+    const postsContent = document.getElementById('postsContent');
+
+    if (tabName === 'chat') {
+        if (chatContent) chatContent.style.display = 'flex';
+        if (postsContent) postsContent.style.display = 'none';
+    } else if (tabName === 'posts') {
+        if (chatContent) chatContent.style.display = 'none';
+        if (postsContent) postsContent.style.display = 'block';
+    }
+}
+
+// 切換到動態時間軸
+function switchToTimeline() {
+    console.log('📰 切換到動態時間軸');
+
+    // 隱藏其他區域
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const friendContentArea = document.getElementById('friendContentArea');
+    const timelineArea = document.getElementById('timelineArea');
+
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+    if (friendContentArea) friendContentArea.style.display = 'none';
+    if (timelineArea) timelineArea.style.display = 'block';
+
+    // 載入動態時間軸
+    loadTimeline();
+}
+
 // 開啟與好友聊天
 function openChatWithFriend(friendUserId) {
     console.log(`💬 開啟與好友的聊天: ${friendUserId}`);
@@ -1001,6 +1176,79 @@ function viewFriendProfile(friendUserId) {
     console.log(`👤 查看好友資料: ${friendUserId}`);
     // TODO: 實作個人資料頁面
     showError('個人資料頁面開發中...');
+}
+
+// 開始視訊通話
+function startVideoCall() {
+    console.log('📹 開始視訊通話');
+    showError('視訊通話功能開發中...');
+}
+
+// 開始語音通話
+function startVoiceCall() {
+    console.log('📞 開始語音通話');
+    showError('語音通話功能開發中...');
+}
+
+// 顯示表情符號選擇器
+function showEmojiPicker() {
+    console.log('😊 顯示表情符號選擇器');
+    // TODO: 實作表情符號選擇器
+    showError('表情符號選擇器開發中...');
+}
+
+// 選擇圖片
+function selectImage() {
+    console.log('📷 選擇圖片');
+    // TODO: 實作圖片選擇功能
+    showError('圖片選擇功能開發中...');
+}
+
+// 發送訊息
+function sendMessage() {
+    const chatInput = document.getElementById('chatInput');
+    if (!chatInput) return;
+
+    const message = chatInput.value.trim();
+    if (!message) {
+        return;
+    }
+
+    console.log('📤 發送訊息:', message);
+
+    // TODO: 實作發送訊息功能
+    // 目前只是清空輸入框
+    chatInput.value = '';
+
+    // 顯示訊息在聊天室中（暫時的模擬）
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message sent';
+        messageDiv.innerHTML = `
+            <div class="message-content">
+                <p>${escapeHtml(message)}</p>
+            </div>
+            <div class="message-time">${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
+        `;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+// 處理聊天輸入框的鍵盤事件
+function handleChatKeyPress(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+// HTML 轉義函數
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 console.log('✅ social.js 載入完成');

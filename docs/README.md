@@ -66,6 +66,7 @@
 #### 地理位置
 | 文檔 | 說明 |
 |------|------|
+| [地理位置實作報告](GEOLOCATION_IMPLEMENTATION.md) | ✨ 完整實作報告（NEW） |
 | [地理位置功能](geolocation-feature.md) | 地理位置追蹤 |
 | [地理位置整合指南](geolocation-integration-guide.md) | 整合步驟 |
 | [地理位置 Prompt 設計](geo-location-prompt-design.md) | AI Prompt 設計 |

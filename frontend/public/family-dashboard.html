@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="mobile-modern.css">
     <link rel="stylesheet" href="family-dashboard.css">
 
+    <!-- Leaflet 地圖 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -56,6 +60,9 @@
             </button>
             <button class="tab-btn" data-tab="alerts" onclick="switchTab('alerts')">
                 🔔 警示
+            </button>
+            <button class="tab-btn" data-tab="geolocation" onclick="switchTab('geolocation')">
+                📍 位置追蹤
             </button>
         </div>
 
@@ -187,6 +194,70 @@
                 <div class="loading-state">
                     <div class="spinner"></div>
                     <p>載入警示...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 地理位置標籤 -->
+        <div id="geolocation-tab" class="tab-content">
+            <div class="geolocation-header">
+                <button class="btn-primary" onclick="window.location.href='geolocation.html'">
+                    ⚙️ 管理安全區域
+                </button>
+                <button class="btn-secondary" onclick="refreshLocation()">
+                    🔄 更新位置
+                </button>
+            </div>
+
+            <!-- 當前位置卡片 -->
+            <div class="location-card">
+                <h3>📍 當前位置</h3>
+                <div id="currentLocation" class="current-location">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>載入位置資訊...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 地圖顯示 -->
+            <div class="map-card">
+                <h3>🗺️ 地圖</h3>
+                <div id="locationMap" style="height: 400px; border-radius: 12px; overflow: hidden;">
+                    <!-- Leaflet 地圖將在此載入 -->
+                </div>
+            </div>
+
+            <!-- 安全區域列表 -->
+            <div class="safe-zones-card">
+                <h3>🛡️ 安全區域</h3>
+                <div id="safeZonesList" class="safe-zones-list">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>載入安全區域...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 地理圍欄警示 -->
+            <div class="geofence-alerts-card">
+                <h3>🚨 地理圍欄警示</h3>
+                <div id="geofenceAlertsList" class="geofence-alerts-list">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>載入警示記錄...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 位置歷史 -->
+            <div class="location-history-card">
+                <h3>📜 位置歷史（最近 24 小時）</h3>
+                <div id="locationHistoryList" class="location-history-list">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>載入歷史記錄...</p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -191,6 +191,9 @@ function switchTab(tabName) {
         loadConversations();
     } else if (tabName === 'alerts') {
         loadAlerts();
+    } else if (tabName === 'geolocation') {
+        loadGeolocationTab();
+        loadLocationHistoryPreview();
     }
 }
 
@@ -746,4 +749,331 @@ function showToast(message, type = 'info') {
 function showSettings() {
     // TODO: 實作設定功能
     showToast('功能開發中', 'info');
+}
+
+// ==================== 地理位置功能 ====================
+
+let locationMap = null;
+let elderLocationMarker = null;
+let safeZoneCircles = [];
+
+async function loadGeolocationTab() {
+    if (!currentElderId) {
+        document.getElementById('currentLocation').innerHTML = `
+            <div class="empty-state">
+                <p>請先選擇長輩</p>
+            </div>
+        `;
+        return;
+    }
+
+    // 初始化地圖
+    if (!locationMap) {
+        initLocationMap();
+    }
+
+    // 載入資料
+    await Promise.all([
+        loadCurrentLocation(),
+        loadSafeZonesPreview(),
+        loadGeofenceAlertsPreview()
+    ]);
+}
+
+function initLocationMap() {
+    const mapContainer = document.getElementById('locationMap');
+    if (!mapContainer) return;
+
+    // 初始化 Leaflet 地圖（台灣中心）
+    locationMap = L.map('locationMap').setView([23.6978, 120.9605], 8);
+
+    // 加入 OpenStreetMap 圖層
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(locationMap);
+}
+
+async function loadCurrentLocation() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/geolocation/location/latest/${currentElderId}`);
+        const result = await response.json();
+
+        const locationContainer = document.getElementById('currentLocation');
+
+        if (result.success && result.location) {
+            const loc = result.location;
+
+            locationContainer.innerHTML = `
+                <div class="location-info" style="background: #e8f5e9; padding: 20px; border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 2px solid #c8e6c9;">
+                        <span style="color: #2e7d32; font-weight: 500;">📍 位置</span>
+                        <span style="color: #666;">${loc.address || '未知地址'}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 2px solid #c8e6c9;">
+                        <span style="color: #2e7d32; font-weight: 500;">🕐 時間</span>
+                        <span style="color: #666;">${formatTimeAgo(new Date(loc.recorded_at))}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #2e7d32; font-weight: 500;">📐 座標</span>
+                        <span style="color: #666; font-size: 13px;">${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}</span>
+                    </div>
+                    ${loc.battery_level ? `
+                    <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #c8e6c9;">
+                        <span style="color: #2e7d32; font-weight: 500;">🔋 電量</span>
+                        <span style="color: ${loc.battery_level < 20 ? '#f44336' : '#666'}; font-weight: ${loc.battery_level < 20 ? 'bold' : 'normal'};">
+                            ${loc.battery_level}%
+                        </span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // 在地圖上標記位置
+            if (locationMap) {
+                if (elderLocationMarker) {
+                    locationMap.removeLayer(elderLocationMarker);
+                }
+
+                elderLocationMarker = L.marker([loc.latitude, loc.longitude], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(locationMap);
+
+                elderLocationMarker.bindPopup(`
+                    <strong>📍 長輩位置</strong><br>
+                    ${loc.address || '未知地址'}<br>
+                    <small>${formatTimeAgo(new Date(loc.recorded_at))}</small>
+                `);
+
+                locationMap.setView([loc.latitude, loc.longitude], 15);
+            }
+
+        } else {
+            locationContainer.innerHTML = `
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📍</div>
+                    <p>尚無位置記錄</p>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('載入位置錯誤:', error);
+        document.getElementById('currentLocation').innerHTML = `
+            <div class="empty-state">
+                <p style="color: #f44336;">載入失敗</p>
+            </div>
+        `;
+    }
+}
+
+async function loadSafeZonesPreview() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/geolocation/safe-zones/elder/${currentElderId}`);
+        const result = await response.json();
+
+        const safeZonesList = document.getElementById('safeZonesList');
+
+        if (result.success && result.safe_zones.length > 0) {
+            // 清除舊的圓圈
+            safeZoneCircles.forEach(circle => {
+                if (locationMap) locationMap.removeLayer(circle);
+            });
+            safeZoneCircles = [];
+
+            // 顯示前 3 個安全區域
+            const preview = result.safe_zones.slice(0, 3);
+
+            safeZonesList.innerHTML = `
+                ${preview.map(zone => `
+                    <div style="background: linear-gradient(145deg, #ffffff 0%, #f1f8f4 100%); border-left: 5px solid #4caf50; padding: 15px; border-radius: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 16px; font-weight: 600; color: #2e7d32;">🛡️ ${zone.name}</span>
+                            <span style="padding: 4px 12px; background: ${zone.is_active ? '#c8e6c9' : '#ffcdd2'}; color: ${zone.is_active ? '#2e7d32' : '#c62828'}; border-radius: 12px; font-size: 12px; font-weight: 500;">
+                                ${zone.is_active ? '✓ 啟用' : '✗ 停用'}
+                            </span>
+                        </div>
+                        <div style="color: #666; font-size: 14px;">
+                            📍 半徑 ${zone.radius_meters}m &nbsp;|&nbsp; 🚨 ${zone.alert_on_exit ? '離開警示' : ''} ${zone.alert_on_enter ? '進入通知' : ''}
+                        </div>
+                    </div>
+                `).join('')}
+                ${result.safe_zones.length > 3 ? `
+                    <div style="text-align: center; margin-top: 15px;">
+                        <span style="color: #999; font-size: 14px;">還有 ${result.safe_zones.length - 3} 個安全區域</span>
+                    </div>
+                ` : ''}
+                <button class="btn btn-primary" onclick="window.location.href='geolocation.html'" style="width: 100%; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                    ⚙️ 管理所有安全區域
+                </button>
+            `;
+
+            // 在地圖上繪製安全區域
+            if (locationMap) {
+                result.safe_zones.forEach(zone => {
+                    const circle = L.circle([zone.center_latitude, zone.center_longitude], {
+                        radius: zone.radius_meters,
+                        color: zone.is_active ? '#4caf50' : '#999',
+                        fillColor: zone.is_active ? '#4caf50' : '#999',
+                        fillOpacity: 0.15,
+                        weight: 2
+                    }).addTo(locationMap);
+
+                    circle.bindPopup(`<strong>🛡️ ${zone.name}</strong><br>半徑：${zone.radius_meters}m`);
+                    safeZoneCircles.push(circle);
+                });
+            }
+
+        } else {
+            safeZonesList.innerHTML = `
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 15px;">🛡️</div>
+                    <p>尚未設定安全區域</p>
+                    <button class="btn btn-primary" onclick="window.location.href='geolocation.html'" style="margin-top: 15px; padding: 12px 24px; background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                        ➕ 新增安全區域
+                    </button>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('載入安全區域錯誤:', error);
+    }
+}
+
+async function loadGeofenceAlertsPreview() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/geolocation/alerts/elder/${currentElderId}`);
+        const result = await response.json();
+
+        const alertsList = document.getElementById('geofenceAlertsList');
+
+        if (result.success && result.alerts.length > 0) {
+            // 只顯示最近 5 個警示
+            const recentAlerts = result.alerts.slice(0, 5);
+
+            alertsList.innerHTML = `
+                ${recentAlerts.map(alert => {
+                    const typeColor = {
+                        'exit': '#f44336',
+                        'enter': '#4caf50',
+                        'sos': '#d32f2f',
+                        'low_battery': '#ff9800',
+                        'inactive': '#9e9e9e'
+                    };
+
+                    const typeIcon = {
+                        'exit': '🚨',
+                        'enter': '✅',
+                        'sos': '🆘',
+                        'low_battery': '🔋',
+                        'inactive': '⏰'
+                    };
+
+                    const typeName = {
+                        'exit': '離開安全區域',
+                        'enter': '進入安全區域',
+                        'sos': '緊急求助',
+                        'low_battery': '低電量',
+                        'inactive': '無活動'
+                    };
+
+                    return `
+                        <div style="background: white; border-left: 5px solid ${typeColor[alert.alert_type]}; padding: 15px; border-radius: 8px; margin-bottom: 12px; ${alert.status !== 'pending' ? 'opacity: 0.6;' : ''}">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-weight: 600; font-size: 15px;">
+                                    ${typeIcon[alert.alert_type]} ${typeName[alert.alert_type]}
+                                </span>
+                                <span style="color: #999; font-size: 12px;">${formatTimeAgo(new Date(alert.created_at))}</span>
+                            </div>
+                            <div style="color: #666; font-size: 14px;">
+                                ${alert.safe_zone_name ? `📍 ${alert.safe_zone_name}` : ''}
+                                ${alert.address ? `<br>🗺️ ${alert.address}` : ''}
+                            </div>
+                            ${alert.status !== 'pending' ? `
+                                <div style="margin-top: 8px; color: #4caf50; font-size: 13px;">
+                                    ✓ ${alert.status === 'acknowledged' ? '已知悉' : '已處理'}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+                ${result.alerts.length > 5 ? `
+                    <div style="text-align: center; margin-top: 15px;">
+                        <span style="color: #999; font-size: 14px;">還有 ${result.alerts.length - 5} 個警示</span>
+                    </div>
+                ` : ''}
+            `;
+
+        } else {
+            alertsList.innerHTML = `
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
+                    <p>目前無警示記錄</p>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('載入警示錯誤:', error);
+    }
+}
+
+async function loadLocationHistoryPreview() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/geolocation/location/elder/${currentElderId}?hours=24`);
+        const result = await response.json();
+
+        const historyList = document.getElementById('locationHistoryList');
+
+        if (result.success && result.history.length > 0) {
+            // 只顯示最近 10 筆
+            const recent = result.history.slice(0, 10);
+
+            historyList.innerHTML = `
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${recent.map(loc => `
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #4caf50;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-weight: 500; color: #2e7d32;">📍 ${loc.address || '未知地址'}</span>
+                                <span style="color: #999; font-size: 12px;">${formatTimeAgo(new Date(loc.recorded_at))}</span>
+                            </div>
+                            <div style="color: #666; font-size: 13px;">
+                                📐 ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+        } else {
+            historyList.innerHTML = `
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📜</div>
+                    <p>最近 24 小時無位置記錄</p>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('載入位置歷史錯誤:', error);
+    }
+}
+
+async function refreshLocation() {
+    if (!currentElderId) {
+        showToast('請先選擇長輩', 'warning');
+        return;
+    }
+
+    showToast('正在更新位置...', 'info');
+    await loadGeolocationTab();
+    showToast('位置已更新', 'success');
 }

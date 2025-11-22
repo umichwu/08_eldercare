@@ -63,6 +63,11 @@
 | [心靈照護 RAG 設計](spiritual-care-agentic-rag-design.md) | AI RAG 架構設計 |
 | [心靈照護快速開始](spiritual-care-quickstart.md) | 快速啟動指南 |
 
+#### 圖片上傳
+| 文檔 | 說明 |
+|------|------|
+| [圖片上傳實作報告](IMAGE_UPLOAD_IMPLEMENTATION.md) | ✨ 完整實作報告（NEW） |
+
 #### 地理位置
 | 文檔 | 說明 |
 |------|------|

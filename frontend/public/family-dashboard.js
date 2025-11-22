@@ -387,10 +387,22 @@ function renderAdherenceChart(labels, data) {
 }
 
 async function loadRecentActivity() {
+    if (!currentElderId) {
+        const container = document.getElementById('recentActivity');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>請先選擇長輩</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
     try {
         const { data: activities, error } = await supabaseClient
             .from('conversations')
-            .select('id, title, created_at, message_count')
+            .select('id, title, created_at, updated_at')
             .eq('user_id', currentElderId)
             .order('created_at', { ascending: false })
             .limit(10);
@@ -427,6 +439,18 @@ async function loadRecentActivity() {
 // ==================== 用藥記錄 ====================
 
 async function loadMedicationLogs() {
+    if (!currentElderId) {
+        const container = document.getElementById('medicationLogs');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>請先選擇長輩</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
     try {
         const response = await fetch(
             `${API_BASE_URL}/api/medication-logs/elder/${currentElderId}?days=30`
@@ -576,17 +600,42 @@ function applyMedicationFilters() {
 // ==================== 對話記錄 ====================
 
 async function loadConversations() {
+    if (!currentElderId) {
+        const container = document.getElementById('conversationsList');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>請先選擇長輩</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
     try {
+        // 先嘗試載入對話資料，使用基本欄位
         const { data: conversations, error } = await supabaseClient
             .from('conversations')
-            .select('id, title, created_at, updated_at, message_count')
+            .select('id, title, created_at, updated_at')
             .eq('user_id', currentElderId)
             .order('created_at', { ascending: false })
             .limit(50);
 
         if (error) {
             console.error('載入對話失敗:', error);
-            showToast('載入對話記錄失敗', 'error');
+
+            // 顯示友善的錯誤訊息
+            const container = document.getElementById('conversationsList');
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p style="color: #f44336;">載入對話記錄失敗</p>
+                        <p style="font-size: 14px; color: #999; margin-top: 10px;">
+                            ${error.message || '資料庫連線錯誤'}
+                        </p>
+                    </div>
+                `;
+            }
             return;
         }
 
@@ -595,7 +644,16 @@ async function loadConversations() {
         renderConversations(allConversations);
     } catch (error) {
         console.error('載入對話失敗:', error);
-        showToast('載入對話記錄失敗', 'error');
+
+        const container = document.getElementById('conversationsList');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p style="color: #f44336;">載入對話記錄失敗</p>
+                    <p style="font-size: 14px; color: #999; margin-top: 10px;">請稍後再試</p>
+                </div>
+            `;
+        }
     }
 }
 
@@ -613,8 +671,11 @@ function renderConversations(conversations) {
             <div class="conversation-content">
                 <div class="conversation-title">${conv.title || '對話'}</div>
                 <div class="conversation-meta">
-                    <span>${formatDateTime(conv.created_at)}</span>
-                    <span>${conv.message_count || 0} 則訊息</span>
+                    <span>建立時間：${formatDateTime(conv.created_at)}</span>
+                    ${conv.updated_at && conv.updated_at !== conv.created_at ?
+                        `<span>最後更新：${formatDateTime(conv.updated_at)}</span>` :
+                        ''
+                    }
                 </div>
             </div>
             <button class="btn-secondary btn-sm">查看詳情</button>
@@ -759,11 +820,18 @@ let safeZoneCircles = [];
 
 async function loadGeolocationTab() {
     if (!currentElderId) {
-        document.getElementById('currentLocation').innerHTML = `
-            <div class="empty-state">
-                <p>請先選擇長輩</p>
-            </div>
-        `;
+        // 清空所有容器，顯示提示訊息
+        const containers = ['currentLocation', 'safeZonesList', 'geofenceAlertsList', 'locationHistoryList'];
+        containers.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.innerHTML = `
+                    <div class="empty-state">
+                        <p>請先選擇長輩</p>
+                    </div>
+                `;
+            }
+        });
         return;
     }
 
@@ -773,11 +841,15 @@ async function loadGeolocationTab() {
     }
 
     // 載入資料
-    await Promise.all([
-        loadCurrentLocation(),
-        loadSafeZonesPreview(),
-        loadGeofenceAlertsPreview()
-    ]);
+    try {
+        await Promise.all([
+            loadCurrentLocation(),
+            loadSafeZonesPreview(),
+            loadGeofenceAlertsPreview()
+        ]);
+    } catch (error) {
+        console.error('載入地理位置資料錯誤:', error);
+    }
 }
 
 function initLocationMap() {
@@ -1027,6 +1099,18 @@ async function loadGeofenceAlertsPreview() {
 }
 
 async function loadLocationHistoryPreview() {
+    if (!currentElderId) {
+        const historyList = document.getElementById('locationHistoryList');
+        if (historyList) {
+            historyList.innerHTML = `
+                <div class="empty-state">
+                    <p>請先選擇長輩</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/geolocation/location/elder/${currentElderId}?hours=24`);
         const result = await response.json();

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心情日記 - ElderCare</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles-modern.css">
+    <link rel="stylesheet" href="mobile-modern.css">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        }
+
+        .mood-diary-container {
+            max-width: 900px;
+            margin: 80px auto 20px;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 30px rgba(255, 152, 0, 0.3);
+        }
+
+        .page-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .page-header p {
+            margin: 0;
+            opacity: 0.95;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e65100;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ffe0b2;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #ff9800;
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .mood-selector {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .mood-option {
+            text-align: center;
+            cursor: pointer;
+            padding: 15px;
+            border-radius: 12px;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .mood-option:hover {
+            transform: scale(1.1);
+        }
+
+        .mood-option.selected {
+            border-color: #ff9800;
+            background: #fff3e0;
+        }
+
+        .mood-emoji {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .mood-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+        }
+
+        .diary-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .diary-item {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .diary-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .diary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .diary-mood {
+            font-size: 32px;
+        }
+
+        .diary-date {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .diary-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #e65100;
+            margin-bottom: 10px;
+        }
+
+        .diary-content {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .diary-images {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .diary-image {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .diary-image:hover {
+            transform: scale(1.05);
+        }
+
+        .diary-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .diary-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .diary-tag {
+            padding: 4px 12px;
+            background: #fff3e0;
+            color: #e65100;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #e65100;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 10000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Image Modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal.show {
+            display: flex;
+        }
+
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+        }
+
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <nav class="top-nav" style="background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%);">
+        <button class="nav-back" onclick="window.location.href='index.html'">
+            ← 返回
+        </button>
+        <h1 class="nav-title">📔 心情日記</h1>
+    </nav>
+
+    <div class="mood-diary-container">
+        <!-- 頁面標題 -->
+        <div class="page-header">
+            <h1>✨ 記錄每一天的心情</h1>
+            <p>寫下今天的心情，搭配照片留下美好回憶</p>
+        </div>
+
+        <!-- 標籤切換 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('create')">
+                ✏️ 新增日記
+            </button>
+            <button class="tab-btn" onclick="switchTab('list')">
+                📚 我的日記
+            </button>
+        </div>
+
+        <!-- 新增日記標籤 -->
+        <div id="create-tab" class="tab-content active">
+            <div class="card">
+                <h2 style="margin-top: 0;">✏️ 寫下今天的心情</h2>
+
+                <form id="diaryForm" onsubmit="submitDiary(event)">
+                    <!-- 心情選擇 -->
+                    <div class="form-group">
+                        <label>今天的心情</label>
+                        <div class="mood-selector">
+                            <div class="mood-option" onclick="selectMood(1, '😢')">
+                                <span class="mood-emoji">😢</span>
+                                <span class="mood-label">很難過</span>
+                            </div>
+                            <div class="mood-option" onclick="selectMood(2, '😕')">
+                                <span class="mood-emoji">😕</span>
+                                <span class="mood-label">有點難過</span>
+                            </div>
+                            <div class="mood-option" onclick="selectMood(3, '😐')">
+                                <span class="mood-emoji">😐</span>
+                                <span class="mood-label">普通</span>
+                            </div>
+                            <div class="mood-option" onclick="selectMood(4, '😊')">
+                                <span class="mood-emoji">😊</span>
+                                <span class="mood-label">開心</span>
+                            </div>
+                            <div class="mood-option" onclick="selectMood(5, '😄')">
+                                <span class="mood-emoji">😄</span>
+                                <span class="mood-label">非常開心</span>
+                            </div>
+                        </div>
+                        <input type="hidden" id="moodLevel" required>
+                        <input type="hidden" id="moodEmoji">
+                    </div>
+
+                    <!-- 標題 -->
+                    <div class="form-group">
+                        <label for="diaryTitle">標題（選填）</label>
+                        <input type="text" id="diaryTitle" placeholder="例如：美好的一天">
+                    </div>
+
+                    <!-- 內容 -->
+                    <div class="form-group">
+                        <label for="diaryContent">今天發生了什麼事？*</label>
+                        <textarea id="diaryContent" placeholder="寫下今天的心情和想法..." required></textarea>
+                    </div>
+
+                    <!-- 圖片上傳 -->
+                    <div class="form-group">
+                        <label>照片（選填，最多 5 張）</label>
+                        <div id="imageUploader"></div>
+                    </div>
+
+                    <!-- 標籤 -->
+                    <div class="form-group">
+                        <label for="diaryTags">標籤（選填，用逗號分隔）</label>
+                        <input type="text" id="diaryTags" placeholder="例如：散步, 朋友, 開心">
+                    </div>
+
+                    <!-- 提交按鈕 -->
+                    <button type="submit" class="btn-primary">
+                        💾 儲存日記
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 日記列表標籤 -->
+        <div id="list-tab" class="tab-content">
+            <div id="diaryList" class="diary-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📔</div>
+                    <p>載入中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 圖片預覽 Modal -->
+    <div id="imageModal" class="image-modal">
+        <span class="image-modal-close" onclick="closeImageModal()">&times;</span>
+        <img id="modalImage" src="" alt="預覽">
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Scripts -->
+    <script src="components/ImageUploader.js"></script>
+    <script src="mood-diary.js"></script>
+</body>
+</html>

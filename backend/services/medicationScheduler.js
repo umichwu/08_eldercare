@@ -245,35 +245,10 @@ async function processReminder(reminder, scheduledTime) {
     const medication = reminder.medications;
     const sb = getSupabase();
 
-    // ✅ 短期用藥特殊處理
-    if (reminder.is_short_term) {
-      // 檢查是否已達到總服用次數
-      if (reminder.total_doses && reminder.doses_completed >= reminder.total_doses) {
-        console.log(`⏭️  短期用藥已完成所有 ${reminder.total_doses} 次服用: ${medication.medication_name}`);
-
-        // 自動停用已完成的提醒
-        await sb
-          .from('medication_reminders')
-          .update({ is_enabled: false })
-          .eq('id', reminder.id);
-
-        return;
-      }
-
-      // 檢查 scheduledTime 是否早於 reminder 的 start_date
-      const reminderStartDate = reminder.start_date ? new Date(reminder.start_date) : new Date(reminder.created_at);
-      reminderStartDate.setHours(0, 0, 0, 0);
-
-      if (scheduledTime < reminderStartDate) {
-        console.log(`⏭️  跳過早於用藥開始時間的記錄: ${medication.medication_name} (排定: ${scheduledTime.toLocaleString()}, 開始: ${reminderStartDate.toLocaleDateString()})`);
-        return;
-      }
-    }
-
     // 檢查今天是否已經有這個時間點的記錄
     const { data: existingLogs, error: logError } = await sb
       .from('medication_logs')
-      .select('id, status, push_sent, dose_sequence')
+      .select('id, status, push_sent')
       .eq('medication_id', medication.id)
       .eq('elder_id', reminder.elder_id)
       .gte('scheduled_time', new Date(scheduledTime.setHours(0, 0, 0, 0)).toISOString())
@@ -300,23 +275,6 @@ async function processReminder(reminder, scheduledTime) {
       }
       logId = currentLog.id;
     } else {
-      // ✅ 計算短期用藥的序號
-      let doseSequence = null;
-      let doseLabel = null;
-
-      if (reminder.is_short_term) {
-        // 查詢該 reminder 已經建立的所有記錄數量
-        const { count: existingCount } = await sb
-          .from('medication_logs')
-          .select('*', { count: 'exact', head: true })
-          .eq('medication_reminder_id', reminder.id);
-
-        doseSequence = (existingCount || 0) + 1;
-        doseLabel = `${medication.medication_name}-${doseSequence}`;
-
-        console.log(`📊 建立短期用藥記錄 [${doseSequence}/${reminder.total_doses}]: ${doseLabel}`);
-      }
-
       // 建立新的用藥記錄
       const logResult = await createMedicationLog({
         medicationId: medication.id,
@@ -324,8 +282,6 @@ async function processReminder(reminder, scheduledTime) {
         medicationReminderId: reminder.id,
         scheduledTime: scheduledTime.toISOString(),
         status: 'pending',
-        doseSequence: doseSequence,
-        doseLabel: doseLabel,
       });
 
       if (!logResult.success) {

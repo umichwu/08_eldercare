@@ -53,7 +53,10 @@
       "Bash(node diagnose-medication-timeline.js)",
       "Bash(node diagnose-direct.js)",
       "Bash(node test-confirm-medication.js)",
-      "Bash(node check-user-elder-relation.js)"
+      "Bash(node check-user-elder-relation.js)",
+      "Bash(node diagnose-timeline-issue.js)",
+      "Bash(node test-timeline-api.js)",
+      "Bash(node check-all-elders-logs.js)"
     ],
     "deny": [],
     "ask": []

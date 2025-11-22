@@ -2068,11 +2068,15 @@ function renderTodayTimeline(logs) {
         const medName = log.medication_name || log.medications?.medication_name || '藥物';
         const dosage = log.dosage || log.medications?.dosage || '';
 
+        // ✅ 短期用藥顯示標籤（例如：感冒藥-1）
+        const displayName = log.dose_label || medName;
+        const isShortTerm = log.dose_sequence !== null && log.dose_sequence !== undefined;
+
         return `
             <div class="timeline-item ${statusClass}">
                 <div class="timeline-time">${timeStr}</div>
                 <div class="timeline-content">
-                    <h4>💊 ${medName}</h4>
+                    <h4>💊 ${displayName}${isShortTerm ? ` <span class="short-term-badge">短期</span>` : ''}</h4>
                     ${dosage ? `<p class="dosage-info">劑量：${dosage}</p>` : ''}
                     ${log.notes ? `<p class="notes-info">📝 ${log.notes}</p>` : ''}
                     <div class="timeline-actions">

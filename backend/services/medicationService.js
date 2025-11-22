@@ -475,11 +475,14 @@ export async function createMedicationLog(logData) {
       .from('medication_logs')
       .insert([{
         medication_id: logData.medicationId,
+        medication_reminder_id: logData.medicationReminderId || null,  // ✅ 新增
         elder_id: logData.elderId,
         scheduled_time: logData.scheduledTime,
         actual_time: logData.actualTime || null,
         status: logData.status || 'pending',
         notes: logData.notes || null,
+        dose_sequence: logData.doseSequence || null,  // ✅ 新增：短期用藥序號
+        dose_label: logData.doseLabel || null,  // ✅ 新增：短期用藥標籤
         push_sent: logData.pushSent || false,
         family_notified: logData.familyNotified || false,
       }])

@@ -537,7 +537,8 @@ export async function confirmMedication(logId, confirmData = {}) {
         status: status,
         delay_minutes: delayMinutes > 0 ? delayMinutes : 0,
         notes: confirmData.notes || null,
-        confirmed_by: confirmData.confirmedBy || null,
+        confirmed_by: confirmData.confirmedBy || 'user',  // 字串類型 (user/family/system)
+        confirmed_by_user_id: confirmData.confirmedByUserId || null,  // UUID 類型
         confirmation_method: confirmData.confirmationMethod || 'manual',
         updated_at: actualTime.toISOString(),
       })

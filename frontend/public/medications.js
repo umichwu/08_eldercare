@@ -73,6 +73,7 @@ async function initCapacitor() {
 
 // 全域變數
 let currentUser = null;
+let currentUserProfile = null;  // 新增：儲存 user_profile
 let currentElderId = localStorage.getItem('currentElderId') || null; // ✅ 從 localStorage 讀取
 let medications = [];
 let todayLogs = [];
@@ -143,6 +144,9 @@ async function loadCurrentUser() {
             await createDefaultProfile();
             return;
         }
+
+        // ✅ 儲存 profile 到全域變數
+        currentUserProfile = profile;
 
         // ✅ 修正：role 為 'elder' 或 'both' 都可以使用用藥管理功能
         if (profile && (profile.role === 'elder' || profile.role === 'both')) {
@@ -2097,7 +2101,8 @@ async function confirmMedication(logId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                confirmedBy: currentUser.id,
+                confirmedBy: 'user',  // 使用字串，不是 UUID
+                confirmedByUserId: currentUserProfile?.id || null,  // user_profile 的 ID
                 confirmationMethod: 'app',
                 takenAt: new Date().toISOString()
             })

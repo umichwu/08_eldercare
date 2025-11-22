@@ -47,7 +47,13 @@
       "Bash(test -f .env)",
       "Bash(npm install @sendgrid/mail twilio)",
       "Bash(tree -L 2 -I 'node_modules|.git|build|dist|android|ios' --dirsfirst)",
-      "Bash(ls -1 docs_delete/*.{md,sql})"
+      "Bash(ls -1 docs_delete/*.{md,sql})",
+      "Bash(node check-duplicate-medication-logs.js)",
+      "Bash(node ../check-duplicate-medication-logs.js)",
+      "Bash(node diagnose-medication-timeline.js)",
+      "Bash(node diagnose-direct.js)",
+      "Bash(node test-confirm-medication.js)",
+      "Bash(node check-user-elder-relation.js)"
     ],
     "deny": [],
     "ask": []

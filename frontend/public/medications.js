@@ -1302,6 +1302,18 @@ async function saveMedication(event) {
             }
 
             const dosesPerDay = 24 / intervalHours;
+            const totalDoses = dosesPerDay * treatmentDays;
+
+            // ✅ 產生提醒時間（從首次用藥時間開始，每隔 intervalHours 一次）
+            const reminderTimes = [];
+            const startTime = firstDoseTime;
+            let hour = parseInt(startTime.split(':')[0]);
+            let minute = parseInt(startTime.split(':')[1]) || 0;
+
+            for (let i = 0; i < dosesPerDay; i++) {
+                reminderTimes.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+                hour = (hour + intervalHours) % 24;
+            }
 
             reminderMetadata = {
                 durationType: 'shortterm',
@@ -1310,7 +1322,12 @@ async function saveMedication(event) {
                 firstDoseDateTime: `${firstDoseDate}T${firstDoseTime}`,
                 dosesPerDay: dosesPerDay,
                 treatmentDays: treatmentDays,
-                endDate: calculateEndDate(firstDoseDate, treatmentDays)
+                endDate: calculateEndDate(firstDoseDate, treatmentDays),
+                // ✅ 新增必要欄位給後端短期用藥邏輯
+                isShortTerm: true,
+                totalDoses: totalDoses,
+                reminderTimes: reminderTimes,
+                startDate: firstDoseDate
             };
         } else {
             // 一般短期用藥：使用新的智能排程系統
@@ -1343,6 +1360,23 @@ async function saveMedication(event) {
                 }
             }
 
+            // ✅ 計算總次數
+            const totalDoses = dosesPerDay * treatmentDays;
+
+            // ✅ 根據 timingPlan 產生實際的提醒時間
+            let reminderTimes = [];
+            if (timingPlan === 'custom' && customTimes) {
+                reminderTimes = customTimes;
+            } else {
+                // 使用預設時段
+                const timingPlans = {
+                    'plan1': { 2: ['08:00', '20:00'], 3: ['08:00', '13:00', '20:00'], 4: ['08:00', '12:00', '17:00', '23:00'] },
+                    'plan2': { 2: ['09:00', '21:00'], 3: ['09:00', '14:00', '21:00'], 4: ['09:00', '13:00', '18:00', '23:00'] },
+                    'plan3': { 2: ['07:00', '19:00'], 3: ['07:00', '12:00', '19:00'], 4: ['07:00', '11:00', '16:00', '22:00'] }
+                };
+                reminderTimes = timingPlans[timingPlan]?.[dosesPerDay] || timingPlans['plan1'][dosesPerDay];
+            }
+
             reminderMetadata = {
                 durationType: 'shortterm',
                 useSmartSchedule: true,
@@ -1351,7 +1385,11 @@ async function saveMedication(event) {
                 timingPlan: timingPlan,
                 customTimes: customTimes,
                 treatmentDays: treatmentDays,
-                startDate: startDate.toISOString().split('T')[0]
+                startDate: startDate.toISOString().split('T')[0],
+                // ✅ 新增必要欄位給後端短期用藥邏輯
+                isShortTerm: true,
+                totalDoses: totalDoses,
+                reminderTimes: reminderTimes
             };
         }
 
@@ -1483,6 +1521,19 @@ async function saveMedication(event) {
                 ...finalReminderData,
                 ...reminderMetadata // 包含所有智能排程參數
             };
+
+            // ✅ 從 reminderTimes 產生 cronSchedule
+            if (reminderMetadata.reminderTimes && reminderMetadata.reminderTimes.length > 0) {
+                finalReminderData.cronSchedule = timesToCron(reminderMetadata.reminderTimes);
+            }
+
+            // ✅ Debug logging
+            console.log('🔄 短期用藥提交資料:');
+            console.log('  - isShortTerm:', finalReminderData.isShortTerm);
+            console.log('  - totalDoses:', finalReminderData.totalDoses);
+            console.log('  - cronSchedule:', finalReminderData.cronSchedule);
+            console.log('  - startDate:', finalReminderData.startDate);
+            console.log('  - reminderTimes:', finalReminderData.reminderTimes);
         }
 
         // 根據是否已有提醒來決定使用 POST 或 PUT

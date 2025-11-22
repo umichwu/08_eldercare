@@ -27,6 +27,10 @@ import {
   sendTestEmail,
 } from '../services/emailNotificationService.js';
 import {
+  generateShortTermMedicationLogs,
+  補充ShortTermLogs,
+} from '../services/generateShortTermLogs.js';
+import {
   manualCheckReminders,
   generateTodayMedicationLogs,
 } from '../services/medicationScheduler.js';
@@ -319,6 +323,30 @@ router.post('/medication-reminders', async (req, res) => {
         error: '建立提醒排程失敗',
         message: result.error,
       });
+    }
+
+    // ✅ 如果是短期用藥，立即產生所有記錄
+    if (reminderData.isShortTerm && reminderData.totalDoses) {
+      console.log('🔄 短期用藥：立即產生所有記錄...');
+
+      const medicationName = result.data.medications?.medication_name || '藥物';
+
+      const logsResult = await generateShortTermMedicationLogs({
+        reminderId: result.data.id,
+        medicationId: reminderData.medicationId,
+        elderId: reminderData.elderId,
+        medicationName: medicationName,
+        cronSchedule: reminderData.cronSchedule,
+        totalDoses: reminderData.totalDoses,
+        startDate: reminderData.startDate,
+        timezone: reminderData.timezone || 'Asia/Taipei'
+      });
+
+      if (logsResult.success) {
+        console.log(`✅ 成功產生 ${logsResult.count} 筆短期用藥記錄`);
+      } else {
+        console.error('⚠️  產生短期用藥記錄失敗:', logsResult.error);
+      }
     }
 
     res.status(201).json({
@@ -1175,6 +1203,36 @@ router.delete('/medication-logs/today-pending/:medicationId', async (req, res) =
     });
   } catch (error) {
     console.error('API 錯誤 (DELETE /medication-logs/today-pending/:medicationId):', error);
+    res.status(500).json({ error: '伺服器錯誤' });
+  }
+});
+
+/**
+ * POST /api/medication-reminders/:id/generate-short-term-logs
+ * 為短期用藥提醒產生所有記錄
+ */
+router.post('/medication-reminders/:id/generate-short-term-logs', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`🔄 收到產生短期用藥記錄請求: reminder_id=${id}`);
+
+    const result = await 補充ShortTermLogs(id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: '產生記錄失敗',
+        message: result.error,
+      });
+    }
+
+    res.json({
+      message: result.message || '產生成功',
+      count: result.count,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('API 錯誤 (POST /medication-reminders/:id/generate-short-term-logs):', error);
     res.status(500).json({ error: '伺服器錯誤' });
   }
 });

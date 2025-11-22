@@ -171,6 +171,12 @@ async function checkAndSendReminders() {
 
     for (const reminder of reminders) {
       try {
+        // ✅ 跳過短期用藥 - 記錄已在建立時預先產生
+        if (reminder.is_short_term) {
+          console.log(`⏭️  跳過短期用藥: ${reminder.medications.medication_name} (記錄已預先產生)`);
+          continue;
+        }
+
         // 檢查是否為短期用藥且已超過結束日期
         if (reminder.reminder_times?.endDate) {
           const endDate = new Date(reminder.reminder_times.endDate);

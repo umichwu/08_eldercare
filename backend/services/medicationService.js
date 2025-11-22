@@ -244,21 +244,39 @@ export async function createMedicationReminder(reminderData) {
           .filter(token => token && token.trim().length > 0)
       : [];
 
+    const insertData = {
+      medication_id: reminderData.medicationId,
+      elder_id: reminderData.elderId,
+      cron_schedule: reminderData.cronSchedule,
+      timezone: reminderData.timezone || 'Asia/Taipei',
+      reminder_times: reminderData.reminderTimes || null,
+      auto_mark_missed_after_minutes: reminderData.autoMarkMissedAfterMinutes || 30,
+      fcm_tokens: elder?.fcm_token ? [elder.fcm_token] : [],
+      notify_family_if_missed: reminderData.notifyFamilyIfMissed !== false,
+      family_fcm_tokens: familyTokens,
+      is_enabled: reminderData.isEnabled !== false,
+    };
+
+    // ✅ 短期用藥欄位
+    if (reminderData.isShortTerm !== undefined) {
+      insertData.is_short_term = reminderData.isShortTerm;
+    }
+    if (reminderData.totalDoses !== undefined) {
+      insertData.total_doses = reminderData.totalDoses;
+    }
+    if (reminderData.startDate !== undefined) {
+      insertData.start_date = reminderData.startDate;
+    }
+
     const { data, error } = await sb
       .from('medication_reminders')
-      .insert([{
-        medication_id: reminderData.medicationId,
-        elder_id: reminderData.elderId,
-        cron_schedule: reminderData.cronSchedule,
-        timezone: reminderData.timezone || 'Asia/Taipei',
-        reminder_times: reminderData.reminderTimes || null,
-        auto_mark_missed_after_minutes: reminderData.autoMarkMissedAfterMinutes || 30,
-        fcm_tokens: elder?.fcm_token ? [elder.fcm_token] : [],
-        notify_family_if_missed: reminderData.notifyFamilyIfMissed !== false,
-        family_fcm_tokens: familyTokens,
-        is_enabled: reminderData.isEnabled !== false,
-      }])
-      .select()
+      .insert([insertData])
+      .select(`
+        *,
+        medications (
+          medication_name
+        )
+      `)
       .single();
 
     if (error) {

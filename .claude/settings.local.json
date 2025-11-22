@@ -57,7 +57,17 @@
       "Bash(node diagnose-timeline-issue.js)",
       "Bash(node test-timeline-api.js)",
       "Bash(node check-all-elders-logs.js)",
-      "Bash(node -e \"\nimport { supabaseAdmin as supabase } from ''./config/supabase.js'';\n\nconst { data: reminders, error } = await supabase\n  .from(''medication_reminders'')\n  .select(''id, is_short_term, total_doses, created_at, cron_schedule'')\n  .order(''created_at'', { ascending: false })\n  .limit(1);\n\nif (error) {\n  console.error(''錯誤:'', error);\n} else {\n  console.log(''最新的提醒:'');\n  console.log(JSON.stringify(reminders, null, 2));\n}\n\")"
+      "Bash(node -e \"\nimport { supabaseAdmin as supabase } from ''./config/supabase.js'';\n\nconst { data: reminders, error } = await supabase\n  .from(''medication_reminders'')\n  .select(''id, is_short_term, total_doses, created_at, cron_schedule'')\n  .order(''created_at'', { ascending: false })\n  .limit(1);\n\nif (error) {\n  console.error(''錯誤:'', error);\n} else {\n  console.log(''最新的提醒:'');\n  console.log(JSON.stringify(reminders, null, 2));\n}\n\")",
+      "Bash(node -e \"\nimport { supabaseAdmin as supabase } from ''./config/supabase.js'';\n\nconst { data: reminders, error } = await supabase\n  .from(''medication_reminders'')\n  .select(''id, is_short_term, total_doses, doses_completed, created_at, cron_schedule, medications(medication_name)'')\n  .order(''created_at'', { ascending: false })\n  .limit(3);\n\nif (error) {\n  console.error(''錯誤:'', error);\n} else {\n  console.log(''最近 3 個提醒:'');\n  console.log(JSON.stringify(reminders, null, 2));\n}\n\")",
+      "Bash(git add frontend/public/medications.js frontend/public/medications.css backend/routes/medicationApi.js backend/services/medicationService.js backend/services/generateShortTermLogs.js backend/services/medicationScheduler.js SHORT_TERM_MEDICATION_FIX.md FEATURE_COMPLETE_SUMMARY.md docs/family-dashboard-guide.md)",
+      "Bash(git add frontend/public/medications.js frontend/public/medications.css backend/routes/medicationApi.js backend/services/medicationService.js backend/services/generateShortTermLogs.js backend/services/medicationScheduler.js frontend/public/family-dashboard.html frontend/public/family-dashboard.js frontend/public/family-dashboard.css)",
+      "Bash(git commit -m \"feat: 新增短期用藥前端設定介面、取消確認功能、家屬監控面板設定\n\n- 短期用藥功能完整實作\n  - 新增前端勾選「短期用藥」選項\n  - 設定總服用次數\n  - 只產生未來時間的記錄\n  - 自動標記序號（藥物-1, 藥物-2...）\n  - Scheduler 跳過短期用藥避免重複產生\n\n- 取消確認用藥功能\n  - 已服用的藥物可以取消確認\n  - 狀態改回待服用\n  - 後端 API 支援\n\n- 家屬監控面板設定\n  - 完整的設定介面\n  - 長輩關聯管理\n  - 監控 SOP 指南\n  - 使用說明\n\n修復問題：\n- 修復 elder_family_relations 表名錯誤\n- 修復短期用藥時間過濾問題\n- 修復序號標記未顯示問題\")",
+      "Bash(git push)",
+      "Bash(curl -s https://08-eldercare.vercel.app/medications.js)",
+      "Bash(node -e \"\nimport { supabaseAdmin as supabase } from ''./config/supabase.js'';\n\n// 查詢最新的記錄\nconst { data: logs, error } = await supabase\n  .from(''medication_logs'')\n  .select(''id, scheduled_time, dose_sequence, dose_label, medication_reminder_id, created_at'')\n  .order(''created_at'', { ascending: false })\n  .limit(10);\n\nif (error) {\n  console.error(''錯誤:'', error);\n} else {\n  console.log(''最近 10 筆用藥記錄:'');\n  console.log(JSON.stringify(logs, null, 2));\n}\n\")",
+      "Bash(node cleanup-wrong-reminders.js)",
+      "Bash(node cleanup-orphaned-logs.js)",
+      "Bash(node verify-system-ready.js)"
     ],
     "deny": [],
     "ask": []

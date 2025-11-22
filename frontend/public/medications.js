@@ -1664,6 +1664,30 @@ async function showReminderSettings(medicationId) {
                         </label>
                     </div>
 
+                    <!-- 短期用藥設定 -->
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="isShortTerm" ${reminder?.is_short_term ? 'checked' : ''} onchange="toggleShortTermSettings()">
+                            <span>⏱️ 短期用藥（例如：感冒藥、抗生素）</span>
+                        </label>
+                    </div>
+
+                    <div id="shortTermSettings" style="display: ${reminder?.is_short_term ? 'block' : 'none'};">
+                        <div class="form-group">
+                            <label for="totalDoses">總服用次數</label>
+                            <input type="number" id="totalDoses" value="${reminder?.total_doses || 12}" min="1" max="100" placeholder="例如：3天×4次=12次">
+                            <small>💡 系統會自動計算：天數 × 每天次數 = 總次數</small>
+                        </div>
+                        <div class="alert-info">
+                            <p>📋 短期用藥說明：</p>
+                            <ul>
+                                <li>✓ 只產生未來的用藥記錄（不會出現早於設定時間的記錄）</li>
+                                <li>✓ 每次用藥都有序號標記（例如：感冒藥-1, 感冒藥-2...）</li>
+                                <li>✓ 達到總次數後自動停止</li>
+                            </ul>
+                        </div>
+                    </div>
+
                     <input type="hidden" id="reminderId" value="${reminder?.id || ''}">
 
                     <div class="modal-actions">
@@ -1717,6 +1741,12 @@ function removeReminderTime(btn) {
     updateRemoveButtons();
 }
 
+function toggleShortTermSettings() {
+    const isShortTerm = document.getElementById('isShortTerm').checked;
+    const settings = document.getElementById('shortTermSettings');
+    settings.style.display = isShortTerm ? 'block' : 'none';
+}
+
 async function saveReminder(event, medicationId) {
     event.preventDefault();
 
@@ -1742,6 +1772,8 @@ async function saveReminder(event, medicationId) {
 
     console.log('生成的 cron 表達式:', cronSchedule);
 
+    const isShortTerm = document.getElementById('isShortTerm').checked;
+
     const data = {
         medicationId: medicationId,
         elderId: currentElderId,
@@ -1749,8 +1781,14 @@ async function saveReminder(event, medicationId) {
         reminderTimes: times,
         isEnabled: document.getElementById('enablePush').checked,
         autoMarkMissedAfterMinutes: parseInt(document.getElementById('autoMarkMissed').value) || 30,
-        notifyFamilyIfMissed: document.getElementById('notifyFamily').checked
+        notifyFamilyIfMissed: document.getElementById('notifyFamily').checked,
+        // ✅ 短期用藥參數
+        isShortTerm: isShortTerm,
+        totalDoses: isShortTerm ? parseInt(document.getElementById('totalDoses').value) : null,
+        startDate: new Date().toISOString().split('T')[0]  // 今天
     };
+
+    console.log('📋 提交資料:', data);
 
     const reminderId = document.getElementById('reminderId').value;
 

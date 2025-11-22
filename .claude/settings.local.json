@@ -56,7 +56,8 @@
       "Bash(node check-user-elder-relation.js)",
       "Bash(node diagnose-timeline-issue.js)",
       "Bash(node test-timeline-api.js)",
-      "Bash(node check-all-elders-logs.js)"
+      "Bash(node check-all-elders-logs.js)",
+      "Bash(node -e \"\nimport { supabaseAdmin as supabase } from ''./config/supabase.js'';\n\nconst { data: reminders, error } = await supabase\n  .from(''medication_reminders'')\n  .select(''id, is_short_term, total_doses, created_at, cron_schedule'')\n  .order(''created_at'', { ascending: false })\n  .limit(1);\n\nif (error) {\n  console.error(''錯誤:'', error);\n} else {\n  console.log(''最新的提醒:'');\n  console.log(JSON.stringify(reminders, null, 2));\n}\n\")"
     ],
     "deny": [],
     "ask": []

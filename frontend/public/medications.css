@@ -2725,6 +2725,62 @@ body {
     margin-top: 8px;
 }
 
+/* 短期用藥設定區塊 */
+#shortTermSettings {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+    border-left: 4px solid #667eea;
+}
+
+#shortTermSettings .form-group {
+    margin-bottom: 15px;
+}
+
+#shortTermSettings small {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.alert-info {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+.alert-info p {
+    font-weight: 600;
+    color: #1976d2;
+    margin-bottom: 8px;
+}
+
+.alert-info ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.alert-info li {
+    color: #1565c0;
+    font-size: 13px;
+    padding: 4px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.alert-info li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #4caf50;
+    font-weight: bold;
+}
+
 /* 響應式調整 */
 @media (max-width: 768px) {
     .short-term-badge {
@@ -2741,5 +2797,17 @@ body {
 
     .timeline-actions {
         gap: 6px;
+    }
+
+    #shortTermSettings {
+        padding: 10px;
+    }
+
+    .alert-info {
+        padding: 10px;
+    }
+
+    .alert-info li {
+        font-size: 12px;
     }
 }

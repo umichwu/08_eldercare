@@ -2663,3 +2663,40 @@ body {
         font-size: 15px;
     }
 }
+
+/* ==================== 短期用藥標記樣式 ==================== */
+
+.short-term-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    letter-spacing: 0.5px;
+}
+
+.timeline-item h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* 短期用藥的特殊樣式（可選） */
+.timeline-item.has-short-term {
+    border-left: 3px solid #667eea;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .short-term-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        margin-left: 4px;
+    }
+}

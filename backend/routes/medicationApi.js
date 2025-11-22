@@ -677,6 +677,8 @@ router.get('/medication-logs/elder/:elderId', async (req, res) => {
         actual_time,
         status,
         notes,
+        dose_sequence,
+        dose_label,
         created_at,
         medications (
           id,

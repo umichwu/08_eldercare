@@ -482,9 +482,17 @@ export async function createMedicationLog(logData) {
       family_notified: logData.familyNotified || false,
     };
 
-    // ✅ 只在有 medicationReminderId 時才加入（舊版沒有這個欄位）
+    // 新增可選欄位（如果有提供的話）
     if (logData.medicationReminderId) {
       insertData.medication_reminder_id = logData.medicationReminderId;
+    }
+
+    if (logData.doseSequence !== null && logData.doseSequence !== undefined) {
+      insertData.dose_sequence = logData.doseSequence;
+    }
+
+    if (logData.doseLabel) {
+      insertData.dose_label = logData.doseLabel;
     }
 
     const { data, error } = await sb

@@ -40,6 +40,7 @@ import {
   schedulesToCron,
   previewSchedule,
 } from '../services/smartScheduleService.js';
+import { getSupabase } from '../config/supabase.js';
 
 const router = express.Router();
 
@@ -618,6 +619,75 @@ router.post('/medication-logs/:id/confirm', async (req, res) => {
   } catch (error) {
     console.error('API 錯誤 (POST /medication-logs/:id/confirm):', error);
     res.status(500).json({ error: '伺服器錯誤' });
+  }
+});
+
+/**
+ * POST /api/medication-logs/:id/cancel
+ * 取消確認服藥（將狀態改回 pending）
+ */
+router.post('/medication-logs/:id/cancel', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { cancelledBy, cancelReason } = req.body;
+
+    const { data: log, error: fetchError } = await getSupabase()
+      .from('medication_logs')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !log) {
+      return res.status(404).json({
+        error: '找不到用藥記錄',
+        message: fetchError?.message
+      });
+    }
+
+    // 只允許取消已服用的記錄
+    if (log.status !== 'taken') {
+      return res.status(400).json({
+        error: '只能取消「已服用」狀態的記錄',
+        message: `當前狀態：${log.status}`
+      });
+    }
+
+    // 更新狀態為 pending
+    const { data, error } = await getSupabase()
+      .from('medication_logs')
+      .update({
+        status: 'pending',
+        confirmed_by: null,
+        confirmed_by_user_id: null,
+        taken_at: null,
+        confirmation_method: null,
+        updated_at: new Date().toISOString(),
+        // 記錄取消資訊（如果需要的話）
+        notes: log.notes
+          ? `${log.notes}\n[已取消確認 - ${cancelReason || '使用者修正'}]`
+          : `[已取消確認 - ${cancelReason || '使用者修正'}]`
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('取消確認失敗:', error);
+      return res.status(500).json({
+        error: '取消確認失敗',
+        message: error.message
+      });
+    }
+
+    console.log(`✅ 取消確認成功: 記錄 ${id}`);
+
+    res.json({
+      message: '取消確認成功，狀態已改為待服用',
+      data
+    });
+  } catch (error) {
+    console.error('API 錯誤 (POST /medication-logs/:id/cancel):', error);
+    res.status(500).json({ error: '伺服器錯誤', details: error.message });
   }
 });
 

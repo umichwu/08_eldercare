@@ -297,6 +297,149 @@
         </div>
     </div>
 
+    <!-- 設定 Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>⚙️ 監控面板設定</h2>
+                <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- 設定說明 -->
+                <div class="settings-guide">
+                    <h3>📖 如何使用家屬監控面板</h3>
+                    <div class="guide-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>建立家屬帳號</h4>
+                            <p>在登入頁面註冊時，選擇「家屬」角色</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>建立與長輩的關聯</h4>
+                            <p>使用下方的「關聯長輩」功能，選擇要監控的長輩</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>監控長輩狀況</h4>
+                            <p>在面板上查看用藥記錄、對話記錄、警示等資訊</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 關聯長輩管理 -->
+                <div class="settings-section">
+                    <h3>👨‍👩‍👧 關聯長輩管理</h3>
+
+                    <!-- 已關聯的長輩列表 -->
+                    <div class="linked-elders-list" id="linkedEldersList">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>載入中...</p>
+                        </div>
+                    </div>
+
+                    <!-- 新增關聯按鈕 -->
+                    <button class="btn-primary" onclick="showLinkElderForm()">
+                        ➕ 新增長輩關聯
+                    </button>
+                </div>
+
+                <!-- 監控 SOP 指南 -->
+                <div class="settings-section">
+                    <h3>📋 監控 SOP 指南</h3>
+                    <div class="sop-guide">
+                        <div class="sop-item">
+                            <div class="sop-icon">💊</div>
+                            <div class="sop-content">
+                                <h4>用藥監控</h4>
+                                <ul>
+                                    <li>每天檢查「總覽」頁的用藥遵從率</li>
+                                    <li>遵從率 < 70% 時主動聯繫長輩</li>
+                                    <li>檢查「用藥記錄」頁的錯過次數</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="sop-item">
+                            <div class="sop-icon">🔔</div>
+                            <div class="sop-content">
+                                <h4>警示處理</h4>
+                                <ul>
+                                    <li>每天至少檢查一次「警示」頁</li>
+                                    <li>緊急警示立即處理</li>
+                                    <li>處理後標記為「已處理」</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="sop-item">
+                            <div class="sop-icon">💬</div>
+                            <div class="sop-content">
+                                <h4>對話監控</h4>
+                                <ul>
+                                    <li>檢查對話記錄是否有異常問題</li>
+                                    <li>關注重複詢問相同問題的情況</li>
+                                    <li>如有健康相關詢問，主動關心</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="sop-item">
+                            <div class="sop-icon">📍</div>
+                            <div class="sop-content">
+                                <h4>位置追蹤</h4>
+                                <ul>
+                                    <li>設定安全區域（家、社區等）</li>
+                                    <li>啟用離開安全區域警示</li>
+                                    <li>定期檢查位置歷史記錄</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 關聯長輩 Modal -->
+    <div id="linkElderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ 關聯長輩</h2>
+                <button class="modal-close" onclick="closeLinkElderModal()">&times;</button>
+            </div>
+            <form id="linkElderForm" onsubmit="submitLinkElder(event)">
+                <div class="form-group">
+                    <label for="elderSelectForLink">選擇長輩：</label>
+                    <select id="elderSelectForLink" required>
+                        <option value="">載入中...</option>
+                    </select>
+                    <small>選擇系統中已註冊的長輩帳號</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="relationshipType">關係：</label>
+                    <select id="relationshipType" required>
+                        <option value="">請選擇</option>
+                        <option value="子女">子女</option>
+                        <option value="配偶">配偶</option>
+                        <option value="孫子女">孫子女</option>
+                        <option value="兄弟姊妹">兄弟姊妹</option>
+                        <option value="其他親屬">其他親屬</option>
+                        <option value="照護者">照護者</option>
+                    </select>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">確認關聯</button>
+                    <button type="button" class="btn-secondary" onclick="closeLinkElderModal()">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast 通知 -->
     <div id="toast" class="toast"></div>
 

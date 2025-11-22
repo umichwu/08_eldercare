@@ -2087,6 +2087,11 @@ function renderTodayTimeline(logs) {
                             <button class="btn-small btn-primary" onclick="confirmMedication('${log.id}')">
                                 ✓ 確認已服用
                             </button>
+                        ` : status === 'taken' ? `
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            <button class="btn-small btn-warning" onclick="cancelConfirmation('${log.id}')">
+                                ↶ 取消確認
+                            </button>
                         ` : `
                             <span class="status-badge ${statusClass}">${statusText}</span>
                         `}
@@ -2126,6 +2131,41 @@ async function confirmMedication(logId) {
         }
     } catch (error) {
         console.error('確認服藥失敗:', error);
+        showToast('操作失敗，請稍後再試', 'error');
+    }
+}
+
+/**
+ * 取消確認用藥
+ * @param {string} logId - 用藥記錄 ID
+ */
+async function cancelConfirmation(logId) {
+    try {
+        // 顯示確認對話框
+        if (!confirm('確認要取消此筆用藥記錄嗎？\n此操作將把狀態改回「待服用」。')) {
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/medication-logs/${logId}/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cancelledBy: currentUserProfile?.id || null,
+                cancelReason: 'user_correction'  // 使用者修正
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showToast('✅ 已取消確認，狀態改為待服用', 'success');
+            // 重新載入今日用藥資料
+            await loadTodayMedications();
+        } else {
+            showToast(result.message || '取消失敗', 'error');
+        }
+    } catch (error) {
+        console.error('取消確認失敗:', error);
         showToast('操作失敗，請稍後再試', 'error');
     }
 }

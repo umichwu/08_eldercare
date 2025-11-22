@@ -107,7 +107,7 @@ async function loadElders() {
     try {
         // 查詢關聯的長輩
         const { data: relationships, error } = await supabaseClient
-            .from('elder_family_relationships')
+            .from('elder_family_relations')
             .select(`
                 elder_id,
                 relationship,
@@ -120,7 +120,8 @@ async function loadElders() {
                     email
                 )
             `)
-            .eq('family_member_id', currentFamilyMemberId);
+            .eq('family_member_id', currentFamilyMemberId)
+            .eq('status', 'active');
 
         if (error) {
             console.error('載入長輩失敗:', error);
@@ -807,9 +808,209 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-function showSettings() {
-    // TODO: 實作設定功能
-    showToast('功能開發中', 'info');
+// ==================== 設定功能 ====================
+
+async function showSettings() {
+    document.getElementById('settingsModal').classList.add('show');
+    await loadLinkedElders();
+}
+
+function closeSettingsModal() {
+    document.getElementById('settingsModal').classList.remove('show');
+}
+
+async function loadLinkedElders() {
+    if (!currentFamilyMemberId) {
+        document.getElementById('linkedEldersList').innerHTML = `
+            <div class="empty-state">
+                <p>⚠️ 尚未建立家屬資料</p>
+            </div>
+        `;
+        return;
+    }
+
+    try {
+        const { data: relations, error } = await supabaseClient
+            .from('elder_family_relations')
+            .select(`
+                id,
+                relationship,
+                status,
+                elders (
+                    id,
+                    name,
+                    nickname,
+                    age
+                )
+            `)
+            .eq('family_member_id', currentFamilyMemberId);
+
+        if (error) {
+            console.error('載入關聯失敗:', error);
+            showToast('載入關聯失敗', 'error');
+            return;
+        }
+
+        if (!relations || relations.length === 0) {
+            document.getElementById('linkedEldersList').innerHTML = `
+                <div class="empty-state">
+                    <p>📝 尚未關聯任何長輩</p>
+                    <p class="help-text">請點擊下方「新增長輩關聯」按鈕開始設定</p>
+                </div>
+            `;
+            return;
+        }
+
+        document.getElementById('linkedEldersList').innerHTML = relations.map(rel => `
+            <div class="linked-elder-item">
+                <div class="elder-info">
+                    <div class="elder-avatar">${rel.elders.name.charAt(0)}</div>
+                    <div class="elder-details">
+                        <h4>${rel.elders.name}${rel.elders.nickname ? ` (${rel.elders.nickname})` : ''}</h4>
+                        <p class="relationship-tag">${rel.relationship}</p>
+                        <p class="age-info">${rel.elders.age ? `${rel.elders.age} 歲` : ''}</p>
+                    </div>
+                </div>
+                <div class="elder-actions">
+                    <span class="status-badge ${rel.status === 'active' ? 'status-active' : 'status-inactive'}">
+                        ${rel.status === 'active' ? '✓ 啟用中' : '暫停'}
+                    </span>
+                    ${rel.status === 'active' ? `
+                        <button class="btn-small btn-secondary" onclick="toggleRelationStatus('${rel.id}', 'inactive')">
+                            暫停監控
+                        </button>
+                    ` : `
+                        <button class="btn-small btn-primary" onclick="toggleRelationStatus('${rel.id}', 'active')">
+                            恢復監控
+                        </button>
+                    `}
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('載入關聯失敗:', error);
+        showToast('載入關聯失敗', 'error');
+    }
+}
+
+async function showLinkElderForm() {
+    document.getElementById('linkElderModal').classList.add('show');
+    await loadAvailableElders();
+}
+
+function closeLinkElderModal() {
+    document.getElementById('linkElderModal').classList.remove('show');
+}
+
+async function loadAvailableElders() {
+    try {
+        // 載入所有長輩
+        const { data: allElders, error } = await supabaseClient
+            .from('elders')
+            .select('id, name, nickname')
+            .order('name');
+
+        if (error) {
+            console.error('載入長輩列表失敗:', error);
+            return;
+        }
+
+        const select = document.getElementById('elderSelectForLink');
+        if (!allElders || allElders.length === 0) {
+            select.innerHTML = '<option value="">系統中沒有長輩帳號</option>';
+            return;
+        }
+
+        select.innerHTML = `
+            <option value="">請選擇長輩</option>
+            ${allElders.map(elder => `
+                <option value="${elder.id}">
+                    ${elder.name}${elder.nickname ? ` (${elder.nickname})` : ''}
+                </option>
+            `).join('')}
+        `;
+    } catch (error) {
+        console.error('載入長輩列表失敗:', error);
+    }
+}
+
+async function submitLinkElder(event) {
+    event.preventDefault();
+
+    const elderId = document.getElementById('elderSelectForLink').value;
+    const relationship = document.getElementById('relationshipType').value;
+
+    if (!elderId || !relationship) {
+        showToast('請填寫完整資料', 'warning');
+        return;
+    }
+
+    if (!currentFamilyMemberId) {
+        showToast('找不到家屬資料，請重新登入', 'error');
+        return;
+    }
+
+    try {
+        // 檢查是否已經關聯
+        const { data: existing } = await supabaseClient
+            .from('elder_family_relations')
+            .select('id')
+            .eq('family_member_id', currentFamilyMemberId)
+            .eq('elder_id', elderId)
+            .single();
+
+        if (existing) {
+            showToast('已經關聯過此長輩', 'warning');
+            return;
+        }
+
+        // 建立關聯
+        const { data, error } = await supabaseClient
+            .from('elder_family_relations')
+            .insert([{
+                family_member_id: currentFamilyMemberId,
+                elder_id: elderId,
+                relationship: relationship,
+                status: 'active',
+                can_receive_alerts: true
+            }])
+            .select();
+
+        if (error) {
+            console.error('建立關聯失敗:', error);
+            showToast('建立關聯失敗：' + error.message, 'error');
+            return;
+        }
+
+        showToast('✅ 成功關聯長輩', 'success');
+        closeLinkElderModal();
+        await loadLinkedElders();
+        await loadElders(); // 重新載入主選單
+    } catch (error) {
+        console.error('建立關聯失敗:', error);
+        showToast('建立關聯失敗', 'error');
+    }
+}
+
+async function toggleRelationStatus(relationId, newStatus) {
+    try {
+        const { error } = await supabaseClient
+            .from('elder_family_relations')
+            .update({ status: newStatus })
+            .eq('id', relationId);
+
+        if (error) {
+            showToast('更新失敗', 'error');
+            return;
+        }
+
+        showToast(newStatus === 'active' ? '✅ 已恢復監控' : '⏸️ 已暫停監控', 'success');
+        await loadLinkedElders();
+        await loadElders();
+    } catch (error) {
+        console.error('更新狀態失敗:', error);
+        showToast('更新失敗', 'error');
+    }
 }
 
 // ==================== 地理位置功能 ====================

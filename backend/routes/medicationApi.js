@@ -817,6 +817,8 @@ router.get('/medication-logs/elder/:elderId', async (req, res) => {
         actual_time: log.actual_time,
         status: log.status,
         notes: log.notes,
+        dose_sequence: log.dose_sequence, // ✅ 加入短期用藥序號
+        dose_label: log.dose_label, // ✅ 加入短期用藥標籤
         created_at: log.created_at
       }));
 

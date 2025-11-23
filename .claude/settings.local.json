@@ -3,7 +3,9 @@
     "allow": [
       "Read(//home/umich/.ssh/**)",
       "Bash(git add services/generateShortTermLogs.js routes/medicationApi.js)",
-      "Bash(git commit -m \"fix: 修正函數名稱語法錯誤（中文函數名導致 Node.js 解析失敗）\n\n問題：\n- generateShortTermLogs.js:143 使用了中文函數名 ''補充ShortTermLogs''\n- Node.js v22 無法正確解析：SyntaxError: Unexpected token ''async''\n- 導致 Render 部署失敗\n\n解決方案：\n- 將函數名從 ''補充ShortTermLogs'' 改為 ''replenishShortTermLogs''\n- 更新 medicationApi.js 中的 import 和使用處\n- 保留中文註解說明功能用途\n\n影響範圍：\n- services/generateShortTermLogs.js (函數定義)\n- routes/medicationApi.js (import 和調用)\")"
+      "Bash(git commit -m \"fix: 修正函數名稱語法錯誤（中文函數名導致 Node.js 解析失敗）\n\n問題：\n- generateShortTermLogs.js:143 使用了中文函數名 ''補充ShortTermLogs''\n- Node.js v22 無法正確解析：SyntaxError: Unexpected token ''async''\n- 導致 Render 部署失敗\n\n解決方案：\n- 將函數名從 ''補充ShortTermLogs'' 改為 ''replenishShortTermLogs''\n- 更新 medicationApi.js 中的 import 和使用處\n- 保留中文註解說明功能用途\n\n影響範圍：\n- services/generateShortTermLogs.js (函數定義)\n- routes/medicationApi.js (import 和調用)\")",
+      "Bash(git add services/generateShortTermLogs.js)",
+      "Bash(git commit -m \"fix: 修正 getSupabase import 錯誤，改用 supabaseAdmin\n\n問題：\n- generateShortTermLogs.js 從 config/supabase.js import getSupabase\n- 但 supabase.js 並沒有 export getSupabase 函數\n- 導致 Render 部署失敗：SyntaxError: does not provide an export named ''getSupabase''\n\n解決方案：\n- 改用 supabaseAdmin（有 Service Role Key 權限）\n- 替換所有 getSupabase() 為 supabaseAdmin\n- 與其他 service 檔案保持一致的使用方式\")"
     ],
     "deny": [],
     "ask": []

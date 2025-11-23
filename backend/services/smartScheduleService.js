@@ -71,8 +71,17 @@ export function generateShortTermSchedule({
   totalDoses = null
 }) {
   const schedules = [];
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0); // 設定為當天 00:00
+
+  // ✅ 正確處理 startDate：如果是字串 "2025-11-23"，需要加上時區資訊
+  let start;
+  if (typeof startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+    // 字串格式 "YYYY-MM-DD"，加上本地時區時間
+    const [year, month, day] = startDate.split('-').map(Number);
+    start = new Date(year, month - 1, day, 0, 0, 0, 0);
+  } else {
+    start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+  }
 
   // 決定使用哪個時間方案
   let dailyTimes = [];

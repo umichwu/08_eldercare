@@ -95,7 +95,6 @@ export function generateShortTermSchedule({
     .sort();
 
   // 生成每天的用藥時間
-  const now = new Date(); // 取得當前時間，用於過濾已過去的時段
   let isFirstDoseSet = false; // 追蹤是否已設定首次用藥
 
   for (let day = 0; day < treatmentDays; day++) {
@@ -109,10 +108,8 @@ export function generateShortTermSchedule({
       const scheduleDate = new Date(currentDate);
       scheduleDate.setHours(hour, minute, 0, 0);
 
-      // 跳過已經過去的時間點
-      if (scheduleDate < now) {
-        continue;
-      }
+      // ✅ 移除時間過濾：短期用藥應該產生所有排程的記錄
+      // 即使某些時間已經過去，也應該記錄下來（狀態會在後續標記為 missed）
 
       const isFirstDose = !isFirstDoseSet;
       if (isFirstDose) {

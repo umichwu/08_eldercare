@@ -612,6 +612,17 @@ export async function generateTodayMedicationLogs(elderId = null, targetDate = n
 
     for (const reminder of reminders) {
       try {
+        // ✅ 檢查是否早於 startDate（不應該產生記錄）
+        if (reminder.reminder_times?.startDate) {
+          const startDate = new Date(reminder.reminder_times.startDate);
+          startDate.setHours(0, 0, 0, 0);
+
+          if (targetDateObj < startDate) {
+            console.log(`⏭️  跳過未開始的用藥: ${reminder.medications.medication_name} (開始日期: ${reminder.reminder_times.startDate})`);
+            continue;
+          }
+        }
+
         // 檢查是否為短期用藥且已超過結束日期
         if (reminder.reminder_times?.endDate) {
           const endDate = new Date(reminder.reminder_times.endDate);

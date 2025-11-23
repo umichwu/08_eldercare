@@ -39,11 +39,14 @@ export async function generateShortTermMedicationLogs(params) {
   try {
     const sb = getSupabase();
     const now = new Date();
-    const createdAt = new Date(); // 提醒建立時間
 
-    // 解析 cron 表達式，從今天開始往後計算
+    // ✅ 使用 startDate 作為起始點，而非當前時間
+    const startDateObj = startDate ? new Date(startDate) : new Date();
+    startDateObj.setHours(0, 0, 0, 0); // 設定為當天 00:00
+
+    // 解析 cron 表達式，從 startDate 開始往後計算
     const options = {
-      currentDate: new Date(),
+      currentDate: startDateObj,
       tz: timezone
     };
 
@@ -55,7 +58,7 @@ export async function generateShortTermMedicationLogs(params) {
     console.log(`📊 開始產生短期用藥記錄...`);
     console.log(`   藥物: ${medicationName}`);
     console.log(`   總次數: ${totalDoses}`);
-    console.log(`   建立時間: ${createdAt.toLocaleString('zh-TW')}`);
+    console.log(`   開始日期: ${startDateObj.toLocaleDateString('zh-TW')}`);
     console.log(`   Cron: ${cronSchedule}`);
 
     // 產生所有記錄
@@ -63,11 +66,7 @@ export async function generateShortTermMedicationLogs(params) {
       try {
         const nextTime = interval.next().toDate();
 
-        // ✅ 關鍵：只產生「建立時間之後」的記錄
-        if (nextTime < createdAt) {
-          console.log(`   ⏭️  跳過: ${nextTime.toLocaleString('zh-TW')} (早於建立時間)`);
-          continue;
-        }
+        // ✅ 直接產生記錄，不需要過濾（因為已從 startDate 開始解析）
 
         const doseLabel = `${medicationName}-${doseSequence}`;
 

@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git add backend/services/generateShortTermLogs.js backend/services/medicationScheduler.js backend/routes/medicationApi.js)",
-      "Bash(git commit -m \"fix: 修復 API 查詢缺少 dose_sequence 和 dose_label 欄位\n\n- 在 GET /api/medication-logs/elder/:elderId 的回傳中加入 dose_sequence 和 dose_label\n- 這些欄位對於前端正確顯示短期用藥的 Timeline 非常重要\")"
+      "Bash(git commit -m \"fix: 修復 API 查詢缺少 dose_sequence 和 dose_label 欄位\n\n- 在 GET /api/medication-logs/elder/:elderId 的回傳中加入 dose_sequence 和 dose_label\n- 這些欄位對於前端正確顯示短期用藥的 Timeline 非常重要\")",
+      "Bash(git add backend/services/smartScheduleService.js)",
+      "Bash(git commit -m \"fix: 移除短期用藥排程的時間過濾，確保產生完整記錄\n\n問題：\n- generateShortTermSchedule() 會跳過「已過去的時間點」\n- 導致在建立當天，早於建立時間的用藥記錄不會被產生\n- 例如：08:45 建立用藥，08:00 的記錄被跳過\n\n影響：\n- 每日 4 次用藥（08, 12, 17, 21），實際只產生 3 次\n- treatmentDays = 3 應該有 12 筆，實際只有 11 筆（或更少）\n\n解決方案：\n- 移除 smartScheduleService.js 第 112-115 行的時間過濾\n- 所有排程的記錄都應該產生，無論是否已過去\n- 已過去的記錄會在後續由系統自動標記為 missed\n\n測試：\n- 建立「每日 4 次，3 天」的短期用藥\n- 應該產生完整的 12 筆記錄\n- 每天的 Timeline 都應該顯示 4 個時段\")"
     ],
     "deny": [],
     "ask": []

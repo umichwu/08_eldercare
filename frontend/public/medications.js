@@ -1403,6 +1403,7 @@ async function saveMedication(event) {
                 customTimes: customTimes,
                 treatmentDays: treatmentDays,
                 startDate: startDateStr, // ✅ 使用本地時區的日期字串
+                currentTime: new Date().toISOString(), // ✅ 傳送當前本地時間給 backend
                 // ✅ 新增必要欄位給後端短期用藥邏輯
                 isShortTerm: true,
                 totalDoses: totalDoses,

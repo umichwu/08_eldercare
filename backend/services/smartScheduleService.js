@@ -59,6 +59,7 @@ function getTimeLabel(timeString) {
  * @param {Array<string>} params.customTimes - 自訂時間陣列 (如果 timingPlan === 'custom')
  * @param {number} params.treatmentDays - 療程天數
  * @param {string|Date} params.startDate - 開始日期（預設今天）
+ * @param {string|Date} params.currentTime - 當前時間（用於過濾已過去的時段）
  * @param {number} params.totalDoses - 總劑量（可選，如果提供則產生到滿足此數量）
  * @returns {Array} - 排程陣列
  */
@@ -68,6 +69,7 @@ export function generateShortTermSchedule({
   customTimes = null,
   treatmentDays,
   startDate = new Date(),
+  currentTime = null, // ✅ 新增：從前端接收當前時間
   totalDoses = null
 }) {
   const schedules = [];
@@ -106,9 +108,10 @@ export function generateShortTermSchedule({
     .sort();
 
   // 生成每天的用藥時間
-  // ✅ 取得當前時間（使用本地時區），用於過濾已過去的時段
-  // 注意：Render server 是 UTC，所以需要確保 now 和 scheduleDate 使用相同基準
-  const now = new Date();
+  // ✅ 取得當前時間，用於過濾已過去的時段
+  // 優先使用前端傳來的 currentTime（避免 server 時區問題）
+  const now = currentTime ? new Date(currentTime) : new Date();
+  console.log(`⏰ 當前時間 (用於過濾): ${now.toISOString()}`);
   let isFirstDoseSet = false; // 追蹤是否已設定首次用藥
 
   // ✅ 決定要產生多少天：如果有 totalDoses，則產生到滿足為止

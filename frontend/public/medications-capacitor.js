@@ -4,7 +4,7 @@
  * 這個檔案展示如何在現有的 medications.js 中加入 Capacitor 支援
  * 使用方式：
  * 1. 安裝 Capacitor 後，將此檔案內容複製到 medications.js 的對應位置
- * 2. 或者直接用這個檔案取代 medications.js
+ * 2. 或者直接用這個檔案取代 medications.js 
  */
 
 // ==================== Capacitor 初始化 ====================

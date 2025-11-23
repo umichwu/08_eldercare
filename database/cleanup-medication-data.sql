@@ -11,7 +11,7 @@
 --   2. medication_reminders (用藥提醒設定)
 --   3. medications (藥物基本資料)
 --   4. medication_images (藥物圖片 - 如果存在)
---
+-- 
 -- 執行前請確認：
 --   ✓ 已備份重要資料
 --   ✓ 了解此操作不可逆
@@ -29,7 +29,7 @@ DECLARE
     reminders_count INTEGER;
     medications_count INTEGER;
     images_count INTEGER;
-BEGIN
+BEGIN 
     -- 統計各表資料量
     SELECT COUNT(*) INTO logs_count FROM public.medication_logs;
     SELECT COUNT(*) INTO reminders_count FROM public.medication_reminders;

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git add services/medicationScheduler.js)",
-      "Bash(git commit -m \"fix: 在 generateTodayMedicationLogs 中也加入 is_short_term 檢查\n\n問題：\n- generateTodayMedicationLogs 函數沒有檢查 is_short_term\n- 即使 is_short_term = true，scheduler 仍會用 cron 產生記錄\n- 導致產生「沒有 Index」的重複記錄\n\n影響：\n- 短期用藥會同時有：\n  1. 有 Index 的記錄（感冒藥-1, 感冒藥-2）- 正確\n  2. 沒有 Index 的記錄（只顯示「感冒藥」）- 錯誤\n- 超過 endDate 後仍持續產生記錄\n\n解決方案：\n- 在 generateTodayMedicationLogs 開頭加入 is_short_term 檢查\n- 如果是短期用藥，完全跳過（記錄已預先產生）\n- 與 manualCheckReminders 函數保持一致\n\n預期結果：\n- 短期用藥只有預先產生的記錄（有 dose_sequence 和 dose_label）\n- 不會有重複的記錄\n- 超過 endDate 後不會繼續產生\")"
+      "Bash(git commit -m \"fix: 在 generateTodayMedicationLogs 中也加入 is_short_term 檢查\n\n問題：\n- generateTodayMedicationLogs 函數沒有檢查 is_short_term\n- 即使 is_short_term = true，scheduler 仍會用 cron 產生記錄\n- 導致產生「沒有 Index」的重複記錄\n\n影響：\n- 短期用藥會同時有：\n  1. 有 Index 的記錄（感冒藥-1, 感冒藥-2）- 正確\n  2. 沒有 Index 的記錄（只顯示「感冒藥」）- 錯誤\n- 超過 endDate 後仍持續產生記錄\n\n解決方案：\n- 在 generateTodayMedicationLogs 開頭加入 is_short_term 檢查\n- 如果是短期用藥，完全跳過（記錄已預先產生）\n- 與 manualCheckReminders 函數保持一致\n\n預期結果：\n- 短期用藥只有預先產生的記錄（有 dose_sequence 和 dose_label）\n- 不會有重複的記錄\n- 超過 endDate 後不會繼續產生\")",
+      "Bash(git commit -m \"fix: 修正時區轉換 - 將台北時間正確轉換為 UTC 儲存\n\n問題：\n- Server 在 UTC 時區運行\n- setHours(9, 0) 設定的是 UTC 09:00\n- 但應該儲存台北時間 09:00 = UTC 01:00\n- 導致前端顯示時間錯誤（差 7-8 小時）\n\n根本原因：\n- 台北時間應該減去 8 小時轉換為 UTC\n- 原本：setHours(9, 0) → UTC 09:00 ❌\n- 正確：台北 09:00 → UTC 01:00 ✓\n\n解決方案：\n- 使用 Date.UTC() 建立正確的 UTC 時間\n- 時間減去 8 小時（UTC+8 → UTC）\n- 處理跨日情況（如 02:00 - 8 = -6，需調整日期）\n\n範例：\n- 台北時間 09:00 → Date.UTC(..., 1, 0) → UTC 01:00 ✓\n- 台北時間 02:00 → Date.UTC(...前一天, 18, 0) → UTC 18:00 ✓\n\n預期結果：\n- 儲存：\"\"2025-11-24T01:00:00.000Z\"\" (UTC 01:00)\n- 代表：台北時間 2025-11-24 09:00\n- 前端顯示：09:00 ✓\")"
     ],
     "deny": [],
     "ask": []

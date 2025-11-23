@@ -1,9 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push origin08e main)",
-      "Bash(git add frontend/public/medications.js)",
-      "Bash(git commit -m \"fix: 修復 startDate 時區轉換導致日期錯誤的問題\n\n問題：\n- 前端使用 new Date().setHours(0,0,0,0).toISOString().split(''T'')[0]\n- 在台北時區（UTC+8），2025-11-23 00:00 轉成 UTC 變成 2025-11-22 16:00\n- 導致 startDate 變成前一天（11/22 而非 11/23）\n\n影響：\n- 11/22 不應該出現記錄，但因為 startDate=11/22，所以產生了記錄\n- 這是最嚴重的 bug\n\n解決方案：\n- 直接使用本地時區的日期字串，避免 UTC 轉換\n- 使用 getFullYear(), getMonth()+1, getDate() 手動組合日期字串\n- 確保 startDate 永遠是本地時區的日期\n\n預期結果：\n- 11/23 建立的短期用藥，startDate 應該是 2025-11-23\n- 11/22 不會出現任何記錄\n- schedules 應該從 11/23 開始\")"
+      "Bash(git add services/smartScheduleService.js)",
+      "Bash(git commit -m \"fix: 恢復時間過濾並支援 totalDoses 自動延伸天數\n\n問題：\n- 之前移除了時間過濾，導致已過去的時段也被產生\n- 例如：09:50 建立用藥，08:00 的記錄仍然被產生\n\n正確邏輯：\n- 在 09:50 建立「每日4次，總共12次」的短期用藥\n- 11/23 的 08:00 已過，應該跳過\n- 11/23: 3次 (12, 17, 21)\n- 11/24: 4次 (08, 12, 17, 21)\n- 11/25: 4次 (08, 12, 17, 21)\n- 11/26: 1次 (08) - 補足到 12 次\n\n解決方案：\n- 恢復 scheduleDate < now 的時間過濾\n- 使用 totalDoses 自動延伸天數（maxDays +2 確保足夠）\n- 當 schedules.length >= totalDoses 時停止\n\n測試案例：\n- 09:50 建立，totalDoses=12，dosesPerDay=4\n- 應該產生 12 筆記錄，分布在 11/23-11/26\n- 11/23 只有 3 筆（跳過 08:00）\")"
     ],
     "deny": [],
     "ask": []

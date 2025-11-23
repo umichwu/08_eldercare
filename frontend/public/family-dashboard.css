@@ -408,6 +408,9 @@ body {
     flex-direction: column;
     gap: 15px;
     margin-bottom: 30px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
 .medication-log-item {

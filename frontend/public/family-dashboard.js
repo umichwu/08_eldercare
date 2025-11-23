@@ -252,10 +252,12 @@ async function loadTodayMetrics() {
         const today = new Date().toISOString().split('T')[0];
 
         // 今日用藥遵從率
+        console.log(`🔍 載入今日指標 - Elder ID: ${currentElderId}`);
         const adherenceResponse = await fetch(
             `${API_BASE_URL}/api/medication-logs/statistics/${currentElderId}?days=1`
         );
         const adherenceData = await adherenceResponse.json();
+        console.log('📊 今日用藥統計:', adherenceData);
 
         if (adherenceData.success && adherenceData.data) {
             const rate = adherenceData.data.adherenceRate || 0;
@@ -264,6 +266,10 @@ async function loadTodayMetrics() {
             const trend = rate >= 80 ? '✓ 良好' : rate >= 60 ? '⚠ 注意' : '✗ 不佳';
             const trendClass = rate >= 80 ? 'trend-good' : rate >= 60 ? 'trend-warning' : 'trend-bad';
             document.getElementById('adherenceTrend').innerHTML = `<span class="${trendClass}">${trend}</span>`;
+        } else {
+            console.warn('⚠️ 用藥統計 API 未返回資料');
+            document.getElementById('todayAdherence').textContent = '0%';
+            document.getElementById('adherenceTrend').innerHTML = '<span class="trend-bad">- 無資料</span>';
         }
 
         // 今日對話次數
@@ -513,7 +519,12 @@ function renderMedicationLogs(logs) {
         return;
     }
 
-    container.innerHTML = logs.map(log => {
+    // ✅ 排序：時間由小到大
+    const sortedLogs = [...logs].sort((a, b) => {
+        return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+    });
+
+    container.innerHTML = sortedLogs.map(log => {
         const statusClass = {
             'taken': 'status-taken',
             'missed': 'status-missed',

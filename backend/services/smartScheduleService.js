@@ -130,8 +130,26 @@ export function generateShortTermSchedule({
       const time = dailyTimes[timeIndex];
       const [hour, minute] = time.split(':').map(Number);
 
-      const scheduleDate = new Date(currentDate);
-      scheduleDate.setHours(hour, minute, 0, 0);
+      // ✅ 將台北時間轉換為 UTC 時間儲存
+      // 台北是 UTC+8，所以要減去 8 小時
+      const [year, month, day] = [
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate()
+      ];
+
+      // 使用 Date.UTC() 建立正確的 UTC 時間
+      // 台北時間 09:00 = UTC 01:00
+      let utcHour = hour - 8;
+      let utcDay = day;
+
+      // 如果減去 8 小時後變成負數，需要調整日期
+      if (utcHour < 0) {
+        utcHour += 24;
+        utcDay -= 1;
+      }
+
+      const scheduleDate = new Date(Date.UTC(year, month, utcDay, utcHour, minute, 0, 0));
 
       // ✅ 跳過已經過去的時間點
       // 這樣可以確保：如果在 09:50 建立，08:00 不會被產生

@@ -67,7 +67,12 @@
       "Bash(node -e \"\nimport { supabaseAdmin as supabase } from ''./config/supabase.js'';\n\n// 查詢最新的記錄\nconst { data: logs, error } = await supabase\n  .from(''medication_logs'')\n  .select(''id, scheduled_time, dose_sequence, dose_label, medication_reminder_id, created_at'')\n  .order(''created_at'', { ascending: false })\n  .limit(10);\n\nif (error) {\n  console.error(''錯誤:'', error);\n} else {\n  console.log(''最近 10 筆用藥記錄:'');\n  console.log(JSON.stringify(logs, null, 2));\n}\n\")",
       "Bash(node cleanup-wrong-reminders.js)",
       "Bash(node cleanup-orphaned-logs.js)",
-      "Bash(node verify-system-ready.js)"
+      "Bash(node verify-system-ready.js)",
+      "Bash(curl -s https://08-eldercare.vercel.app/medications.html)",
+      "Bash(git add frontend/public/medications.js)",
+      "Read(//mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/**)",
+      "Bash(git add eldercare-app/frontend/public/medications.js)",
+      "Bash(git commit -m \"fix: 修復短期用藥資料傳遞問題\n\n問題：\n- 用戶選擇「短期用藥」類型時，前端沒有傳遞 isShortTerm 和 totalDoses\n- 導致後端當作長期用藥處理，使用 Scheduler 產生所有今天的 cron 時間\n- 出現早於建立時間的記錄，且沒有序號標記\n\n修復：\n- saveMedication 函數在處理短期用藥時，計算並傳遞 totalDoses\n- 從 dosesPerDay 和 treatmentDays 計算總次數\n- 根據 timingPlan 產生實際的 reminderTimes 陣列\n- 從 reminderTimes 陣列產生 cronSchedule\n- 正確傳遞 isShortTerm: true 給後端\n- 加入 debug logging 方便追蹤\n\n現在選擇短期用藥時會正確觸發預先產生邏輯：\n- 只產生未來時間的記錄\n- 每筆記錄都有序號標記（藥物-1, 藥物-2...）\n- 達到總次數後自動停止\n\n\\ud83e\\udd16 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []

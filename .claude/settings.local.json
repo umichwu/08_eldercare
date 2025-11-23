@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m \"fix: 加入 isShortTerm 和 totalDoses 欄位，防止 scheduler 重複產生記錄\n\n問題：\n- reminderData 沒有設定 isShortTerm 欄位\n- 導致 medication_reminders 表格中的 is_short_term 為 null\n- medicationScheduler.js 無法識別短期用藥，持續用 cron 產生新記錄\n- 造成「四天後仍有用藥提醒」的問題\n- totalDoses 也沒有被儲存到資料庫\n\n影響：\n- 今日用藥頁面顯示錯誤的記錄數量\n- 超過 endDate 後仍產生用藥提醒\n- 無法正確控制短期用藥的總劑量\n\n解決方案：\n- 加入 isShortTerm: true 到 reminderData\n- 加入 totalDoses 欄位（優先使用前端傳值，否則計算 dosesPerDay * treatmentDays）\n- 確保 medicationScheduler 正確跳過短期用藥\n\n預期結果：\n- medicationScheduler 會正確跳過短期用藥\n- 不會產生超過 endDate 的記錄\n- medication_logs 數量等於 totalDoses\")"
+      "Bash(git add services/medicationScheduler.js)",
+      "Bash(git commit -m \"fix: 在 generateTodayMedicationLogs 中也加入 is_short_term 檢查\n\n問題：\n- generateTodayMedicationLogs 函數沒有檢查 is_short_term\n- 即使 is_short_term = true，scheduler 仍會用 cron 產生記錄\n- 導致產生「沒有 Index」的重複記錄\n\n影響：\n- 短期用藥會同時有：\n  1. 有 Index 的記錄（感冒藥-1, 感冒藥-2）- 正確\n  2. 沒有 Index 的記錄（只顯示「感冒藥」）- 錯誤\n- 超過 endDate 後仍持續產生記錄\n\n解決方案：\n- 在 generateTodayMedicationLogs 開頭加入 is_short_term 檢查\n- 如果是短期用藥，完全跳過（記錄已預先產生）\n- 與 manualCheckReminders 函數保持一致\n\n預期結果：\n- 短期用藥只有預先產生的記錄（有 dose_sequence 和 dose_label）\n- 不會有重複的記錄\n- 超過 endDate 後不會繼續產生\")"
     ],
     "deny": [],
     "ask": []

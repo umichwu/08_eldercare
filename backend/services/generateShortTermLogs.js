@@ -140,7 +140,7 @@ export async function generateShortTermMedicationLogs(params) {
  * @param {string} reminderId - 提醒 ID
  * @returns {Promise<Object>} - 補充結果
  */
-export async function補充ShortTermLogs(reminderId) {
+export async function replenishShortTermLogs(reminderId) {
   try {
     const sb = getSupabase();
 

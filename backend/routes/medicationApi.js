@@ -28,7 +28,7 @@ import {
 } from '../services/emailNotificationService.js';
 import {
   generateShortTermMedicationLogs,
-  補充ShortTermLogs,
+  replenishShortTermLogs,
 } from '../services/generateShortTermLogs.js';
 import {
   manualCheckReminders,
@@ -1290,7 +1290,7 @@ router.post('/medication-reminders/:id/generate-short-term-logs', async (req, re
 
     console.log(`🔄 收到產生短期用藥記錄請求: reminder_id=${id}`);
 
-    const result = await 補充ShortTermLogs(id);
+    const result = await replenishShortTermLogs(id);
 
     if (!result.success) {
       return res.status(400).json({

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push origin08e main)"
+      "Bash(git push origin08e main)",
+      "Bash(git add frontend/public/medications.js)",
+      "Bash(git commit -m \"fix: 修復 startDate 時區轉換導致日期錯誤的問題\n\n問題：\n- 前端使用 new Date().setHours(0,0,0,0).toISOString().split(''T'')[0]\n- 在台北時區（UTC+8），2025-11-23 00:00 轉成 UTC 變成 2025-11-22 16:00\n- 導致 startDate 變成前一天（11/22 而非 11/23）\n\n影響：\n- 11/22 不應該出現記錄，但因為 startDate=11/22，所以產生了記錄\n- 這是最嚴重的 bug\n\n解決方案：\n- 直接使用本地時區的日期字串，避免 UTC 轉換\n- 使用 getFullYear(), getMonth()+1, getDate() 手動組合日期字串\n- 確保 startDate 永遠是本地時區的日期\n\n預期結果：\n- 11/23 建立的短期用藥，startDate 應該是 2025-11-23\n- 11/22 不會出現任何記錄\n- schedules 應該從 11/23 開始\")"
     ],
     "deny": [],
     "ask": []

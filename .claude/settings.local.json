@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push origin main)"
+      "Bash(git push origin main)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: 修正今日用藥遵從率計算錯誤（顯示 0% 問題）\n\n問題：\n- 當 days=1 時，查詢範圍計算錯誤\n- 原本：now - 1天 = 昨天此刻 ~ now\n- 例如：16:00 建立，查詢範圍是昨天 16:00 ~ 今天 16:00\n- 導致今天 09:00 的記錄被正確查到，但邏輯不清晰\n\n修正：\n1. 改為從「今天 00:00」開始計算\n   - days=1：今天 00:00 ~ now\n   - days=7：7天前 00:00 ~ now\n2. 加入結束時間限制 (.lte)，避免查到未來的記錄\n3. 加入詳細的 console.log 調試資訊\n   - 顯示查詢範圍\n   - 顯示查詢到的記錄數量\n   - 顯示每筆記錄的詳情（medication, time, status）\n   - 顯示統計結果\n4. 欄位名稱已與前端保持一致（totalLogs, takenCount 等）\n\n測試案例：\n- 今天有 1 筆用藥記錄，status=''taken''\n- 應該顯示：總計 1，已服用 1，遵從率 100%\n\n影響範圍：\n- backend/services/medicationService.js (getMedicationStatistics)\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

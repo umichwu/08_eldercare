@@ -106,7 +106,9 @@ export function generateShortTermSchedule({
     .sort();
 
   // 生成每天的用藥時間
-  const now = new Date(); // ✅ 取得當前時間，用於過濾已過去的時段
+  // ✅ 取得當前時間（使用本地時區），用於過濾已過去的時段
+  // 注意：Render server 是 UTC，所以需要確保 now 和 scheduleDate 使用相同基準
+  const now = new Date();
   let isFirstDoseSet = false; // 追蹤是否已設定首次用藥
 
   // ✅ 決定要產生多少天：如果有 totalDoses，則產生到滿足為止
@@ -132,7 +134,7 @@ export function generateShortTermSchedule({
       // 這樣可以確保：如果在 09:50 建立，08:00 不會被產生
       // 而 totalDoses 會自動延伸到第 4 天來補足
       if (scheduleDate < now) {
-        console.log(`   ⏭️ 跳過已過去時段: ${scheduleDate.toLocaleString('zh-TW')}`);
+        console.log(`   ⏭️ 跳過已過去時段: ${scheduleDate.toISOString()} (now: ${now.toISOString()})`);
         continue;
       }
 

@@ -18,7 +18,8 @@ import cronParser from 'cron-parser';
  * @param {string} params.medicationId - 藥物 ID
  * @param {string} params.elderId - 長輩 ID
  * @param {string} params.medicationName - 藥物名稱
- * @param {string} params.cronSchedule - Cron 表達式
+ * @param {string} params.cronSchedule - Cron 表達式（舊方法，僅用於向後兼容）
+ * @param {Array} params.schedules - 排程陣列（新方法，已過濾的時間）
  * @param {number} params.totalDoses - 總次數
  * @param {string} params.startDate - 開始日期 (YYYY-MM-DD)
  * @param {string} params.timezone - 時區
@@ -31,6 +32,7 @@ export async function generateShortTermMedicationLogs(params) {
     elderId,
     medicationName,
     cronSchedule,
+    schedules = null, // ✅ 新增：使用已過濾的排程
     totalDoses,
     startDate,
     timezone = 'Asia/Taipei'
@@ -40,41 +42,28 @@ export async function generateShortTermMedicationLogs(params) {
     const sb = supabaseAdmin;
     const now = new Date();
 
-    // ✅ 使用 startDate 作為起始點，而非當前時間
-    const startDateObj = startDate ? new Date(startDate) : new Date();
-    startDateObj.setHours(0, 0, 0, 0); // 設定為當天 00:00
-
-    // 解析 cron 表達式，從 startDate 開始往後計算
-    const options = {
-      currentDate: startDateObj,
-      tz: timezone
-    };
-
-    const interval = cronParser.parseExpression(cronSchedule, options);
-
     const logs = [];
     let doseSequence = 1;
 
     console.log(`📊 開始產生短期用藥記錄...`);
     console.log(`   藥物: ${medicationName}`);
     console.log(`   總次數: ${totalDoses}`);
-    console.log(`   開始日期: ${startDateObj.toLocaleDateString('zh-TW')}`);
-    console.log(`   Cron: ${cronSchedule}`);
 
-    // 產生所有記錄
-    while (doseSequence <= totalDoses) {
-      try {
-        const nextTime = interval.next().toDate();
+    // ✅ 優先使用 schedules（已過濾的時間）
+    if (schedules && schedules.length > 0) {
+      console.log(`   使用已過濾的排程 (${schedules.length} 個時段)`);
 
-        // ✅ 直接產生記錄，不需要過濾（因為已從 startDate 開始解析）
+      for (const schedule of schedules) {
+        if (doseSequence > totalDoses) break;
 
+        const scheduleTime = new Date(schedule.dateTime);
         const doseLabel = `${medicationName}-${doseSequence}`;
 
         logs.push({
           medication_id: medicationId,
           medication_reminder_id: reminderId,
           elder_id: elderId,
-          scheduled_time: nextTime.toISOString(),
+          scheduled_time: scheduleTime.toISOString(),
           status: 'pending',
           dose_sequence: doseSequence,
           dose_label: doseLabel,
@@ -82,12 +71,48 @@ export async function generateShortTermMedicationLogs(params) {
           updated_at: now.toISOString()
         });
 
-        console.log(`   ✅ 產生: [${doseSequence}/${totalDoses}] ${doseLabel} - ${nextTime.toLocaleString('zh-TW')}`);
-
+        console.log(`   ✅ 產生: [${doseSequence}/${totalDoses}] ${doseLabel} - ${scheduleTime.toLocaleString('zh-TW')}`);
         doseSequence++;
-      } catch (err) {
-        console.error('解析時間錯誤:', err);
-        break;
+      }
+    } else {
+      // ⚠️ 向後兼容：使用 cron 表達式（舊方法，不建議）
+      console.log(`   ⚠️ 使用 Cron 解析（可能包含已過去的時段）`);
+      console.log(`   開始日期: ${startDate}`);
+      console.log(`   Cron: ${cronSchedule}`);
+
+      const startDateObj = startDate ? new Date(startDate) : new Date();
+      startDateObj.setHours(0, 0, 0, 0);
+
+      const options = {
+        currentDate: startDateObj,
+        tz: timezone
+      };
+
+      const interval = cronParser.parseExpression(cronSchedule, options);
+
+      while (doseSequence <= totalDoses) {
+        try {
+          const nextTime = interval.next().toDate();
+          const doseLabel = `${medicationName}-${doseSequence}`;
+
+          logs.push({
+            medication_id: medicationId,
+            medication_reminder_id: reminderId,
+            elder_id: elderId,
+            scheduled_time: nextTime.toISOString(),
+            status: 'pending',
+            dose_sequence: doseSequence,
+            dose_label: doseLabel,
+            created_at: now.toISOString(),
+            updated_at: now.toISOString()
+          });
+
+          console.log(`   ✅ 產生: [${doseSequence}/${totalDoses}] ${doseLabel} - ${nextTime.toLocaleString('zh-TW')}`);
+          doseSequence++;
+        } catch (err) {
+          console.error('解析時間錯誤:', err);
+          break;
+        }
       }
     }
 

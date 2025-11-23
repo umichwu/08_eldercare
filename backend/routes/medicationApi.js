@@ -255,12 +255,11 @@ router.post('/medication-reminders/preview', async (req, res) => {
 router.post('/medication-reminders', async (req, res) => {
   try {
     let reminderData = { ...req.body };
+    let schedules; // ✅ 提升到外層 scope，以便後續使用
 
     // 如果使用智能排程
     if (req.body.useSmartSchedule) {
       console.log('🧠 使用智能排程生成提醒...');
-
-      let schedules;
 
       // 判斷是否為抗生素（需要嚴格間隔）
       if (req.body.isAntibiotic && req.body.firstDoseDateTime) {
@@ -339,6 +338,7 @@ router.post('/medication-reminders', async (req, res) => {
         elderId: reminderData.elderId,
         medicationName: medicationName,
         cronSchedule: reminderData.cronSchedule,
+        schedules: schedules, // ✅ 傳入已過濾的排程
         totalDoses: reminderData.totalDoses,
         startDate: reminderData.startDate,
         timezone: reminderData.timezone || 'Asia/Taipei'

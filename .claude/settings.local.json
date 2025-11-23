@@ -1,10 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m \"fix: 修正 medication_logs 產生邏輯，使用已過濾的 schedules\n\n問題：\n1. generateShortTermLogs 使用 cron 從 startDate 00:00 開始解析\n2. 會產生已過去的時段（例如 19:06 建立，仍產生 08:00, 12:00, 17:00）\n3. 導致 medication_logs 包含錯誤的時間\n\n根本原因：\n- smartScheduleService.js 已經正確過濾時間\n- 但 generateShortTermLogs.js 重新用 cron 解析，失去過濾效果\n\n解決方案：\n- generateShortTermLogs 新增 schedules 參數\n- 優先使用已過濾的 schedules（來自 smartScheduleService）\n- 保留 cron 解析作為向後兼容（舊資料）\n- medicationApi.js 傳入 schedules 陣列\n\n預期結果（19:06 建立，每日4次，3天，共12次）：\n- 11/23: 1次 (21:00) - 跳過 08, 12, 17\n- 11/24: 4次 (08, 12, 17, 21)\n- 11/25: 4次 (08, 12, 17, 21)\n- 11/26: 3次 (08, 12, 17)\n- 總共 12 筆 medication_logs ✅\")",
-      "Bash(git commit -m \"debug: 加入時間過濾的調試日誌\n\n- 輸出 scheduleDate 和 now 的 ISO 格式\n- 用於診斷時區問題（Render server 是 UTC）\")",
-      "Bash(git add ../frontend/public/medications.js services/smartScheduleService.js routes/medicationApi.js)",
-      "Bash(git commit -m \"fix: 修正時區問題 - 使用前端傳送的當前時間過濾\n\n問題：\n- Render server 運行在 UTC 時區\n- 台北時間 19:06 = UTC 11:06\n- server 上 setHours(12, 0) = UTC 12:00（不是台北 12:00！）\n- 比較 UTC 12:00 > UTC 11:06 → 沒有被過濾 ❌\n\n根本原因：\n- server 的 new Date() 返回 UTC 時間\n- 產生的 scheduleDate 也是 UTC 時區\n- 但用戶期望的是台北時區的時間\n\n解決方案：\n- 前端傳送 currentTime (ISO 字串) 給 backend\n- backend 使用這個時間來過濾，而不是 server 的當前時間\n- 這樣確保使用用戶本地時區的時間來判斷\n\n預期結果（台北時間 19:06 建立）：\n- 台北 08:00 (UTC 00:00) < 台北 19:06 (UTC 11:06) → 過濾 ✅\n- 台北 12:00 (UTC 04:00) < 台北 19:06 (UTC 11:06) → 過濾 ✅\n- 台北 17:00 (UTC 09:00) < 台北 19:06 (UTC 11:06) → 過濾 ✅\n- 台北 21:00 (UTC 13:00) > 台北 19:06 (UTC 11:06) → 保留 ✅\")"
+      "Bash(git commit -m \"fix: 加入 isShortTerm 和 totalDoses 欄位，防止 scheduler 重複產生記錄\n\n問題：\n- reminderData 沒有設定 isShortTerm 欄位\n- 導致 medication_reminders 表格中的 is_short_term 為 null\n- medicationScheduler.js 無法識別短期用藥，持續用 cron 產生新記錄\n- 造成「四天後仍有用藥提醒」的問題\n- totalDoses 也沒有被儲存到資料庫\n\n影響：\n- 今日用藥頁面顯示錯誤的記錄數量\n- 超過 endDate 後仍產生用藥提醒\n- 無法正確控制短期用藥的總劑量\n\n解決方案：\n- 加入 isShortTerm: true 到 reminderData\n- 加入 totalDoses 欄位（優先使用前端傳值，否則計算 dosesPerDay * treatmentDays）\n- 確保 medicationScheduler 正確跳過短期用藥\n\n預期結果：\n- medicationScheduler 會正確跳過短期用藥\n- 不會產生超過 endDate 的記錄\n- medication_logs 數量等於 totalDoses\")"
     ],
     "deny": [],
     "ask": []

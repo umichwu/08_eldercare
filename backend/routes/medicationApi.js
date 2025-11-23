@@ -276,7 +276,8 @@ router.post('/medication-reminders', async (req, res) => {
           timingPlan: req.body.timingPlan || 'plan1', // 'plan1', 'plan2', or 'custom'
           customTimes: req.body.customTimes || null,  // ['08:00', '13:00', '18:00']
           treatmentDays: req.body.treatmentDays || 3,
-          startDate: req.body.startDate || new Date() // 開始日期（預設今天）
+          startDate: req.body.startDate || new Date(), // 開始日期（預設今天）
+          totalDoses: req.body.totalDoses || null // ✅ 傳遞 totalDoses
         });
       }
 

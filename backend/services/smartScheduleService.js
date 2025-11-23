@@ -59,6 +59,7 @@ function getTimeLabel(timeString) {
  * @param {Array<string>} params.customTimes - 自訂時間陣列 (如果 timingPlan === 'custom')
  * @param {number} params.treatmentDays - 療程天數
  * @param {string|Date} params.startDate - 開始日期（預設今天）
+ * @param {number} params.totalDoses - 總劑量（可選，如果提供則產生到滿足此數量）
  * @returns {Array} - 排程陣列
  */
 export function generateShortTermSchedule({
@@ -66,7 +67,8 @@ export function generateShortTermSchedule({
   timingPlan = 'plan1',
   customTimes = null,
   treatmentDays,
-  startDate = new Date()
+  startDate = new Date(),
+  totalDoses = null
 }) {
   const schedules = [];
   const start = new Date(startDate);
@@ -97,11 +99,19 @@ export function generateShortTermSchedule({
   // 生成每天的用藥時間
   let isFirstDoseSet = false; // 追蹤是否已設定首次用藥
 
-  for (let day = 0; day < treatmentDays; day++) {
+  // ✅ 決定要產生多少天：如果有 totalDoses，則產生到滿足為止
+  const maxDays = totalDoses ? Math.ceil(totalDoses / dailyTimes.length) + 1 : treatmentDays;
+
+  for (let day = 0; day < maxDays; day++) {
     const currentDate = new Date(start);
     currentDate.setDate(currentDate.getDate() + day);
 
     for (let timeIndex = 0; timeIndex < dailyTimes.length; timeIndex++) {
+      // ✅ 如果有 totalDoses 限制，且已達到數量，則停止
+      if (totalDoses && schedules.length >= totalDoses) {
+        break;
+      }
+
       const time = dailyTimes[timeIndex];
       const [hour, minute] = time.split(':').map(Number);
 
@@ -124,6 +134,11 @@ export function generateShortTermSchedule({
         day: day + 1,
         isFirstDose: isFirstDose
       });
+    }
+
+    // ✅ 如果已達到 totalDoses，跳出外層迴圈
+    if (totalDoses && schedules.length >= totalDoses) {
+      break;
     }
   }
 

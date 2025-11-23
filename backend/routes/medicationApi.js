@@ -40,7 +40,7 @@ import {
   schedulesToCron,
   previewSchedule,
 } from '../services/smartScheduleService.js';
-import { getSupabase } from '../config/supabase.js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 const router = express.Router();
 
@@ -632,7 +632,7 @@ router.post('/medication-logs/:id/cancel', async (req, res) => {
     const { id } = req.params;
     const { cancelledBy, cancelReason } = req.body;
 
-    const { data: log, error: fetchError } = await getSupabase()
+    const { data: log, error: fetchError } = await supabaseAdmin
       .from('medication_logs')
       .select('*')
       .eq('id', id)
@@ -654,7 +654,7 @@ router.post('/medication-logs/:id/cancel', async (req, res) => {
     }
 
     // 更新狀態為 pending
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabaseAdmin
       .from('medication_logs')
       .update({
         status: 'pending',

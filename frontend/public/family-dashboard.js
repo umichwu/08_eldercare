@@ -16,8 +16,10 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 全域變數
 let currentUser = null;
+let currentUserProfile = null; // ✅ 儲存使用者 profile
 let currentFamilyMemberId = null;
 let currentElderId = null;
+let currentElderData = null; // ✅ 如果使用者是長輩，儲存長輩資料
 let elders = [];
 let adherenceChart = null;
 
@@ -57,6 +59,8 @@ async function loadCurrentUser() {
             return;
         }
 
+        currentUserProfile = profile; // ✅ 儲存 profile
+
         // 檢查是否為家屬角色
         if (profile && profile.role === 'family_member') {
             const { data: familyMember, error: familyError } = await supabaseClient
@@ -74,11 +78,22 @@ async function loadCurrentUser() {
             currentFamilyMemberId = familyMember?.id;
             console.log('✅ 當前家屬 ID:', currentFamilyMemberId);
         } else if (profile && profile.role === 'elder') {
-            // 如果是長輩角色，允許訪問但顯示提示
-            showToast('您可以查看自己的監控資料', 'info');
-            // 可以選擇讓長輩查看自己的資料，或是跳轉
-            // 暫時允許訪問，但不跳轉
-            console.log('⚠️ 長輩角色訪問家屬監控面板');
+            // ✅ 如果是長輩角色，載入長輩資料以便自我監控
+            const { data: elder, error: elderError } = await supabaseClient
+                .from('elders')
+                .select('*')
+                .eq('user_profile_id', profile.id)
+                .single();
+
+            if (!elderError && elder) {
+                currentElderData = elder;
+                currentElderId = elder.id; // ✅ 設定當前長輩 ID
+                console.log('✅ 當前長輩 ID (自我監控):', currentElderId);
+                showToast('歡迎！您可以監控自己的用藥狀況', 'success');
+            } else {
+                console.error('載入長輩資料失敗:', elderError);
+                showToast('找不到長輩資料，請先完成個人資料設定', 'warning');
+            }
         } else {
             // 其他角色或未設定角色，顯示警告但不立即跳轉
             showToast('建議使用家屬帳號訪問此頁面', 'warning');
@@ -99,49 +114,66 @@ async function loadCurrentUser() {
 // ==================== 長輩管理 ====================
 
 async function loadElders() {
-    if (!currentFamilyMemberId) {
-        showToast('請先完成個人資料設定', 'warning');
-        return;
-    }
-
     try {
-        // 查詢關聯的長輩
-        const { data: relationships, error } = await supabaseClient
-            .from('elder_family_relations')
-            .select(`
-                elder_id,
-                relationship,
-                elders (
-                    id,
-                    name,
-                    nickname,
-                    age,
-                    phone,
-                    email
-                )
-            `)
-            .eq('family_member_id', currentFamilyMemberId)
-            .eq('status', 'active');
+        elders = []; // 重置長輩列表
 
-        if (error) {
-            console.error('載入長輩失敗:', error);
-            showToast('載入長輩列表失敗', 'error');
-            return;
+        // ✅ 情況 1：如果使用者是長輩，加入「自己」
+        if (currentElderData) {
+            elders.push({
+                ...currentElderData,
+                relationship: '本人', // 標記為自己
+                isSelf: true // 標記這是自己
+            });
+            console.log('✅ 加入自我監控:', currentElderData.name);
         }
 
-        elders = relationships.map(rel => ({
-            ...rel.elders,
-            relationship: rel.relationship
-        }));
+        // ✅ 情況 2：如果是家屬，查詢關聯的長輩
+        if (currentFamilyMemberId) {
+            const { data: relationships, error } = await supabaseClient
+                .from('elder_family_relations')
+                .select(`
+                    elder_id,
+                    relationship,
+                    elders (
+                        id,
+                        name,
+                        nickname,
+                        age,
+                        phone,
+                        email
+                    )
+                `)
+                .eq('family_member_id', currentFamilyMemberId)
+                .eq('status', 'active');
+
+            if (error) {
+                console.error('載入關聯長輩失敗:', error);
+                showToast('載入長輩列表失敗', 'error');
+            } else if (relationships && relationships.length > 0) {
+                const relatedElders = relationships.map(rel => ({
+                    ...rel.elders,
+                    relationship: rel.relationship,
+                    isSelf: false
+                }));
+                elders.push(...relatedElders);
+                console.log(`✅ 加入 ${relationships.length} 位關聯長輩`);
+            }
+        }
+
+        // ✅ 檢查是否有可監控的對象
+        if (elders.length === 0) {
+            showToast('沒有可監控的對象。請先設定個人資料或建立家屬關聯。', 'warning');
+            renderElderSelector(); // 顯示空的選擇器
+            return;
+        }
 
         renderElderSelector();
 
         if (elders.length > 0) {
             currentElderId = elders[0].id;
             await loadDashboardData();
-        } else {
-            showToast('尚未關聯任何長輩', 'warning');
         }
+        // ✅ 如果沒有長輩，訊息已在前面顯示，這裡不需要重複
     } catch (error) {
         console.error('載入長輩失敗:', error);
         showToast('載入長輩列表失敗', 'error');
@@ -152,13 +184,13 @@ function renderElderSelector() {
     const select = document.getElementById('elderSelect');
 
     if (elders.length === 0) {
-        select.innerHTML = '<option value="">尚未關聯長輩</option>';
+        select.innerHTML = '<option value="">請先完成個人資料設定</option>';
         return;
     }
 
     select.innerHTML = elders.map(elder => `
         <option value="${elder.id}">
-            ${elder.name}（${elder.relationship}）${elder.nickname ? ' - ' + elder.nickname : ''}
+            ${elder.isSelf ? '👤 ' : ''}${elder.name}（${elder.relationship}）${elder.nickname ? ' - ' + elder.nickname : ''}
         </option>
     `).join('');
 

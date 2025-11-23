@@ -307,6 +307,8 @@ router.post('/medication-reminders', async (req, res) => {
           intervalHours: req.body.isAntibiotic ? (24 / (req.body.dosesPerDay || 3)) : null,
           endDate: endDate.toISOString().split('T')[0], // YYYY-MM-DD
         },
+        isShortTerm: true, // ✅ 標記為短期用藥，避免 scheduler 重複產生記錄
+        totalDoses: req.body.totalDoses || ((req.body.dosesPerDay || 3) * (req.body.treatmentDays || 3)), // ✅ 總劑量
         autoMarkMissedAfterMinutes: req.body.autoMarkMissedAfterMinutes || 30,
         notifyFamilyIfMissed: req.body.notifyFamilyIfMissed !== false,
         isEnabled: req.body.isEnabled !== false,

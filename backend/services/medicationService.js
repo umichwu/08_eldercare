@@ -715,31 +715,53 @@ export async function getPendingMedicationLogs(elderId = null) {
 export async function getMedicationStatistics(elderId, days = 7) {
   try {
     const sb = getSupabase();
-    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    // ✅ 修正：計算開始日期時，從「今天 00:00」往回推 N 天
+    // 例如 days=1 表示「今天一整天」，days=7 表示「最近 7 天」
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - days + 1); // +1 是為了包含今天
+    startDate.setHours(0, 0, 0, 0); // 設定為當天 00:00
+
+    console.log(`📊 [統計] Elder ID: ${elderId}, Days: ${days}`);
+    console.log(`📊 [統計] 查詢範圍: ${startDate.toISOString()} ~ ${now.toISOString()}`);
 
     const { data, error } = await sb
       .from('medication_logs')
-      .select('status')
+      .select('status, scheduled_time, medication_name')
       .eq('elder_id', elderId)
-      .gte('scheduled_time', startDate.toISOString());
+      .gte('scheduled_time', startDate.toISOString())
+      .lte('scheduled_time', now.toISOString()); // ✅ 加入結束時間限制
 
     if (error) {
       console.error('❌ 查詢用藥統計失敗:', error.message);
       return { success: false, error: error.message };
     }
 
+    console.log(`📊 [統計] 查詢到 ${data.length} 筆記錄`);
+    if (data.length > 0) {
+      console.log(`📊 [統計] 記錄詳情:`, data.map(log => ({
+        medication: log.medication_name,
+        time: log.scheduled_time,
+        status: log.status
+      })));
+    }
+
     const stats = {
-      total: data.length,
-      taken: data.filter(log => log.status === 'taken').length,
-      missed: data.filter(log => log.status === 'missed').length,
-      late: data.filter(log => log.status === 'late').length,
-      pending: data.filter(log => log.status === 'pending').length,
-      skipped: data.filter(log => log.status === 'skipped').length,
+      totalLogs: data.length, // ✅ 改名為 totalLogs 避免混淆
+      takenCount: data.filter(log => log.status === 'taken').length,
+      missedCount: data.filter(log => log.status === 'missed').length,
+      lateCount: data.filter(log => log.status === 'late').length,
+      pendingCount: data.filter(log => log.status === 'pending').length,
+      skippedCount: data.filter(log => log.status === 'skipped').length,
     };
 
-    stats.adherenceRate = stats.total > 0
-      ? ((stats.taken + stats.late) / stats.total * 100).toFixed(1)
+    // ✅ 遵從率計算：(已服用 + 遲服用) / 總數 * 100
+    stats.adherenceRate = stats.totalLogs > 0
+      ? Math.round((stats.takenCount + stats.lateCount) / stats.totalLogs * 100)
       : 0;
+
+    console.log(`📊 [統計] 結果:`, stats);
 
     return { success: true, data: stats };
   } catch (error) {

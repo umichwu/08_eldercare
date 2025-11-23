@@ -824,15 +824,24 @@ async function previewShortTermSchedule() {
         const startDateType = document.getElementById('startDate').value;
         const isAntibiotic = document.getElementById('isAntibiotic').value === 'yes';
 
-        // 計算開始日期
-        let startDate = new Date();
+        // ✅ 計算開始日期（使用本地時區）
+        let startDateStr;
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+
         if (startDateType === 'tomorrow') {
-            startDate.setDate(startDate.getDate() + 1);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowYear = tomorrow.getFullYear();
+            const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0');
+            startDateStr = `${tomorrowYear}-${tomorrowMonth}-${tomorrowDay}`;
         } else if (startDateType === 'custom') {
-            const customDate = document.getElementById('startDateInput').value;
-            if (customDate) {
-                startDate = new Date(customDate);
-            }
+            startDateStr = document.getElementById('startDateInput').value || `${year}-${month}-${day}`;
+        } else {
+            startDateStr = `${year}-${month}-${day}`;
         }
 
         // 收集自訂時間（如果是自訂方案）
@@ -860,7 +869,7 @@ async function previewShortTermSchedule() {
             timingPlan: timingPlan === 'custom' ? 'custom' : timingPlan,
             customTimes,
             treatmentDays,
-            startDate: startDate.toISOString().split('T')[0],
+            startDate: startDateStr, // ✅ 使用本地時區字串
             isAntibiotic
         };
 
@@ -1335,17 +1344,25 @@ async function saveMedication(event) {
             const timingPlan = document.getElementById('timingPlan')?.value || 'plan1';
             const startDateType = document.getElementById('startDateType')?.value || 'today';
 
-            // 計算開始日期
-            let startDate = new Date();
+            // ✅ 計算開始日期（使用本地時區，避免 UTC 轉換問題）
+            let startDateStr;
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+
             if (startDateType === 'tomorrow') {
-                startDate.setDate(startDate.getDate() + 1);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowYear = tomorrow.getFullYear();
+                const tomorrowMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+                const tomorrowDay = String(tomorrow.getDate()).padStart(2, '0');
+                startDateStr = `${tomorrowYear}-${tomorrowMonth}-${tomorrowDay}`;
             } else if (startDateType === 'custom') {
-                const customDate = document.getElementById('customStartDate')?.value;
-                if (customDate) {
-                    startDate = new Date(customDate);
-                }
+                startDateStr = document.getElementById('customStartDate')?.value || `${year}-${month}-${day}`;
+            } else {
+                startDateStr = `${year}-${month}-${day}`;
             }
-            startDate.setHours(0, 0, 0, 0); // 設定為 00:00
 
             // 收集自訂時間（如果有的話）
             let customTimes = null;
@@ -1385,7 +1402,7 @@ async function saveMedication(event) {
                 timingPlan: timingPlan,
                 customTimes: customTimes,
                 treatmentDays: treatmentDays,
-                startDate: startDate.toISOString().split('T')[0],
+                startDate: startDateStr, // ✅ 使用本地時區的日期字串
                 // ✅ 新增必要欄位給後端短期用藥邏輯
                 isShortTerm: true,
                 totalDoses: totalDoses,
@@ -1836,7 +1853,14 @@ async function saveReminder(event, medicationId) {
         // ✅ 短期用藥參數
         isShortTerm: isShortTerm,
         totalDoses: isShortTerm ? parseInt(document.getElementById('totalDoses').value) : null,
-        startDate: new Date().toISOString().split('T')[0]  // 今天
+        startDate: (() => {
+            // ✅ 使用本地時區的今天
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        })()
     };
 
     console.log('📋 提交資料:', data);

@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m \"feat: 加入自我監控功能到家屬監控面板\n\n功能：\n- 讓使用者（長輩）可以監控自己的用藥狀況\n- 不需要建立家屬關聯，長輩可以直接看到自己的資料\n\n修改內容：\n1. 新增全域變數 currentUserProfile 和 currentElderData\n2. loadCurrentUser() 中，如果是長輩角色，載入長輩資料\n3. loadElders() 支援自我監控：\n   - 如果使用者是長輩，加入「本人」選項\n   - 如果使用者是家屬，顯示關聯的長輩\n   - 兩者可以並存（家屬也可以監控自己）\n4. renderElderSelector() 加入 👤 圖示標示「本人」\n5. 更新提示訊息，更清楚說明設定步驟\n\n使用場景：\n- 長輩可以進入家屬監控面板查看自己的用藥資料\n- 用於測試監控功能是否正常運作\n- 方便長輩自我管理用藥狀況\")"
+      "Bash(git push origin main)"
     ],
     "deny": [],
     "ask": []

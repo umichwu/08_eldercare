@@ -97,10 +97,11 @@ export function generateShortTermSchedule({
     .sort();
 
   // 生成每天的用藥時間
+  const now = new Date(); // ✅ 取得當前時間，用於過濾已過去的時段
   let isFirstDoseSet = false; // 追蹤是否已設定首次用藥
 
   // ✅ 決定要產生多少天：如果有 totalDoses，則產生到滿足為止
-  const maxDays = totalDoses ? Math.ceil(totalDoses / dailyTimes.length) + 1 : treatmentDays;
+  const maxDays = totalDoses ? Math.ceil(totalDoses / dailyTimes.length) + 2 : treatmentDays;
 
   for (let day = 0; day < maxDays; day++) {
     const currentDate = new Date(start);
@@ -118,8 +119,13 @@ export function generateShortTermSchedule({
       const scheduleDate = new Date(currentDate);
       scheduleDate.setHours(hour, minute, 0, 0);
 
-      // ✅ 移除時間過濾：短期用藥應該產生所有排程的記錄
-      // 即使某些時間已經過去，也應該記錄下來（狀態會在後續標記為 missed）
+      // ✅ 跳過已經過去的時間點
+      // 這樣可以確保：如果在 09:50 建立，08:00 不會被產生
+      // 而 totalDoses 會自動延伸到第 4 天來補足
+      if (scheduleDate < now) {
+        console.log(`   ⏭️ 跳過已過去時段: ${scheduleDate.toLocaleString('zh-TW')}`);
+        continue;
+      }
 
       const isFirstDose = !isFirstDoseSet;
       if (isFirstDose) {

@@ -7,7 +7,7 @@
  * - 精確標記序號
  */
 
-import { getSupabase } from '../config/supabase.js';
+import { supabaseAdmin } from '../config/supabase.js';
 import cronParser from 'cron-parser';
 
 /**
@@ -37,7 +37,7 @@ export async function generateShortTermMedicationLogs(params) {
   } = params;
 
   try {
-    const sb = getSupabase();
+    const sb = supabaseAdmin;
     const now = new Date();
 
     // ✅ 使用 startDate 作為起始點，而非當前時間
@@ -142,7 +142,7 @@ export async function generateShortTermMedicationLogs(params) {
  */
 export async function replenishShortTermLogs(reminderId) {
   try {
-    const sb = getSupabase();
+    const sb = supabaseAdmin;
 
     // 查詢提醒資訊
     const { data: reminder, error: reminderError } = await sb

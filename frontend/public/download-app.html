@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下載 ElderCare App - 長照小幫手</title>
+    <link rel="stylesheet" href="styles-modern.css">
+    <link rel="stylesheet" href="download-app.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <button class="nav-back" onclick="window.history.back()">
+            ← 返回
+        </button>
+        <h1 class="nav-title">下載 ElderCare App</h1>
+    </nav>
+
+    <div class="download-container">
+        <!-- App Icon -->
+        <div class="app-icon">
+            <div class="icon-placeholder">
+                <span style="font-size: 80px;">💊</span>
+            </div>
+        </div>
+
+        <h1 class="app-title">ElderCare 長照小幫手</h1>
+        <p class="app-subtitle">讓照護更安心，讓陪伴更貼心</p>
+
+        <!-- Features -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⏰</div>
+                <h3>準時提醒</h3>
+                <p>系統級鬧鐘，不會漏掉任何用藥時間</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📍</div>
+                <h3>位置守護</h3>
+                <p>背景定位追蹤，家人隨時掌握長輩位置</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔔</div>
+                <h3>即時通知</h3>
+                <p>可靠的推送通知，重要訊息不漏接</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>防詐保護</h3>
+                <p>監控異常 App 使用，預防詐騙風險</p>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div class="download-section">
+            <h2>立即下載</h2>
+
+            <!-- Android -->
+            <a href="/downloads/eldercare-v1.0.0.apk" class="download-btn android" id="androidDownloadBtn">
+                <div class="platform-icon">🤖</div>
+                <div class="btn-content">
+                    <div class="platform-name">Android</div>
+                    <div class="file-info">APK · 預計 15 MB</div>
+                </div>
+                <div class="download-arrow">→</div>
+            </a>
+
+            <!-- iOS (未來) -->
+            <div class="download-btn ios disabled">
+                <div class="platform-icon">🍎</div>
+                <div class="btn-content">
+                    <div class="platform-name">iOS</div>
+                    <div class="file-info">即將推出</div>
+                </div>
+            </div>
+
+            <p class="note">
+                💡 目前僅提供 Android 版本，iOS 版本開發中
+            </p>
+        </div>
+
+        <!-- Installation Guide -->
+        <div class="guide-section">
+            <h3>📖 安裝步驟</h3>
+            <ol class="installation-steps">
+                <li>
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>下載 APK</h4>
+                        <p>點擊上方「Android」按鈕下載安裝檔</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>允許安裝</h4>
+                        <p>開啟「設定」→「安全性」→ 允許「安裝未知來源的應用程式」</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>安裝 App</h4>
+                        <p>開啟下載的 APK 檔案，點擊「安裝」</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>登入帳號</h4>
+                        <p>啟動 App 並使用您的 ElderCare 帳號登入</p>
+                    </div>
+                </li>
+            </ol>
+        </div>
+
+        <!-- Privacy & Permissions -->
+        <div class="privacy-section">
+            <h3>🔒 隱私與權限說明</h3>
+            <p>App 需要以下權限以提供完整功能：</p>
+            <ul class="permissions-list">
+                <li>
+                    <div class="permission-icon">📍</div>
+                    <div class="permission-content">
+                        <strong>位置資訊</strong>
+                        <p>用於位置追蹤與安全區域監控（可關閉）</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="permission-icon">🔔</div>
+                    <div class="permission-content">
+                        <strong>通知權限</strong>
+                        <p>用於用藥提醒與重要警示</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="permission-icon">📱</div>
+                    <div class="permission-content">
+                        <strong>使用情況存取</strong>
+                        <p>用於 App 使用監控與防詐保護（可關閉）</p>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="privacy-note">
+                <p>
+                    我們非常重視您的隱私。所有資料透過加密傳輸，僅用於提供服務。
+                    <br>
+                    詳細資訊請參閱 <a href="/privacy-policy.html">隱私權政策</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="faq-section">
+            <h3>❓ 常見問題</h3>
+
+            <details class="faq-item">
+                <summary>不安裝 App 可以使用嗎？</summary>
+                <div class="faq-answer">
+                    <p>
+                        <strong>可以！</strong>您仍然可以透過瀏覽器使用所有基本功能（用藥管理、AI 對話、家屬監控等）。
+                        但部分增強功能（如系統級鬧鐘、背景定位、App 監控）需要安裝 App 才能使用。
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>App 會耗電嗎？</summary>
+                <div class="faq-answer">
+                    <p>
+                        我們已經過優化背景執行機制，正常使用下每日耗電約 <strong>3-5%</strong>。
+                        位置追蹤採用智能節能模式，僅在必要時啟動 GPS。
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>資料安全嗎？</summary>
+                <div class="faq-answer">
+                    <p>
+                        非常安全！所有資料透過 <strong>HTTPS 加密</strong>傳輸，儲存於 Supabase 雲端資料庫。
+                        我們<strong>不會分享</strong>您的個人資料給任何第三方。
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>如何關閉 App 使用監控？</summary>
+                <div class="faq-answer">
+                    <p>
+                        在 App 中：<br>
+                        「設定」→「隱私設定」→ 關閉「App 使用監控」<br>
+                        <br>
+                        關閉後仍可使用其他功能（用藥提醒、位置追蹤等）。
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>為什麼要監控使用的 App？</summary>
+                <div class="faq-answer">
+                    <p>
+                        這是為了<strong>保護長輩免受詐騙</strong>。當偵測到異常 App（如投資、博弈類），
+                        系統會發送警示給家屬。這項功能<strong>完全可選</strong>，且僅記錄 App 名稱和使用時長，
+                        不會記錄任何內容。
+                    </p>
+                </div>
+            </details>
+        </details>
+
+        <!-- Support -->
+        <div class="support-section">
+            <h3>💬 需要協助？</h3>
+            <p>
+                如有任何問題，請聯絡我們：<br>
+                📧 Email: <a href="mailto:support@eldercare.com">support@eldercare.com</a><br>
+                📱 LINE: @eldercare
+            </p>
+        </div>
+
+        <!-- Back to Web -->
+        <div class="back-to-web">
+            <button class="btn-secondary" onclick="window.location.href='index.html'">
+                返回 Web 版
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // APK 下載提示
+        document.getElementById('androidDownloadBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // 顯示提示
+            showToast('⚠️ APK 檔案尚未準備，請等待開發完成', 'warning');
+
+            // 實際上線時，移除這段，直接下載
+            // window.location.href = this.href;
+        });
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast toast-${type} show`;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

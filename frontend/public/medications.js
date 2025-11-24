@@ -1891,6 +1891,13 @@ async function saveReminder(event, medicationId) {
         if (response.ok) {
             showToast('提醒設定已儲存', 'success');
             closeReminderModal();
+
+            // ✅ 檢查是否安裝 Android App，引導設定鬧鐘
+            if (typeof appDetection !== 'undefined') {
+                setTimeout(() => {
+                    checkAndPromptAppDownload(medicationId, data);
+                }, 500); // 延遲 0.5 秒，避免與 Toast 衝突
+            }
         } else {
             showToast(result.message || '儲存失敗', 'error');
         }
@@ -3355,3 +3362,29 @@ function getMealTimeLabel(time) {
 }
 
 // 註解：裝置偵測已移至主要的 DOMContentLoaded 事件中
+
+// ==================== Android App 整合 ====================
+
+/**
+ * 檢查並提示下載 Android App
+ */
+function checkAndPromptAppDownload(medicationId, reminderData) {
+    // 檢查是否已安裝 Android App
+    if (appDetection.appInstalled) {
+        // 已安裝，同步用藥排程到 App
+        try {
+            if (typeof AndroidBridge !== 'undefined') {
+                AndroidBridge.syncMedicationSchedule(currentElderId);
+                showToast('✅ 已同步用藥排程到 App', 'success');
+            }
+        } catch (e) {
+            console.error('同步到 App 失敗:', e);
+        }
+        return;
+    }
+
+    // 未安裝，顯示下載引導 Banner
+    appDetection.showDownloadBanner('需要更可靠的提醒？');
+}
+
+console.log('✅ Android App 整合模組已載入');

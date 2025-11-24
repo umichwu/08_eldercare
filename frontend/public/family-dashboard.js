@@ -1079,6 +1079,9 @@ async function loadGeolocationTab() {
         return;
     }
 
+    // ✅ 檢查是否安裝 Android App，顯示引導
+    checkAndPromptAppForLocation();
+
     // 初始化地圖
     if (!locationMap) {
         initLocationMap();
@@ -1405,3 +1408,30 @@ async function refreshLocation() {
     await loadGeolocationTab();
     showToast('位置已更新', 'success');
 }
+
+// ==================== Android App 整合 ====================
+
+/**
+ * 檢查並提示下載 Android App（位置追蹤功能）
+ */
+function checkAndPromptAppForLocation() {
+    // 檢查是否已安裝 Android App
+    if (typeof appDetection === 'undefined' || appDetection.appInstalled) {
+        return; // 已安裝或模組未載入
+    }
+
+    // 檢查是否已經顯示過提示（避免重複）
+    if (sessionStorage.getItem('location_app_prompt_shown') === 'true') {
+        return;
+    }
+
+    // 標記已顯示
+    sessionStorage.setItem('location_app_prompt_shown', 'true');
+
+    // 延遲 1 秒後顯示提示（等待頁面載入完成）
+    setTimeout(() => {
+        appDetection.showDownloadBanner('位置追蹤需要 Android App 才能在背景運行');
+    }, 1000);
+}
+
+console.log('✅ 家屬監控面板 - Android App 整合模組已載入');

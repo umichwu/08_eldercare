@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git add -f docs/DEMO_PRESENTATION.md)",
       "Bash(git add -f docs/TESTING_GUIDE.md)",
-      "Bash(git commit -m \"docs: 加入測試指南\n\n- 5 個測試案例（App 偵測、用藥引導、位置引導、下載頁面 UI、已安裝情境）\n- 測試步驟與預期結果\n- 已知問題與限制\n- 測試檢查清單\n- 測試報告模板\")"
+      "Bash(git commit -m \"docs: 加入測試指南\n\n- 5 個測試案例（App 偵測、用藥引導、位置引導、下載頁面 UI、已安裝情境）\n- 測試步驟與預期結果\n- 已知問題與限制\n- 測試檢查清單\n- 測試報告模板\")",
+      "Bash(npm run dev)",
+      "Bash(python3 -m http.server 8080)"
     ],
     "deny": [],
     "ask": []

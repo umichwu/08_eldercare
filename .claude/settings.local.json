@@ -5,7 +5,11 @@
       "Bash(git add -f docs/TESTING_GUIDE.md)",
       "Bash(git commit -m \"docs: 加入測試指南\n\n- 5 個測試案例（App 偵測、用藥引導、位置引導、下載頁面 UI、已安裝情境）\n- 測試步驟與預期結果\n- 已知問題與限制\n- 測試檢查清單\n- 測試報告模板\")",
       "Bash(npm run dev)",
-      "Bash(python3 -m http.server 8080)"
+      "Bash(python3 -m http.server 8080)",
+      "Bash(git add backend/services/medicationService.js frontend/public/family-dashboard.js)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: 修復 family-dashboard 的 API 查詢錯誤\n\n修復內容：\n1. 修正 conversations 查詢使用錯誤的欄位 (user_id -> elder_id)\n2. 修復 medication_logs 統計查詢不存在的 medication_name 欄位\n3. 增強錯誤處理和日誌訊息\n4. 改善使用者介面的錯誤狀態顯示\n\n影響的檔案：\n- frontend/public/family-dashboard.js\n  - 4 處 conversations 查詢從 user_id 改為 elder_id\n  - 添加完整的錯誤處理和檢查\n  - 改善錯誤訊息顯示\n  \n- backend/services/medicationService.js\n  - 移除 getMedicationStatistics 中不存在的 medication_name 欄位\n  - 統計功能只需要 status 和 scheduled_time\n\n修復的錯誤：\n- ✅ 400 Bad Request: column medication_logs.medication_name does not exist\n- ✅ 400 Bad Request: conversations.user_id 不存在\n- ✅ 改善了錯誤處理和使用者體驗\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(git push origin08e main)"
     ],
     "deny": [],
     "ask": []

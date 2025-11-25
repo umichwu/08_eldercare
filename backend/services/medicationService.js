@@ -728,7 +728,7 @@ export async function getMedicationStatistics(elderId, days = 7) {
 
     const { data, error } = await sb
       .from('medication_logs')
-      .select('status, scheduled_time, medication_name')
+      .select('status, scheduled_time')
       .eq('elder_id', elderId)
       .gte('scheduled_time', startDate.toISOString())
       .lte('scheduled_time', now.toISOString()); // ✅ 加入結束時間限制
@@ -741,7 +741,6 @@ export async function getMedicationStatistics(elderId, days = 7) {
     console.log(`📊 [統計] 查詢到 ${data.length} 筆記錄`);
     if (data.length > 0) {
       console.log(`📊 [統計] 記錄詳情:`, data.map(log => ({
-        medication: log.medication_name,
         time: log.scheduled_time,
         status: log.status
       })));

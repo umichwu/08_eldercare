@@ -237,11 +237,33 @@
         document.getElementById('androidDownloadBtn').addEventListener('click', function(e) {
             e.preventDefault();
 
-            // 顯示提示
-            showToast('⚠️ APK 檔案尚未準備，請等待開發完成', 'warning');
+            // 詢問用戶是否要設定下載連結
+            const choice = confirm(
+                '📱 Android App 下載設定\n\n' +
+                '目前 APK 檔案尚未完成開發。\n\n' +
+                '如果您已經有 APK 檔案，可以：\n' +
+                '1. 將 APK 上傳到 Google Drive 或其他雲端空間\n' +
+                '2. 取得分享連結（設定為「任何人皆可檢視」）\n' +
+                '3. 修改 download-app.html 第 61 行的 href\n\n' +
+                '點選「確定」查看詳細說明\n' +
+                '點選「取消」關閉此訊息'
+            );
 
-            // 實際上線時，移除這段，直接下載
-            // window.location.href = this.href;
+            if (choice) {
+                // 顯示詳細說明
+                alert(
+                    '📋 設定 APK 下載連結步驟：\n\n' +
+                    '1️⃣ 上傳 APK 到雲端\n' +
+                    '   - Google Drive: 上傳檔案 → 右鍵 → 取得連結\n' +
+                    '   - Dropbox: 上傳 → Share → Copy link\n\n' +
+                    '2️⃣ 修改 HTML 檔案\n' +
+                    '   檔案: frontend/public/download-app.html\n' +
+                    '   第 61 行: <a href="您的APK連結">\n\n' +
+                    '3️⃣ 重新整理頁面即可下載\n\n' +
+                    '範例連結格式：\n' +
+                    'https://drive.google.com/uc?export=download&id=YOUR_FILE_ID'
+                );
+            }
         });
 
         function showToast(message, type = 'info') {

@@ -253,9 +253,27 @@ async function loadTodayMetrics() {
 
         // 今日用藥遵從率
         console.log(`🔍 載入今日指標 - Elder ID: ${currentElderId}`);
+
+        if (!currentElderId) {
+            console.warn('⚠️ Elder ID 未設定，跳過載入指標');
+            document.getElementById('todayAdherence').textContent = '-';
+            document.getElementById('adherenceTrend').innerHTML = '<span class="trend-bad">- 請選擇長輩</span>';
+            return;
+        }
+
         const adherenceResponse = await fetch(
             `${API_BASE_URL}/api/medication-logs/statistics/${currentElderId}?days=1`
         );
+
+        if (!adherenceResponse.ok) {
+            console.error(`❌ 用藥統計 API 錯誤: ${adherenceResponse.status} ${adherenceResponse.statusText}`);
+            const errorText = await adherenceResponse.text();
+            console.error('錯誤詳情:', errorText);
+            document.getElementById('todayAdherence').textContent = '錯誤';
+            document.getElementById('adherenceTrend').innerHTML = '<span class="trend-bad">- 載入失敗</span>';
+            return;
+        }
+
         const adherenceData = await adherenceResponse.json();
         console.log('📊 今日用藥統計:', adherenceData);
 
@@ -276,25 +294,33 @@ async function loadTodayMetrics() {
         const { data: conversations, error: convError } = await supabaseClient
             .from('conversations')
             .select('id')
-            .eq('user_id', currentElderId)
+            .eq('elder_id', currentElderId)
             .gte('created_at', today + 'T00:00:00');
 
-        if (!convError) {
-            document.getElementById('todayConversations').textContent = conversations.length;
-            const trend = conversations.length > 0 ? '✓ 活躍' : '- 無活動';
+        if (convError) {
+            console.error('載入對話次數失敗:', convError);
+            document.getElementById('todayConversations').textContent = '錯誤';
+            document.getElementById('conversationsTrend').textContent = '- 載入失敗';
+        } else {
+            document.getElementById('todayConversations').textContent = conversations?.length || 0;
+            const trend = (conversations?.length || 0) > 0 ? '✓ 活躍' : '- 無活動';
             document.getElementById('conversationsTrend').textContent = trend;
         }
 
         // 最後活動時間
-        const { data: lastConv } = await supabaseClient
+        const { data: lastConv, error: lastConvError } = await supabaseClient
             .from('conversations')
             .select('updated_at')
-            .eq('user_id', currentElderId)
+            .eq('elder_id', currentElderId)
             .order('updated_at', { ascending: false })
             .limit(1)
             .single();
 
-        if (lastConv) {
+        if (lastConvError) {
+            console.warn('載入最後活動時間失敗 (可能無記錄):', lastConvError.message);
+            document.getElementById('lastActivity').textContent = '無記錄';
+            document.getElementById('activityStatus').innerHTML = '<span class="trend-bad">- 無活動</span>';
+        } else if (lastConv) {
             const lastTime = new Date(lastConv.updated_at);
             const now = new Date();
             const diffHours = Math.floor((now - lastTime) / (1000 * 60 * 60));
@@ -442,7 +468,7 @@ async function loadRecentActivity() {
         const { data: activities, error } = await supabaseClient
             .from('conversations')
             .select('id, title, created_at, updated_at')
-            .eq('user_id', currentElderId)
+            .eq('elder_id', currentElderId)
             .order('created_at', { ascending: false })
             .limit(10);
 
@@ -661,7 +687,7 @@ async function loadConversations() {
         const { data: conversations, error } = await supabaseClient
             .from('conversations')
             .select('id, title, created_at, updated_at')
-            .eq('user_id', currentElderId)
+            .eq('elder_id', currentElderId)
             .order('created_at', { ascending: false })
             .limit(50);
 

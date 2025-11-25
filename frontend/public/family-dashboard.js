@@ -881,6 +881,38 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+// ==================== Android App 下載 ====================
+
+function downloadAndroidApp() {
+    // 檢查是否有 APK 檔案
+    const apkUrl = '/downloads/eldercare-v1.0.0.apk';
+
+    // 創建確認對話框
+    const confirmed = confirm('📱 下載 ElderCare Android App\n\n您即將下載 Android 應用程式（約 4.2 MB）\n\n下載後請開啟檔案進行安裝。\n\n是否繼續下載？');
+
+    if (confirmed) {
+        // 創建臨時連結並觸發下載
+        const link = document.createElement('a');
+        link.href = apkUrl;
+        link.download = 'ElderCare-v1.0.0.apk';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // 顯示下載提示
+        showToast('📥 正在下載 Android App...', 'success');
+
+        // 3秒後顯示安裝提示
+        setTimeout(() => {
+            showToast('✅ 下載完成！請開啟檔案進行安裝', 'success');
+        }, 3000);
+
+        console.log('✅ Android App 下載開始');
+    } else {
+        console.log('ℹ️ 使用者取消下載');
+    }
+}
+
 // ==================== 設定功能 ====================
 
 async function showSettings() {

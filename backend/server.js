@@ -8,6 +8,7 @@ import medicationRouter from './routes/medicationApi.js';
 import spiritualCareRouter from './routes/spiritualCareApi.js';
 import googleCalendarRouter from './routes/googleCalendarApi.js';
 import socialRouter from './routes/socialApi.js';
+import geolocationRouter from './routes/geolocationApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 
@@ -81,6 +82,7 @@ app.use('/api', medicationRouter);
 app.use('/api/spiritual', spiritualCareRouter);
 app.use('/api/google-calendar', googleCalendarRouter);
 app.use('/api/social', socialRouter);
+app.use('/api/geolocation', geolocationRouter);
 
 // 根路由
 app.get('/', (req, res) => {
@@ -167,6 +169,14 @@ app.listen(PORT, HOST, () => {
   console.log(`   GET  /api/social/posts/timeline               - 取得動態時間軸`);
   console.log(`   POST /api/social/posts                        - 發布動態`);
   console.log(`   GET  /api/social/notifications                - 取得通知`);
+  console.log('');
+  console.log('地理位置端點:');
+  console.log(`   GET  /api/geolocation/safe-zones/elder/:id    - 取得安全區域`);
+  console.log(`   POST /api/geolocation/safe-zones              - 建立安全區域`);
+  console.log(`   GET  /api/geolocation/location/latest/:id     - 取得最新位置`);
+  console.log(`   GET  /api/geolocation/location/elder/:id      - 取得位置歷史`);
+  console.log(`   GET  /api/geolocation/alerts/elder/:id        - 取得警示記錄`);
+  console.log(`   POST /api/geolocation/alerts/sos              - 緊急求助`);
   console.log('');
   console.log('='.repeat(60));
   console.log('');

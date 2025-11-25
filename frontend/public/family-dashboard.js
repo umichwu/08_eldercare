@@ -1491,6 +1491,8 @@ async function showTodayMedicationDetail() {
 
     try {
         const today = new Date().toISOString().split('T')[0];
+        const todayStart = new Date(today + 'T00:00:00').getTime();
+        const todayEnd = new Date(today + 'T23:59:59').getTime();
 
         // 查詢今日用藥記錄
         const response = await fetch(
@@ -1502,8 +1504,16 @@ async function showTodayMedicationDetail() {
         }
 
         const result = await response.json();
-        const logs = result.data || [];
+        const allLogs = result.data || [];
 
+        // ✅ 過濾：只保留今天的記錄
+        const logs = allLogs.filter(log => {
+            const logTime = new Date(log.scheduled_time).getTime();
+            return logTime >= todayStart && logTime <= todayEnd;
+        });
+
+        console.log('📊 API 返回記錄數:', allLogs.length);
+        console.log('📊 今日用藥記錄數:', logs.length);
         console.log('📊 今日用藥記錄:', logs);
 
         // 統計資料

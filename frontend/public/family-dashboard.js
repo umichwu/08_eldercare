@@ -277,7 +277,8 @@ async function loadTodayMetrics() {
         const adherenceData = await adherenceResponse.json();
         console.log('📊 今日用藥統計:', adherenceData);
 
-        if (adherenceData.success && adherenceData.data) {
+        // 後端返回格式: { message: "查詢成功", data: {...} } 或 { success: true, data: {...} }
+        if (adherenceData.data || (adherenceData.success && adherenceData.data)) {
             const rate = adherenceData.data.adherenceRate || 0;
             document.getElementById('todayAdherence').textContent = `${rate}%`;
 
@@ -308,19 +309,19 @@ async function loadTodayMetrics() {
         }
 
         // 最後活動時間
-        const { data: lastConv, error: lastConvError } = await supabaseClient
+        const { data: lastConvData, error: lastConvError } = await supabaseClient
             .from('conversations')
             .select('updated_at')
             .eq('elder_id', currentElderId)
             .order('updated_at', { ascending: false })
-            .limit(1)
-            .single();
+            .limit(1);
 
         if (lastConvError) {
-            console.warn('載入最後活動時間失敗 (可能無記錄):', lastConvError.message);
+            console.warn('載入最後活動時間失敗:', lastConvError.message);
             document.getElementById('lastActivity').textContent = '無記錄';
             document.getElementById('activityStatus').innerHTML = '<span class="trend-bad">- 無活動</span>';
-        } else if (lastConv) {
+        } else if (lastConvData && lastConvData.length > 0) {
+            const lastConv = lastConvData[0];
             const lastTime = new Date(lastConv.updated_at);
             const now = new Date();
             const diffHours = Math.floor((now - lastTime) / (1000 * 60 * 60));
@@ -330,6 +331,9 @@ async function loadTodayMetrics() {
             const status = diffHours < 6 ? '✓ 正常' : diffHours < 24 ? '⚠ 注意' : '✗ 異常';
             const statusClass = diffHours < 6 ? 'trend-good' : diffHours < 24 ? 'trend-warning' : 'trend-bad';
             document.getElementById('activityStatus').innerHTML = `<span class="${statusClass}">${status}</span>`;
+        } else {
+            document.getElementById('lastActivity').textContent = '無記錄';
+            document.getElementById('activityStatus').innerHTML = '<span class="trend-bad">- 無活動</span>';
         }
 
         // 待處理警示
@@ -349,7 +353,7 @@ async function loadAdherenceTrend() {
         );
         const result = await response.json();
 
-        if (!result.success || !result.data) return;
+        if (!result.data) return;
 
         const stats = result.data;
         const labels = [];
@@ -522,7 +526,7 @@ async function loadMedicationLogs() {
         );
         const result = await response.json();
 
-        if (!result.success) {
+        if (!result.data && !result.success) {
             showToast('載入用藥記錄失敗', 'error');
             return;
         }
@@ -596,7 +600,7 @@ async function loadMedicationStats() {
         );
         const result = await response.json();
 
-        if (!result.success || !result.data) return;
+        if (!result.data) return;
 
         const stats = result.data;
         const container = document.getElementById('medicationStats');

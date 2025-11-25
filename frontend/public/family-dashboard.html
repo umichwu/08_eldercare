@@ -70,10 +70,10 @@
         <div id="overview-tab" class="tab-content active">
             <!-- 關鍵指標卡片 -->
             <div class="metrics-grid">
-                <div class="metric-card">
+                <div class="metric-card clickable" onclick="showTodayMedicationDetail()" style="cursor: pointer;">
                     <div class="metric-icon">💊</div>
                     <div class="metric-content">
-                        <div class="metric-label">今日用藥遵從率</div>
+                        <div class="metric-label">今日用藥遵從率 <span style="font-size: 12px; opacity: 0.7;">（點擊查看詳情）</span></div>
                         <div class="metric-value" id="todayAdherence">--%</div>
                         <div class="metric-trend" id="adherenceTrend"></div>
                     </div>
@@ -280,6 +280,24 @@
                     <div class="loading-state">
                         <div class="spinner"></div>
                         <p>載入歷史記錄...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 今日用藥詳情 Modal -->
+    <div id="todayMedicationModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>💊 今日用藥詳情</h2>
+                <button class="modal-close" onclick="closeTodayMedicationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="todayMedicationDetail" style="padding: 20px;">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>載入今日用藥記錄...</p>
                     </div>
                 </div>
             </div>

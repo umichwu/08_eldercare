@@ -4,9 +4,16 @@
 
 /* ==================== 全域樣式 ==================== */
 
+html {
+    overflow-y: scroll; /* 強制顯示滾動條 */
+    height: 100%;
+}
+
 body {
     background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
     min-height: 100vh;
+    overflow-y: auto; /* 允許垂直滾動 */
+    overflow-x: hidden; /* 防止水平滾動 */
 }
 
 /* ==================== 導航欄 ==================== */
@@ -242,6 +249,35 @@ body {
 
 .metric-card:hover::before {
     opacity: 1;
+}
+
+/* 可點擊卡片特殊效果 */
+.metric-card.clickable {
+    cursor: pointer;
+    position: relative;
+}
+
+.metric-card.clickable::after {
+    content: '👆';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 18px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.metric-card.clickable:hover::after {
+    opacity: 0.7;
+}
+
+.metric-card.clickable:hover {
+    transform: translateY(-10px) scale(1.03);
+    box-shadow: 0 15px 40px rgba(76, 175, 80, 0.4);
+}
+
+.metric-card.clickable:active {
+    transform: translateY(-5px) scale(1.01);
 }
 
 .metric-icon {

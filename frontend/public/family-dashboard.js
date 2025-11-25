@@ -1465,3 +1465,204 @@ function checkAndPromptAppForLocation() {
 }
 
 console.log('✅ 家屬監控面板 - Android App 整合模組已載入');
+
+// ==================== 今日用藥詳情功能 ====================
+
+/**
+ * 顯示今日用藥詳情 Modal
+ */
+async function showTodayMedicationDetail() {
+    if (!currentElderId) {
+        showToast('請先選擇長輩', 'warning');
+        return;
+    }
+
+    // 打開 Modal
+    document.getElementById('todayMedicationModal').classList.add('show');
+
+    // 顯示載入狀態
+    const container = document.getElementById('todayMedicationDetail');
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>載入今日用藥記錄...</p>
+        </div>
+    `;
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // 查詢今日用藥記錄
+        const response = await fetch(
+            `${API_BASE_URL}/api/medication-logs/elder/${currentElderId}?days=1`
+        );
+
+        if (!response.ok) {
+            throw new Error('查詢失敗');
+        }
+
+        const result = await response.json();
+        const logs = result.data || [];
+
+        console.log('📊 今日用藥記錄:', logs);
+
+        // 統計資料
+        const stats = {
+            total: logs.length,
+            taken: logs.filter(log => log.status === 'taken').length,
+            late: logs.filter(log => log.status === 'late').length,
+            missed: logs.filter(log => log.status === 'missed').length,
+            pending: logs.filter(log => log.status === 'pending').length
+        };
+
+        const adherenceRate = stats.total > 0
+            ? Math.round((stats.taken + stats.late) / stats.total * 100)
+            : 0;
+
+        if (logs.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="padding: 40px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
+                    <p style="font-size: 18px; color: #666;">今日無用藥記錄</p>
+                </div>
+            `;
+            return;
+        }
+
+        // 渲染詳細資訊
+        container.innerHTML = `
+            <!-- 統計卡片 -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                <div style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); color: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);">
+                    <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">${adherenceRate}%</div>
+                    <div style="font-size: 14px; opacity: 0.9;">遵從率</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%); color: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 10px rgba(33, 150, 243, 0.3);">
+                    <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">${stats.total}</div>
+                    <div style="font-size: 14px; opacity: 0.9;">總計</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%); color: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 10px rgba(102, 187, 106, 0.3);">
+                    <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">${stats.taken}</div>
+                    <div style="font-size: 14px; opacity: 0.9;">已服用</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f44336 0%, #ef5350 100%); color: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 10px rgba(244, 67, 54, 0.3);">
+                    <div style="font-size: 28px; font-weight: bold; margin-bottom: 5px;">${stats.missed}</div>
+                    <div style="font-size: 14px; opacity: 0.9;">已錯過</div>
+                </div>
+            </div>
+
+            <!-- 用藥清單 -->
+            <div style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 2px 15px rgba(0,0,0,0.1);">
+                <h3 style="margin: 0 0 20px 0; color: #4caf50; font-size: 18px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">
+                    📋 用藥明細
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${logs.map((log, index) => {
+                        const statusConfig = {
+                            'taken': {
+                                icon: '✅',
+                                text: '已服用',
+                                color: '#4caf50',
+                                bgColor: '#e8f5e9'
+                            },
+                            'late': {
+                                icon: '⏰',
+                                text: '遲服用',
+                                color: '#ff9800',
+                                bgColor: '#fff3e0'
+                            },
+                            'missed': {
+                                icon: '❌',
+                                text: '已錯過',
+                                color: '#f44336',
+                                bgColor: '#ffebee'
+                            },
+                            'pending': {
+                                icon: '⏳',
+                                text: '待服用',
+                                color: '#2196f3',
+                                bgColor: '#e3f2fd'
+                            },
+                            'skipped': {
+                                icon: '⊘',
+                                text: '已跳過',
+                                color: '#9e9e9e',
+                                bgColor: '#f5f5f5'
+                            }
+                        };
+
+                        const config = statusConfig[log.status] || statusConfig['pending'];
+                        const scheduledTime = new Date(log.scheduled_time);
+                        const timeStr = scheduledTime.toLocaleTimeString('zh-TW', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+
+                        return `
+                            <div style="border: 2px solid ${config.color}; border-radius: 12px; padding: 15px; background: ${config.bgColor}; transition: all 0.3s ease;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                                        <div style="font-size: 24px;">${config.icon}</div>
+                                        <div style="flex: 1;">
+                                            <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 4px;">
+                                                ${log.medication_name}
+                                            </div>
+                                            <div style="font-size: 13px; color: #666;">
+                                                ${log.dosage || ''}
+                                                ${log.dose_label ? `<span style="margin-left: 8px; padding: 2px 8px; background: rgba(76, 175, 80, 0.15); border-radius: 4px; font-size: 11px;">${log.dose_label}</span>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="background: ${config.color}; color: white; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 5px;">
+                                            ${config.text}
+                                        </div>
+                                        <div style="font-size: 13px; color: #666;">
+                                            ⏰ ${timeStr}
+                                        </div>
+                                    </div>
+                                </div>
+                                ${log.actual_time ? `
+                                    <div style="border-top: 1px solid ${config.color}; padding-top: 10px; margin-top: 10px;">
+                                        <div style="font-size: 13px; color: #666;">
+                                            實際服用時間：${new Date(log.actual_time).toLocaleString('zh-TW', {
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${log.notes ? `
+                                    <div style="border-top: 1px solid ${config.color}; padding-top: 10px; margin-top: 10px;">
+                                        <div style="font-size: 13px; color: #666;">
+                                            備註：${log.notes}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('載入今日用藥詳情失敗:', error);
+        container.innerHTML = `
+            <div class="empty-state" style="padding: 40px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px; color: #f44336;">⚠️</div>
+                <p style="font-size: 18px; color: #f44336;">載入失敗</p>
+                <p style="font-size: 14px; color: #999; margin-top: 10px;">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * 關閉今日用藥詳情 Modal
+ */
+function closeTodayMedicationModal() {
+    document.getElementById('todayMedicationModal').classList.remove('show');
+}

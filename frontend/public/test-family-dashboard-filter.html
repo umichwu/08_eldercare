@@ -418,6 +418,40 @@
             2. 資料庫中有建立家屬與長輩的關聯（elder_family_relationships）<br>
             3. 長輩有用藥記錄和對話記錄
         </div>
+
+        <!-- 鍵盤快捷鍵提示 -->
+        <div style="position: fixed; bottom: 20px; right: 20px; background: rgba(102, 126, 234, 0.9); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: fadeIn 0.5s ease-in;">
+            💡 按下 <kbd style="background: white; color: #667eea; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-weight: bold;">ESC</kbd> 回到面板
+        </div>
     </div>
+
+    <script>
+        // 監聽 ESC 鍵
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' || event.keyCode === 27) {
+                console.log('✅ ESC 鍵被按下，導向家屬監控面板...');
+                window.location.href = 'family-dashboard.html';
+            }
+        });
+
+        console.log('✅ 鍵盤快捷鍵已啟用：按 ESC 可返回家屬監控面板');
+    </script>
+
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        kbd {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
 </body>
 </html>

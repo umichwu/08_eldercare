@@ -882,17 +882,19 @@ function showToast(message, type = 'info') {
 // ==================== Android App 下載 ====================
 
 function downloadAndroidApp() {
-    // 顯示提示訊息，引導用戶使用 Android Studio 構建
-    alert('⚠️ Android App 需要重新構建\n\n' +
-          '目前需要使用 Android Studio 重新構建 APK 才能獲得最新版本 v1.1.0。\n\n' +
-          '構建步驟：\n' +
-          '1. 打開 Android Studio\n' +
-          '2. 導入專案：frontend/android\n' +
-          '3. Build → Build APK(s)\n' +
-          '4. APK 位於：android/app/build/outputs/apk/debug/\n\n' +
-          '詳細說明請參考：build-android-app.md');
+    // 使用固定檔名下載最新版本的 APK
+    const apkUrl = '/downloads/eldercare-v1.1.0-20251126.apk';
 
-    console.log('ℹ️ Android App 下載功能已暫時停用，等待重新構建');
+    // 創建隱藏的下載連結
+    const link = document.createElement('a');
+    link.href = apkUrl;
+    link.download = 'ElderCare.apk'; // 固定的下載檔名
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log('✅ 開始下載 Android App');
+    showToast('開始下載 ElderCare App...', 'success');
 }
 
 // ==================== 設定功能 ====================

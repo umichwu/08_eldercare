@@ -3,7 +3,7 @@
 // ===================================
 
 // API URL - 從全域配置讀取 (config.js)
-const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
+// 注意：API_BASE_URL 已在 config.js 中定義為全域變數，這裡不需要重新宣告
 
 console.log('🔗 API Base URL:', API_BASE_URL);
 

@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 後端 API URL - 從全域配置讀取 (config.js)
-const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
+// 注意：API_BASE_URL 已在 config.js 中定義為全域變數，這裡不需要重新宣告
 
 // 全域變數
 let map = null;

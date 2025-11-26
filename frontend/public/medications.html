@@ -728,12 +728,17 @@
     <!-- Toast 通知 -->
     <div id="toast" class="toast"></div>
 
-    <!-- Scripts -->
-    <!-- Capacitor Core (如果在原生 App 中會自動載入) -->
-    <script src="capacitor.js"></script>
+    <!-- Scripts (按順序載入) -->
+    <!-- 1. 全域配置 (最優先) -->
     <script src="config.js"></script>
+
+    <!-- 2. Firebase 配置 -->
     <script src="firebase-config.js"></script>
+
+    <!-- 3. 裝置偵測 -->
     <script src="device-detector.js"></script>
+
+    <!-- 4. 主要功能腳本 -->
     <script src="medications.js"></script>
 
     <!-- Service Worker 註冊 -->

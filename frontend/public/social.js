@@ -10,7 +10,7 @@ const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
 
 // API 基礎 URL - 從全域配置讀取 (config.js)
-const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
+// 注意：API_BASE_URL 已在 config.js 中定義為全域變數，這裡不需要重新宣告
 
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

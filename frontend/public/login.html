@@ -282,6 +282,7 @@
             <div class="logo-icon">🏥</div>
             <h1>ElderCare</h1>
             <p>長輩陪伴智能系統</p>
+            <p id="appVersion" style="font-size: 12px; color: #999; margin-top: 8px;">Web v1.0</p>
         </div>
 
         <!-- 錯誤訊息 -->
@@ -383,6 +384,24 @@
     </script>
 
     <script>
+        // ===================================
+        // 顯示 App 版本號
+        // ===================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const versionElement = document.getElementById('appVersion');
+            const isCapacitor = window.location.protocol === 'capacitor:' ||
+                               window.location.protocol === 'ionic:' ||
+                               (document.URL.indexOf('http://') === -1 && document.URL.indexOf('https://') === -1);
+
+            if (isCapacitor) {
+                versionElement.textContent = 'Android App v1.1.0 (2025-11-26)';
+                versionElement.style.color = '#667eea';
+                versionElement.style.fontWeight = '600';
+            } else {
+                versionElement.textContent = 'Web v1.0';
+            }
+        });
+
         // 初始化 Supabase
         const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';

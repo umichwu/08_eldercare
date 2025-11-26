@@ -85,13 +85,13 @@ let API_BASE_URL;
 
 if (isCapacitor) {
   // Android/iOS App - 使用生產環境 API
-  API_BASE_URL = 'https://eldercare-api-v4wa.onrender.com';
+  API_BASE_URL = 'https://eldercare-backend-8o4k.onrender.com';
 } else if (isLocalhost) {
   // 本地開發 - 使用本地 API
   API_BASE_URL = 'http://localhost:3000';
 } else {
   // Web 生產環境 - 使用生產環境 API
-  API_BASE_URL = 'https://eldercare-api-v4wa.onrender.com';
+  API_BASE_URL = 'https://eldercare-backend-8o4k.onrender.com';
 }
 
 // 導出全域配置

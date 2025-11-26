@@ -755,9 +755,13 @@ export async function getMedicationStatistics(elderId, days = 7) {
       skippedCount: data.filter(log => log.status === 'skipped').length,
     };
 
-    // ✅ 遵從率計算：(已服用 + 遲服用) / 總數 * 100
-    stats.adherenceRate = stats.totalLogs > 0
-      ? Math.round((stats.takenCount + stats.lateCount) / stats.totalLogs * 100)
+    // ✅ 修正遵從率計算：排除 pending（待服用）的記錄
+    // 公式：(已服用 + 延遲服用) / (總數 - 待服用 - 跳過) * 100
+    // pending 不計入分母（因為時間還沒到）
+    // skipped 不計入分母（因為是主動跳過，不算錯過）
+    const shouldTakeCount = stats.totalLogs - stats.pendingCount - stats.skippedCount;
+    stats.adherenceRate = shouldTakeCount > 0
+      ? Math.round((stats.takenCount + stats.lateCount) / shouldTakeCount * 100)
       : 0;
 
     console.log(`📊 [統計] 結果:`, stats);

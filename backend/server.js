@@ -29,8 +29,9 @@ if (process.env.NODE_ENV !== 'production') {
 // Firebase Admin SDK 已在 config/firebase.js 中初始化
 
 const app = express();
-const PORT = process.env.APP_PORT || 3000;
-const HOST = process.env.APP_HOST || '0.0.0.0';
+// Render 使用 PORT 環境變數，本地開發可使用 APP_PORT
+const PORT = process.env.PORT || process.env.APP_PORT || 3000;
+const HOST = process.env.HOST || process.env.APP_HOST || '0.0.0.0';
 
 // CORS 設定 - 支援本地開發和生產環境
 const corsOptions = {

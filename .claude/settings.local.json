@@ -10,7 +10,10 @@
       "Bash(do echo \"=== $file ===\")",
       "Bash(done)",
       "Bash(git add medications.html)",
-      "Bash(git commit -m \"fix: medications.html 添加 config.js 載入以修復 API 連接問題\n\n- 在 medications.html 中添加 config.js 的載入\n- 確保 medications.js 可以正確讀取 API_BASE_URL 配置\n- 修復本地測試時出現的 ERR_CONNECTION_REFUSED 錯誤\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
+      "Bash(git commit -m \"fix: medications.html 添加 config.js 載入以修復 API 連接問題\n\n- 在 medications.html 中添加 config.js 的載入\n- 確保 medications.js 可以正確讀取 API_BASE_URL 配置\n- 修復本地測試時出現的 ERR_CONNECTION_REFUSED 錯誤\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
+      "Bash(curl -I https://eldercare-api-v4wa.onrender.com/)",
+      "Bash(curl -v https://eldercare-api-v4wa.onrender.com/api/health)",
+      "Bash(curl -s https://eldercare-api-v4wa.onrender.com/api/health)"
     ],
     "deny": [],
     "ask": []

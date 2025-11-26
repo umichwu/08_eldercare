@@ -3,7 +3,14 @@
     "allow": [
       "Bash(git add -A)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfix: 修復 Android App API 連接與 Render 部署問題\n\n**問題**\n1. Android App 無法連接後端 API（顯示 \"無法連線此網站\"）\n2. Render 部署失敗（geolocationApi.js 導入錯誤）\n\n**修復**\n1. 後端修復：\n   - 修正 geolocationApi.js 的導入路徑（notificationService.js → fcmService.js）\n   - 修正 sendPushNotification 的調用方式（使用 {title, body} 格式）\n\n2. 前端修復：\n   - 在 config.js 添加環境自動檢測（localhost/Capacitor/生產環境）\n   - 更新所有 JS 文件使用全域 API_BASE_URL 配置：\n     * app.js\n     * family-dashboard.js\n     * medications.js\n     * mood-diary.js\n     * social.js\n     * geolocation.js\n     * voice-medication.js\n   - 在所有 HTML 文件中載入 config.js\n\n**環境檢測邏輯**\n- Capacitor App (Android/iOS): 使用生產環境 API\n- localhost: 使用本地開發 API (localhost:3000)\n- Web 生產環境: 使用 Render API\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(git add i18n.js)",
+      "Bash(git commit -m \"fix: 修復主頁「家屬監控」按鈕顯示為 quickAction.familyDashboard 的問題\n\n- 在 i18n.js 中添加 quickAction.familyDashboard 的多語言翻譯\n- 繁體中文: 👨‍👩‍👧‍👦 家屬監控\n- 簡體中文: 👨‍👩‍👧‍👦 家属监控\n- 英文: 👨‍👩‍👧‍👦 Family Dashboard\n- 日文: 👨‍👩‍👧‍👦 家族ダッシュボード\n- 韓文: 👨‍👩‍👧‍👦 가족 대시보드\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
+      "Bash(for file in login.html register.html onboarding.html)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)",
+      "Bash(git add medications.html)",
+      "Bash(git commit -m \"fix: medications.html 添加 config.js 載入以修復 API 連接問題\n\n- 在 medications.html 中添加 config.js 的載入\n- 確保 medications.js 可以正確讀取 API_BASE_URL 配置\n- 修復本地測試時出現的 ERR_CONNECTION_REFUSED 錯誤\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []

@@ -503,11 +503,14 @@
     <!-- Toast 通知 -->
     <div id="toast" class="toast"></div>
 
-    <!-- Android App 偵測 -->
+    <!-- Scripts (按順序載入) -->
+    <!-- 1. 全域配置 (最優先) -->
+    <script src="config.js"></script>
+
+    <!-- 2. Android App 偵測 -->
     <script src="app-detection.js"></script>
 
-    <!-- Scripts -->
-    <script src="config.js"></script>
+    <!-- 3. 主要功能腳本 -->
     <script src="family-dashboard.js"></script>
 </body>
 </html>

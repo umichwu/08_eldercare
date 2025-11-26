@@ -13,7 +13,10 @@
       "Bash(git commit -m \"fix: medications.html 添加 config.js 載入以修復 API 連接問題\n\n- 在 medications.html 中添加 config.js 的載入\n- 確保 medications.js 可以正確讀取 API_BASE_URL 配置\n- 修復本地測試時出現的 ERR_CONNECTION_REFUSED 錯誤\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
       "Bash(curl -I https://eldercare-api-v4wa.onrender.com/)",
       "Bash(curl -v https://eldercare-api-v4wa.onrender.com/api/health)",
-      "Bash(curl -s https://eldercare-api-v4wa.onrender.com/api/health)"
+      "Bash(curl -s https://eldercare-api-v4wa.onrender.com/api/health)",
+      "Bash(git add backend/server.js)",
+      "Bash(git commit -m \"fix: 修正 Render 部署的 PORT 環境變數讀取問題\n\n**問題**\n- server.js 使用 process.env.APP_PORT，但 Render 提供的是 PORT\n- 導致 Render 無法正確設定端口，服務啟動失敗\n\n**修正**\n- 修改 PORT 讀取順序：PORT || APP_PORT || 3000\n- 修改 HOST 讀取順序：HOST || APP_HOST || 0.0.0.0\n- 確保 Render 部署時優先使用平台提供的環境變數\n\n**測試**\n- Render 應該能正確讀取 PORT=10000（或平台分配的端口）\n- 本地開發仍可使用 APP_PORT 和 APP_HOST\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
+      "Bash(git push origin08e main)"
     ],
     "deny": [],
     "ask": []

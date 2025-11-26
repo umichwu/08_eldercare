@@ -27,7 +27,9 @@
       "Bash(git commit -m \"fix: 修正用藥遵從率計算邏輯與 API URL\n\n**問題 1: 用藥遵從率計算錯誤**\n- 舊邏輯: (taken + late) / totalLogs * 100\n- 錯誤: 將 pending（待服用）計入分母，導致遵從率偏低\n- 實際案例: 6 次用藥中，1 次 taken、2 次 late、2 次 missed、1 次 pending\n  * 舊計算: (1+2)/6 = 50% ❌ 錯誤\n  * 新計算: (1+2)/(6-1) = 60% ✅ 正確\n\n**修正**\n- 新邏輯: (taken + late) / (totalLogs - pendingCount - skippedCount) * 100\n- pending 不計入分母（時間還沒到，不應計入應服用次數）\n- skipped 不計入分母（主動跳過，不算錯過）\n\n**問題 2: 前端 API URL 更新**\n- 更新 API URL: https://eldercare-backend-8o4k.onrender.com\n- 對應 Render 最新部署的服務\n\n**影響**\n- 用藥遵從率計算更準確\n- 前端可以正常連接到後端 API\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
       "Bash(npx cap sync)",
       "Bash(./gradlew assembleDebug)",
-      "Bash(npx cap sync android)"
+      "Bash(npx cap sync android)",
+      "Bash(git add public/family-dashboard.js)",
+      "Bash(git commit -m \"fix: 移除 family-dashboard.js 中硬編碼的舊版 APK 下載邏輯\n\n- 將 downloadAndroidApp() 改為顯示提示訊息\n- 引導用戶使用 Android Studio 重新構建 APK\n- 完全移除舊版本 v1.0.0 的硬編碼引用\n- 修正用戶在第 895 行發現的遺漏問題\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []

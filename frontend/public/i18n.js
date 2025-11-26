@@ -23,6 +23,7 @@ const translations = {
     'quickAction.medication': '💊 用藥提醒',
     'quickAction.social': '👥 好友聊天',
     'quickAction.health': '🏥 健康諮詢',
+    'quickAction.familyDashboard': '👨‍👩‍👧‍👦 家屬監控',
 
     // 輸入區域
     'input.placeholder': '輸入訊息...',
@@ -94,6 +95,7 @@ const translations = {
     'quickAction.medication': '💊 用药提醒',
     'quickAction.social': '👥 好友聊天',
     'quickAction.health': '🏥 健康咨询',
+    'quickAction.familyDashboard': '👨‍👩‍👧‍👦 家属监控',
 
     'input.placeholder': '输入消息...',
     'input.send': '发送',
@@ -155,6 +157,7 @@ const translations = {
     'quickAction.medication': '💊 Medication',
     'quickAction.social': '👥 Social',
     'quickAction.health': '🏥 Health',
+    'quickAction.familyDashboard': '👨‍👩‍👧‍👦 Family Dashboard',
 
     'input.placeholder': 'Type a message...',
     'input.send': 'Send',
@@ -216,6 +219,7 @@ const translations = {
     'quickAction.medication': '💊 服薬',
     'quickAction.social': '👥 友達チャット',
     'quickAction.health': '🏥 健康相談',
+    'quickAction.familyDashboard': '👨‍👩‍👧‍👦 家族ダッシュボード',
 
     'input.placeholder': 'メッセージを入力...',
     'input.send': '送信',
@@ -277,6 +281,7 @@ const translations = {
     'quickAction.medication': '💊 복약',
     'quickAction.social': '👥 친구 채팅',
     'quickAction.health': '🏥 건강 상담',
+    'quickAction.familyDashboard': '👨‍👩‍👧‍👦 가족 대시보드',
 
     'input.placeholder': '메시지를 입력하세요...',
     'input.send': '전송',

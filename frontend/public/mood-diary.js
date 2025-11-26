@@ -7,10 +7,8 @@ const SUPABASE_URL = 'https://rxquczgjsgkeqemhngnb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4cXVjemdqc2drZXFlbWhuZ25iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0MzU2ODIsImV4cCI6MjA1MzAxMTY4Mn0.DsULEgz4hzs0lY2PHQhP3nQyggwsI2_BcZttxPLobYw';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// API 基礎 URL
-const API_BASE_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : 'https://eldercare-backend-8o4k.onrender.com';
+// API 基礎 URL - 從全域配置讀取 (config.js)
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
 
 // 全域變數
 let currentUser = null;

@@ -2,10 +2,8 @@
  * 家屬監控面板 - 前端邏輯
  */
 
-// API 基礎 URL
-const API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000'
-  : 'https://eldercare-backend-8o4k.onrender.com';
+// API 基礎 URL - 從全域配置讀取 (config.js)
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
 
 // Supabase 設定
 const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';

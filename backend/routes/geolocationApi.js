@@ -5,7 +5,7 @@
 
 import express from 'express';
 import { supabase } from '../config/supabase.js';
-import { sendPushNotification } from '../services/notificationService.js';
+import { sendPushNotification } from '../services/fcmService.js';
 
 const router = express.Router();
 
@@ -697,7 +697,7 @@ async function notifyFamilyMembers(elderId, alertType, safeZone, locationData) {
         for (const rel of relationships) {
             const fcmToken = rel.family_members?.user_profiles?.fcm_token;
             if (fcmToken) {
-                await sendPushNotification(fcmToken, title, body, {
+                await sendPushNotification(fcmToken, { title, body }, {
                     type: 'geolocation_alert',
                     alert_type: alertType,
                     elder_id: elderId,

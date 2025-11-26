@@ -63,7 +63,49 @@ if (localStorage.getItem('webSearchConfigVersion') !== WEB_SEARCH_CONFIG_VERSION
 
 // ===================================
 
+// ===================================
+// 🌐 API 環境配置
+// ===================================
+//
+// 自動檢測環境並使用對應的 API URL
+//
+
+// 檢測是否為本地開發環境
+const isLocalhost = window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.hostname === '';
+
+// 檢測是否為 Capacitor App (Android/iOS)
+const isCapacitor = window.location.protocol === 'capacitor:' ||
+                   window.location.protocol === 'ionic:' ||
+                   (document.URL.indexOf('http://') === -1 && document.URL.indexOf('https://') === -1);
+
+// API Base URL 配置
+let API_BASE_URL;
+
+if (isCapacitor) {
+  // Android/iOS App - 使用生產環境 API
+  API_BASE_URL = 'https://eldercare-api-v4wa.onrender.com';
+} else if (isLocalhost) {
+  // 本地開發 - 使用本地 API
+  API_BASE_URL = 'http://localhost:3000';
+} else {
+  // Web 生產環境 - 使用生產環境 API
+  API_BASE_URL = 'https://eldercare-api-v4wa.onrender.com';
+}
+
+// 導出全域配置
+window.APP_CONFIG = {
+  API_BASE_URL,
+  isCapacitor,
+  isLocalhost,
+  DEFAULT_LLM_PROVIDER,
+  DEFAULT_WEB_SEARCH_ENABLED
+};
+
 console.log('📝 全域配置已載入');
 console.log(`   預設 LLM 提供商: ${DEFAULT_LLM_PROVIDER}`);
 console.log(`   配置版本: ${LLM_CONFIG_VERSION}`);
 console.log(`   網路搜尋: ${DEFAULT_WEB_SEARCH_ENABLED ? '啟用' : '停用'}`);
+console.log(`   環境: ${isCapacitor ? 'Capacitor App' : isLocalhost ? '本地開發' : 'Web 生產環境'}`);
+console.log(`   API URL: ${API_BASE_URL}`);

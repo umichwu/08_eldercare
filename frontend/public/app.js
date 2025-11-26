@@ -2,10 +2,8 @@
 // ElderCare Frontend Application
 // ===================================
 
-// API URL - 自動根據環境選擇
-const API_BASE_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000/api'
-  : 'https://eldercare-backend-8o4k.onrender.com/api'; // Vercel 上後端在同一個域名下
+// API URL - 從全域配置讀取 (config.js)
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
 
 console.log('🔗 API Base URL:', API_BASE_URL);
 

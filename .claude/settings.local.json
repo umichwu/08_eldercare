@@ -22,7 +22,9 @@
       "Bash(chmod +x test-api-connection.sh)",
       "Bash(./test-api-connection.sh)",
       "Bash(chmod +x /mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/eldercare-app/test-api-connection.sh)",
-      "Bash(bash /mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/eldercare-app/test-api-connection.sh)"
+      "Bash(bash /mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/eldercare-app/test-api-connection.sh)",
+      "Bash(git add backend/services/medicationService.js frontend/public/config.js)",
+      "Bash(git commit -m \"fix: 修正用藥遵從率計算邏輯與 API URL\n\n**問題 1: 用藥遵從率計算錯誤**\n- 舊邏輯: (taken + late) / totalLogs * 100\n- 錯誤: 將 pending（待服用）計入分母，導致遵從率偏低\n- 實際案例: 6 次用藥中，1 次 taken、2 次 late、2 次 missed、1 次 pending\n  * 舊計算: (1+2)/6 = 50% ❌ 錯誤\n  * 新計算: (1+2)/(6-1) = 60% ✅ 正確\n\n**修正**\n- 新邏輯: (taken + late) / (totalLogs - pendingCount - skippedCount) * 100\n- pending 不計入分母（時間還沒到，不應計入應服用次數）\n- skipped 不計入分母（主動跳過，不算錯過）\n\n**問題 2: 前端 API URL 更新**\n- 更新 API URL: https://eldercare-backend-8o4k.onrender.com\n- 對應 Render 最新部署的服務\n\n**影響**\n- 用藥遵從率計算更準確\n- 前端可以正常連接到後端 API\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []

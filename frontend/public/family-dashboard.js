@@ -346,13 +346,30 @@ async function loadTodayMetrics() {
 
 async function loadAdherenceTrend() {
     try {
+        console.log(`🔍 開始載入用藥趨勢 - Elder ID: ${currentElderId}`);
+
         const response = await fetch(
             `${API_BASE_URL}/api/medication-logs/statistics/${currentElderId}?days=7`
         );
-        const result = await response.json();
 
-        if (!result.data || !result.data.dailyStats) {
-            console.warn('⚠️ 沒有每日統計數據');
+        if (!response.ok) {
+            console.error(`❌ API 錯誤: ${response.status} ${response.statusText}`);
+            renderEmptyChart('載入失敗');
+            return;
+        }
+
+        const result = await response.json();
+        console.log('📊 API 返回結果:', result);
+
+        if (!result.data) {
+            console.warn('⚠️ API 沒有返回 data');
+            renderEmptyChart('無數據');
+            return;
+        }
+
+        if (!result.data.dailyStats) {
+            console.warn('⚠️ API 沒有返回 dailyStats');
+            renderEmptyChart('無每日統計數據');
             return;
         }
 
@@ -361,6 +378,12 @@ async function loadAdherenceTrend() {
         const data = [];
 
         // ✅ 使用真實的每日統計數據
+        if (stats.dailyStats.length === 0) {
+            console.warn('⚠️ dailyStats 是空陣列');
+            renderEmptyChart('最近 7 天無用藥記錄');
+            return;
+        }
+
         stats.dailyStats.forEach(dayStat => {
             const date = new Date(dayStat.date);
             labels.push(date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }));
@@ -371,7 +394,37 @@ async function loadAdherenceTrend() {
 
         renderAdherenceChart(labels, data);
     } catch (error) {
-        console.error('載入遵從趨勢失敗:', error);
+        console.error('❌ 載入遵從趨勢失敗:', error);
+        renderEmptyChart('載入失敗');
+    }
+}
+
+function renderEmptyChart(message) {
+    const labels = [];
+    const data = [];
+
+    // 生成最近 7 天的標籤，但數據為 0
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }));
+        data.push(0);
+    }
+
+    renderAdherenceChart(labels, data);
+
+    // 在圖表上方顯示提示訊息
+    const chartCard = document.querySelector('.chart-card');
+    if (chartCard) {
+        let messageDiv = chartCard.querySelector('.chart-message');
+        if (!messageDiv) {
+            messageDiv = document.createElement('div');
+            messageDiv.className = 'chart-message';
+            messageDiv.style.cssText = 'text-align: center; color: #999; padding: 10px; background: #f5f5f5; border-radius: 8px; margin-bottom: 15px;';
+            const h3 = chartCard.querySelector('h3');
+            h3.insertAdjacentElement('afterend', messageDiv);
+        }
+        messageDiv.textContent = `📊 ${message}`;
     }
 }
 

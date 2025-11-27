@@ -764,6 +764,45 @@ export async function getMedicationStatistics(elderId, days = 7) {
       ? Math.round((stats.takenCount + stats.lateCount) / shouldTakeCount * 100)
       : 0;
 
+    // ✅ 新增：計算每日詳細統計
+    const dailyStats = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const dayStart = new Date(now);
+      dayStart.setDate(dayStart.getDate() - i);
+      dayStart.setHours(0, 0, 0, 0);
+
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const dayLogs = data.filter(log => {
+        const logTime = new Date(log.scheduled_time);
+        return logTime >= dayStart && logTime <= dayEnd;
+      });
+
+      const dayTaken = dayLogs.filter(log => log.status === 'taken').length;
+      const dayLate = dayLogs.filter(log => log.status === 'late').length;
+      const dayPending = dayLogs.filter(log => log.status === 'pending').length;
+      const daySkipped = dayLogs.filter(log => log.status === 'skipped').length;
+      const dayShouldTake = dayLogs.length - dayPending - daySkipped;
+
+      const dayAdherence = dayShouldTake > 0
+        ? Math.round((dayTaken + dayLate) / dayShouldTake * 100)
+        : 0;
+
+      dailyStats.push({
+        date: dayStart.toISOString().split('T')[0],
+        adherenceRate: dayAdherence,
+        totalLogs: dayLogs.length,
+        takenCount: dayTaken,
+        lateCount: dayLate,
+        missedCount: dayLogs.filter(log => log.status === 'missed').length,
+        pendingCount: dayPending,
+        skippedCount: daySkipped
+      });
+    }
+
+    stats.dailyStats = dailyStats;
+
     console.log(`📊 [統計] 結果:`, stats);
 
     return { success: true, data: stats };

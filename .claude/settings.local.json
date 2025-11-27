@@ -1,35 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add -A)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfix: 修復 Android App API 連接與 Render 部署問題\n\n**問題**\n1. Android App 無法連接後端 API（顯示 \"無法連線此網站\"）\n2. Render 部署失敗（geolocationApi.js 導入錯誤）\n\n**修復**\n1. 後端修復：\n   - 修正 geolocationApi.js 的導入路徑（notificationService.js → fcmService.js）\n   - 修正 sendPushNotification 的調用方式（使用 {title, body} 格式）\n\n2. 前端修復：\n   - 在 config.js 添加環境自動檢測（localhost/Capacitor/生產環境）\n   - 更新所有 JS 文件使用全域 API_BASE_URL 配置：\n     * app.js\n     * family-dashboard.js\n     * medications.js\n     * mood-diary.js\n     * social.js\n     * geolocation.js\n     * voice-medication.js\n   - 在所有 HTML 文件中載入 config.js\n\n**環境檢測邏輯**\n- Capacitor App (Android/iOS): 使用生產環境 API\n- localhost: 使用本地開發 API (localhost:3000)\n- Web 生產環境: 使用 Render API\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push)",
-      "Bash(git add i18n.js)",
-      "Bash(git commit -m \"fix: 修復主頁「家屬監控」按鈕顯示為 quickAction.familyDashboard 的問題\n\n- 在 i18n.js 中添加 quickAction.familyDashboard 的多語言翻譯\n- 繁體中文: 👨‍👩‍👧‍👦 家屬監控\n- 簡體中文: 👨‍👩‍👧‍👦 家属监控\n- 英文: 👨‍👩‍👧‍👦 Family Dashboard\n- 日文: 👨‍👩‍👧‍👦 家族ダッシュボード\n- 韓文: 👨‍👩‍👧‍👦 가족 대시보드\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
-      "Bash(for file in login.html register.html onboarding.html)",
-      "Bash(do echo \"=== $file ===\")",
-      "Bash(done)",
-      "Bash(git add medications.html)",
-      "Bash(git commit -m \"fix: medications.html 添加 config.js 載入以修復 API 連接問題\n\n- 在 medications.html 中添加 config.js 的載入\n- 確保 medications.js 可以正確讀取 API_BASE_URL 配置\n- 修復本地測試時出現的 ERR_CONNECTION_REFUSED 錯誤\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
-      "Bash(curl -I https://eldercare-api-v4wa.onrender.com/)",
-      "Bash(curl -v https://eldercare-api-v4wa.onrender.com/api/health)",
-      "Bash(curl -s https://eldercare-api-v4wa.onrender.com/api/health)",
-      "Bash(git add backend/server.js)",
-      "Bash(git commit -m \"fix: 修正 Render 部署的 PORT 環境變數讀取問題\n\n**問題**\n- server.js 使用 process.env.APP_PORT，但 Render 提供的是 PORT\n- 導致 Render 無法正確設定端口，服務啟動失敗\n\n**修正**\n- 修改 PORT 讀取順序：PORT || APP_PORT || 3000\n- 修改 HOST 讀取順序：HOST || APP_HOST || 0.0.0.0\n- 確保 Render 部署時優先使用平台提供的環境變數\n\n**測試**\n- Render 應該能正確讀取 PORT=10000（或平台分配的端口）\n- 本地開發仍可使用 APP_PORT 和 APP_HOST\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
-      "Bash(git push origin08e main)",
-      "Bash(curl -s https://eldercare-api-v4wa.onrender.com/)",
-      "Bash(cat package.json)",
-      "Bash(chmod +x test-api-connection.sh)",
-      "Bash(./test-api-connection.sh)",
-      "Bash(chmod +x /mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/eldercare-app/test-api-connection.sh)",
-      "Bash(bash /mnt/d/2022_After/Gilbert/_Code/_Claude_Code/08_make2real/eldercare-app/test-api-connection.sh)",
-      "Bash(git add backend/services/medicationService.js frontend/public/config.js)",
-      "Bash(git commit -m \"fix: 修正用藥遵從率計算邏輯與 API URL\n\n**問題 1: 用藥遵從率計算錯誤**\n- 舊邏輯: (taken + late) / totalLogs * 100\n- 錯誤: 將 pending（待服用）計入分母，導致遵從率偏低\n- 實際案例: 6 次用藥中，1 次 taken、2 次 late、2 次 missed、1 次 pending\n  * 舊計算: (1+2)/6 = 50% ❌ 錯誤\n  * 新計算: (1+2)/(6-1) = 60% ✅ 正確\n\n**修正**\n- 新邏輯: (taken + late) / (totalLogs - pendingCount - skippedCount) * 100\n- pending 不計入分母（時間還沒到，不應計入應服用次數）\n- skipped 不計入分母（主動跳過，不算錯過）\n\n**問題 2: 前端 API URL 更新**\n- 更新 API URL: https://eldercare-backend-8o4k.onrender.com\n- 對應 Render 最新部署的服務\n\n**影響**\n- 用藥遵從率計算更準確\n- 前端可以正常連接到後端 API\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")",
-      "Bash(npx cap sync)",
-      "Bash(./gradlew assembleDebug)",
-      "Bash(npx cap sync android)",
-      "Bash(git add public/family-dashboard.js)",
-      "Bash(git commit -m \"fix: 移除 family-dashboard.js 中硬編碼的舊版 APK 下載邏輯\n\n- 將 downloadAndroidApp() 改為顯示提示訊息\n- 引導用戶使用 Android Studio 重新構建 APK\n- 完全移除舊版本 v1.0.0 的硬編碼引用\n- 修正用戶在第 895 行發現的遺漏問題\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
+      "Bash(git add public/download-app.html public/family-dashboard.js)",
+      "Bash(git commit -m \"fix: 恢復 Android App 下載功能\n\n**問題**\n- 下載頁面顯示「需要重新構建」的提示訊息\n- 用戶已上傳新版 APK 但無法下載\n\n**修正**\n1. download-app.html:\n   - 恢復下載按鈕為可點擊狀態\n   - 連結到新上傳的 APK: eldercare-v1.1.0-20251126.apk\n   - 下載檔名統一為: ElderCare.apk (固定檔名)\n   - 改為資訊提示框，說明版本號會在 App 內顯示\n\n2. family-dashboard.js:\n   - 恢復 downloadAndroidApp() 下載功能\n   - 使用固定下載檔名 ElderCare.apk\n   - 實際 APK 檔案包含日期版本號\n\n**設計理念**\n- 下載檔名固定 (ElderCare.apk)，方便用戶識別\n- 實際檔案名包含版本號和日期 (eldercare-v1.1.0-20251126.apk)\n- 版本號在 App 安裝後於登入頁面顯示\n- 未來更新只需替換 APK 檔案，無需修改代碼\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []

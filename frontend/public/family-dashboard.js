@@ -351,21 +351,23 @@ async function loadAdherenceTrend() {
         );
         const result = await response.json();
 
-        if (!result.data) return;
+        if (!result.data || !result.data.dailyStats) {
+            console.warn('⚠️ 沒有每日統計數據');
+            return;
+        }
 
         const stats = result.data;
         const labels = [];
         const data = [];
 
-        // 計算過去 7 天的遵從率
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
+        // ✅ 使用真實的每日統計數據
+        stats.dailyStats.forEach(dayStat => {
+            const date = new Date(dayStat.date);
             labels.push(date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }));
+            data.push(dayStat.adherenceRate);
+        });
 
-            // 這裡簡化處理，實際應該從後端獲取每日數據
-            data.push(Math.floor(Math.random() * 20) + 80); // 模擬數據，待後端 API 完善
-        }
+        console.log('📊 用藥趨勢圖數據:', { labels, data });
 
         renderAdherenceChart(labels, data);
     } catch (error) {

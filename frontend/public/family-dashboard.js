@@ -1510,6 +1510,98 @@ async function refreshLocation() {
     showToast('位置已更新', 'success');
 }
 
+/**
+ * 手動記錄當前位置（使用瀏覽器地理位置 API）
+ */
+async function recordCurrentLocation() {
+    if (!currentElderId) {
+        showToast('請先選擇長輩', 'warning');
+        return;
+    }
+
+    // 檢查瀏覽器是否支援地理位置 API
+    if (!('geolocation' in navigator)) {
+        showToast('您的瀏覽器不支援地理位置功能', 'error');
+        return;
+    }
+
+    showToast('正在取得位置...', 'info');
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            try {
+                const { latitude, longitude, accuracy, altitude, speed, heading } = position.coords;
+
+                console.log('📍 瀏覽器地理位置:', { latitude, longitude, accuracy });
+
+                // 上傳到後端
+                const response = await fetch(`${API_BASE_URL}/api/geolocation/location`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        elder_id: currentElderId,
+                        latitude,
+                        longitude,
+                        accuracy: accuracy || null,
+                        altitude: altitude || null,
+                        speed: speed || null,
+                        heading: heading || null,
+                        is_manual: true
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || '記錄位置失敗');
+                }
+
+                const result = await response.json();
+                console.log('✅ 位置記錄成功:', result);
+
+                showToast('位置記錄成功！', 'success');
+
+                // 重新載入位置資訊
+                await loadGeolocationTab();
+
+                // 顯示成功訊息
+                if (result.alerts_triggered && result.alerts_triggered.length > 0) {
+                    const alertTypes = result.alerts_triggered.map(a => a.alert_type).join(', ');
+                    showToast(`⚠️ 觸發警示: ${alertTypes}`, 'warning');
+                }
+
+            } catch (error) {
+                console.error('❌ 記錄位置失敗:', error);
+                showToast(`記錄位置失敗: ${error.message}`, 'error');
+            }
+        },
+        (error) => {
+            console.error('❌ 取得位置失敗:', error);
+
+            let message = '取得位置失敗';
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    message = '您拒絕了位置權限請求。請在瀏覽器設定中允許位置存取。';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = '無法取得位置資訊。請確認您的裝置支援定位功能。';
+                    break;
+                case error.TIMEOUT:
+                    message = '取得位置逾時。請檢查網路連線並重試。';
+                    break;
+            }
+
+            showToast(message, 'error');
+        },
+        {
+            enableHighAccuracy: true,  // 要求高精確度（可能會使用 GPS）
+            timeout: 15000,            // 15秒超時
+            maximumAge: 0              // 不使用快取位置
+        }
+    );
+}
+
 // ==================== Android App 整合 ====================
 
 /**

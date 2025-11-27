@@ -242,12 +242,15 @@
                 </div>
             </div>
 
-            <div class="geolocation-header" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <div class="geolocation-header" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                 <button class="btn-primary" onclick="window.location.href='geolocation.html'">
                     ⚙️ 管理安全區域
                 </button>
                 <button class="btn-secondary" onclick="refreshLocation()">
                     🔄 更新位置
+                </button>
+                <button class="btn-success" onclick="recordCurrentLocation()" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); color: white;">
+                    📍 手動記錄位置
                 </button>
             </div>
 

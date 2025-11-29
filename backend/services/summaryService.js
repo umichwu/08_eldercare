@@ -25,7 +25,8 @@ class SummaryService {
       const threshold = parseInt(process.env.AUTO_SUMMARY_THRESHOLD) || 20;
 
       // 取得對話資訊
-      const { data: conv, error } = await supabase
+      // ✅ 使用 supabaseAdmin 以繞過 RLS
+      const { data: conv, error } = await supabaseAdmin
         .from('conversations')
         .select('message_count, messages_since_last_summary')
         .eq('id', conversationId)
@@ -105,7 +106,8 @@ ${conversationText}
       const summaryText = result.content;
 
       // 儲存總結到資料庫
-      const { data: summary, error } = await supabase
+      // ✅ 使用 supabaseAdmin 以繞過 RLS
+      const { data: summary, error } = await supabaseAdmin
         .from('conversation_summaries')
         .insert([
           {
@@ -123,14 +125,16 @@ ${conversationText}
       if (error) throw error;
 
       // 將之前的總結設為非最新
-      await supabase
+      // ✅ 使用 supabaseAdmin 以繞過 RLS
+      await supabaseAdmin
         .from('conversation_summaries')
         .update({ is_latest: false })
         .eq('conversation_id', conversationId)
         .neq('id', summary.id);
 
       // 重置訊息計數器
-      await supabase
+      // ✅ 使用 supabaseAdmin 以繞過 RLS
+      await supabaseAdmin
         .from('conversations')
         .update({ messages_since_last_summary: 0 })
         .eq('id', conversationId);
@@ -149,7 +153,8 @@ ${conversationText}
   async getSummaries(conversationId, userId) {
     try {
       // Note: conversation_summaries uses conversation_ids (array), not conversation_id
-      const { data, error } = await supabase
+      // ✅ 使用 supabaseAdmin 以繞過 RLS
+      const { data, error } = await supabaseAdmin
         .from('conversation_summaries')
         .select('*')
         .contains('conversation_ids', [conversationId])
@@ -171,7 +176,8 @@ ${conversationText}
   async getLatestSummary(conversationId, userId) {
     try {
       // Note: conversation_summaries uses conversation_ids (array), not conversation_id
-      const { data, error } = await supabase
+      // ✅ 使用 supabaseAdmin 以繞過 RLS
+      const { data, error } = await supabaseAdmin
         .from('conversation_summaries')
         .select('*')
         .contains('conversation_ids', [conversationId])

@@ -2327,25 +2327,33 @@ async function loadStatistics(days) {
 function renderStatistics(stats, days) {
     const container = document.getElementById('statisticsCards');
 
+    // ✅ 修正：使用後端返回的正確欄位名稱
+    const totalLogs = stats.totalLogs || 0;
+    const takenCount = stats.takenCount || 0;
+    const lateCount = stats.lateCount || 0;
+    const missedCount = stats.missedCount || 0;
+    const pendingCount = stats.pendingCount || 0;
+    const adherenceRate = stats.adherenceRate || 0;
+
     container.innerHTML = `
         <div class="stat-card-large">
             <h3>📊 過去 ${days} 天用藥統計</h3>
             <div class="stat-grid">
                 <div class="stat-item">
                     <div class="stat-label">總計</div>
-                    <div class="stat-value-large">${stats.total}</div>
+                    <div class="stat-value-large">${totalLogs}</div>
                 </div>
                 <div class="stat-item success">
                     <div class="stat-label">已服用</div>
-                    <div class="stat-value-large">${stats.taken}</div>
+                    <div class="stat-value-large">${takenCount}</div>
                 </div>
                 <div class="stat-item warning">
                     <div class="stat-label">延遲服用</div>
-                    <div class="stat-value-large">${stats.late}</div>
+                    <div class="stat-value-large">${lateCount}</div>
                 </div>
                 <div class="stat-item danger">
                     <div class="stat-label">錯過</div>
-                    <div class="stat-value-large">${stats.missed}</div>
+                    <div class="stat-value-large">${missedCount}</div>
                 </div>
             </div>
         </div>
@@ -2357,19 +2365,269 @@ function renderStatistics(stats, days) {
                     <svg viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="#e0e0e0" stroke-width="10"/>
                         <circle cx="50" cy="50" r="45" fill="none" stroke="#4caf50" stroke-width="10"
-                                stroke-dasharray="${stats.adherenceRate * 2.827}, 282.7"
+                                stroke-dasharray="${adherenceRate * 2.827}, 282.7"
                                 transform="rotate(-90 50 50)"/>
                     </svg>
-                    <div class="rate-text">${stats.adherenceRate}%</div>
+                    <div class="rate-text">${adherenceRate}%</div>
                 </div>
                 <p class="rate-description">
-                    ${stats.adherenceRate >= 90 ? '✨ 非常好！' :
-                      stats.adherenceRate >= 70 ? '👍 不錯！' :
+                    ${adherenceRate >= 90 ? '✨ 非常好！' :
+                      adherenceRate >= 70 ? '👍 不錯！' :
                       '💪 需要加油！'}
                 </p>
             </div>
         </div>
+
+        <!-- 每日統計圖表 -->
+        <div class="stat-card-large" style="grid-column: 1 / -1;">
+            <h3>📅 每日用藥趨勢</h3>
+            <div class="chart-container" style="position: relative; height: 300px; padding: 20px 0;">
+                <canvas id="dailyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- 狀態分布圖表 -->
+        <div class="stat-card-large" style="grid-column: 1 / -1;">
+            <h3>📊 用藥狀態分布</h3>
+            <div class="chart-container" style="position: relative; height: 300px; padding: 20px 0;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
     `;
+
+    // ✅ 渲染圖表
+    if (stats.dailyStats && stats.dailyStats.length > 0) {
+        renderCharts(stats, days);
+    }
+}
+
+// ✅ 新增：渲染圖表
+let dailyChartInstance = null;
+let statusChartInstance = null;
+
+function renderCharts(stats, days) {
+    // 等待 DOM 更新
+    setTimeout(() => {
+        renderDailyChart(stats.dailyStats);
+        renderStatusChart(stats);
+    }, 100);
+}
+
+// ✅ 渲染每日統計圖表
+function renderDailyChart(dailyStats) {
+    const canvas = document.getElementById('dailyChart');
+    if (!canvas) {
+        console.error('找不到 dailyChart canvas');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // 銷毀舊的圖表實例
+    if (dailyChartInstance) {
+        dailyChartInstance.destroy();
+    }
+
+    // 準備資料
+    const labels = dailyStats.map(day => {
+        const date = new Date(day.date);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+    });
+
+    const takenData = dailyStats.map(day => day.takenCount);
+    const lateData = dailyStats.map(day => day.lateCount);
+    const missedData = dailyStats.map(day => day.missedCount);
+
+    // 建立圖表
+    dailyChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '已服用',
+                    data: takenData,
+                    borderColor: '#4caf50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: '延遲服用',
+                    data: lateData,
+                    borderColor: '#ff9800',
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: '錯過',
+                    data: missedData,
+                    borderColor: '#f44336',
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14,
+                            family: "'Noto Sans TC', sans-serif"
+                        },
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: {
+                        size: 14,
+                        family: "'Noto Sans TC', sans-serif"
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: "'Noto Sans TC', sans-serif"
+                    },
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        font: {
+                            size: 12,
+                            family: "'Noto Sans TC', sans-serif"
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: {
+                            size: 12,
+                            family: "'Noto Sans TC', sans-serif"
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ✅ 渲染狀態分布圖表
+function renderStatusChart(stats) {
+    const canvas = document.getElementById('statusChart');
+    if (!canvas) {
+        console.error('找不到 statusChart canvas');
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    // 銷毀舊的圖表實例
+    if (statusChartInstance) {
+        statusChartInstance.destroy();
+    }
+
+    // 建立圖表
+    statusChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['已服用', '延遲服用', '錯過', '待服用'],
+            datasets: [{
+                data: [
+                    stats.takenCount || 0,
+                    stats.lateCount || 0,
+                    stats.missedCount || 0,
+                    stats.pendingCount || 0
+                ],
+                backgroundColor: [
+                    '#4caf50',
+                    '#ff9800',
+                    '#f44336',
+                    '#9e9e9e'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'right',
+                    labels: {
+                        font: {
+                            size: 14,
+                            family: "'Noto Sans TC', sans-serif"
+                        },
+                        padding: 15,
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return {
+                                        text: `${label}: ${value} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: {
+                        size: 14,
+                        family: "'Noto Sans TC', sans-serif"
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: "'Noto Sans TC', sans-serif"
+                    },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return `${label}: ${value} 次 (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
 // ==================== Email 設定 ====================

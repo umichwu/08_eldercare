@@ -97,7 +97,7 @@ export class LLMService {
       console.error(`❌ ${errorMsg}`);
       console.error(`   Available API Keys:`, {
         openai: !!openaiApiKey,
-        gemini: !!geminiApiKey,
+        gemini: geminiKeyPool.keys.length > 0,
         deepseek: !!deepseekApiKey
       });
       throw new Error(errorMsg);

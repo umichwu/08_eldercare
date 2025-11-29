@@ -524,7 +524,7 @@ async function loadConversations() {
   console.log('📋 載入對話列表...');
 
   try {
-    conversations = await apiCall(`/conversations?userId=${currentUserId}`);
+    conversations = await apiCall(`/api/conversations?userId=${currentUserId}`);
     console.log(`✅ 載入了 ${conversations.length} 個對話`);
     renderConversationList();
   } catch (error) {
@@ -551,7 +551,7 @@ async function createNewConversation() {
     showLoading();
 
     console.log('發送 POST 請求到 /api/conversations');
-    const conversation = await apiCall('/conversations', 'POST', {
+    const conversation = await apiCall('/api/conversations', 'POST', {
       userId: currentUserId,
       title: '新對話',
       channel: 'web'
@@ -593,7 +593,7 @@ async function selectConversation(conversationId) {
     }
 
     // 載入訊息
-    messages = await apiCall(`/conversations/${conversationId}/messages?userId=${currentUserId}`);
+    messages = await apiCall(`/api/conversations/${conversationId}/messages?userId=${currentUserId}`);
 
     // 更新 UI
     renderConversationList();
@@ -685,7 +685,7 @@ async function editConversationTitle(conversationId) {
 
     // 發送 API 請求更新標題
     const response = await apiCall(
-      `/conversations/${conversationId}`,
+      `/api/conversations/${conversationId}`,
       'PUT',
       {
         userId: currentUserId,
@@ -887,7 +887,7 @@ async function sendMessage() {
 
       // 保存到後端數據庫
       const saveResponse = await apiCall(
-        `/conversations/${currentConversation.id}/messages/save`,
+        `/api/conversations/${currentConversation.id}/messages/save`,
         'POST',
         {
           userId: currentUserId,
@@ -962,7 +962,7 @@ async function sendMessage() {
       console.log('📦 資料:', { userId: currentUserId, content: messageContent, webSearchEnabled });
 
       const response = await apiCall(
-        `/conversations/${currentConversation.id}/messages`,
+        `/api/conversations/${currentConversation.id}/messages`,
         'POST',
         {
           userId: currentUserId,
@@ -1011,7 +1011,7 @@ async function loadLatestSummary() {
 
   try {
     const summary = await apiCall(
-      `/conversations/${currentConversation.id}/summaries/latest?userId=${currentUserId}`
+      `/api/conversations/${currentConversation.id}/summaries/latest?userId=${currentUserId}`
     );
 
     const summaryContent = document.getElementById('summaryContent');
@@ -1036,7 +1036,7 @@ async function generateSummary() {
     showLoading();
 
     const summary = await apiCall(
-      `/conversations/${currentConversation.id}/summaries`,
+      `/api/conversations/${currentConversation.id}/summaries`,
       'POST',
       { userId: currentUserId }
     );

@@ -178,9 +178,19 @@ export async function deleteMedication(medicationId) {
 export async function getMedicationsByElder(elderId, status = 'active') {
   try {
     const sb = getSupabase();
+
+    // ✅ 修改：同時查詢藥物和其提醒設定，以便過濾已過期的短期用藥
     let query = sb
       .from('medications')
-      .select('*')
+      .select(`
+        *,
+        medication_reminders (
+          id,
+          is_short_term,
+          reminder_times,
+          is_enabled
+        )
+      `)
       .eq('elder_id', elderId)
       .order('created_at', { ascending: false });
 
@@ -195,7 +205,46 @@ export async function getMedicationsByElder(elderId, status = 'active') {
       return { success: false, error: error.message };
     }
 
-    return { success: true, data };
+    // ✅ 過濾已過期的短期用藥
+    const now = new Date();
+    const filteredData = data.filter(medication => {
+      // 如果沒有提醒設定，保留
+      if (!medication.medication_reminders || medication.medication_reminders.length === 0) {
+        return true;
+      }
+
+      // 檢查是否有任何短期用藥提醒已過期
+      const hasActiveReminder = medication.medication_reminders.some(reminder => {
+        // 如果不是短期用藥，保留
+        if (!reminder.is_short_term) {
+          return true;
+        }
+
+        // 如果是短期用藥，檢查是否過期
+        if (reminder.reminder_times?.endDate) {
+          const endDate = new Date(reminder.reminder_times.endDate);
+          endDate.setHours(23, 59, 59, 999);
+
+          // 如果還沒過期，保留
+          if (now <= endDate) {
+            return true;
+          }
+
+          // 已過期，不保留
+          console.log(`⏭️  過濾已過期的短期用藥: ${medication.medication_name} (結束日期: ${reminder.reminder_times.endDate})`);
+          return false;
+        }
+
+        // 沒有結束日期的短期用藥，保留
+        return true;
+      });
+
+      return hasActiveReminder;
+    });
+
+    console.log(`📊 藥物查詢: 總共 ${data.length} 筆，過濾後 ${filteredData.length} 筆`);
+
+    return { success: true, data: filteredData };
   } catch (error) {
     console.error('❌ 查詢藥物異常:', error.message);
     return { success: false, error: error.message };

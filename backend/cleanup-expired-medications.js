@@ -17,7 +17,7 @@ async function cleanupExpiredMedications() {
 
     console.log(`📅 今天日期: ${today}\n`);
 
-    // 查詢所有短期用藥的提醒
+    // 查詢所有短期用藥的提醒（包含已停用但藥物狀態還是 active 的）
     const { data: reminders, error } = await supabaseAdmin
       .from('medication_reminders')
       .select(`
@@ -32,7 +32,7 @@ async function cleanupExpiredMedications() {
         )
       `)
       .eq('is_short_term', true)
-      .eq('is_enabled', true);
+      .eq('medications.status', 'active'); // 只處理狀態還是 active 的藥物
 
     if (error) {
       console.error('❌ 查詢失敗:', error.message);
@@ -44,7 +44,7 @@ async function cleanupExpiredMedications() {
       return;
     }
 
-    console.log(`📊 找到 ${reminders.length} 個短期用藥提醒\n`);
+    console.log(`📊 找到 ${reminders.length} 個狀態為 active 的短期用藥\n`);
 
     const expiredReminders = [];
 
@@ -75,33 +75,44 @@ async function cleanupExpiredMedications() {
 
     console.log(`\n📋 總共 ${expiredReminders.length} 個過期的短期用藥\n`);
     console.log('='.repeat(60));
-    console.log('處理選項:');
-    console.log('1. 停用提醒 (保留藥物記錄)');
-    console.log('2. 刪除藥物和所有相關記錄');
+    console.log('自動處理：將過期的短期用藥標記為已過期 (expired)');
     console.log('='.repeat(60));
 
-    // 方案 1: 停用提醒
-    console.log('\n執行方案 1: 停用過期的提醒...\n');
+    console.log('\n🔄 開始處理過期的短期用藥...\n');
 
     for (const expired of expiredReminders) {
-      const { error: updateError } = await supabaseAdmin
+      // 1. 停用提醒
+      const { error: reminderError } = await supabaseAdmin
         .from('medication_reminders')
         .update({ is_enabled: false })
         .eq('id', expired.reminderId);
 
-      if (updateError) {
-        console.error(`❌ 停用失敗: ${expired.medicationName}`, updateError.message);
+      if (reminderError) {
+        console.error(`❌ 停用提醒失敗: ${expired.medicationName}`, reminderError.message);
+        continue;
+      }
+
+      // 2. 將藥物狀態改為 expired (過期)
+      const { error: medicationError } = await supabaseAdmin
+        .from('medications')
+        .update({ status: 'expired' })
+        .eq('id', expired.medicationId);
+
+      if (medicationError) {
+        console.error(`❌ 更新藥物狀態失敗: ${expired.medicationName}`, medicationError.message);
       } else {
-        console.log(`✅ 已停用: ${expired.medicationName}`);
+        console.log(`✅ 已處理: ${expired.medicationName}`);
+        console.log(`   - 提醒已停用`);
+        console.log(`   - 狀態改為 expired\n`);
       }
     }
 
-    console.log('\n✅ 清理完成');
-    console.log('\n💡 提示:');
-    console.log('   - 提醒已停用，但藥物記錄仍保留在資料庫');
-    console.log('   - 用戶可以在「設定用藥時間」頁面看到這些藥物');
-    console.log('   - 但不會出現在「今日用藥」頁面');
-    console.log('   - 如需完全刪除，請在前端介面手動刪除\n');
+    console.log('✅ 清理完成');
+    console.log('\n💡 處理結果:');
+    console.log('   - 過期的短期用藥已標記為 expired');
+    console.log('   - 提醒已停用');
+    console.log('   - 不會再出現在「設定用藥時間」頁面 (因為預設只顯示 active 狀態)');
+    console.log('   - 用藥記錄保留在資料庫中供統計使用\n');
 
   } catch (error) {
     console.error('❌ 清理過程發生錯誤:', error);

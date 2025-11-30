@@ -10,6 +10,7 @@ import googleCalendarRouter from './routes/googleCalendarApi.js';
 import socialRouter from './routes/socialApi.js';
 import geolocationRouter from './routes/geolocationApi.js';
 import alertsRouter from './routes/alertsApi.js';
+import uploadRouter from './routes/uploadApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 
@@ -86,6 +87,7 @@ app.use('/api/google-calendar', googleCalendarRouter);
 app.use('/api/social', socialRouter);
 app.use('/api/geolocation', geolocationRouter);
 app.use('/api/alerts', alertsRouter);
+app.use('/api/upload', uploadRouter);
 
 // 根路由
 app.get('/', (req, res) => {

@@ -2111,46 +2111,154 @@ async function setupCallSignaling() {
     }
 }
 
+// 全域變數：當前選擇的圖片
+let currentChatImage = null;
+
 // 顯示表情符號選擇器
 function showEmojiPicker() {
     console.log('😊 顯示表情符號選擇器');
-    // TODO: 實作表情符號選擇器
-    showError('表情符號選擇器開發中...');
+
+    if (!window.UploadUtils) {
+        console.error('❌ UploadUtils 未載入');
+        showError('表情符號功能尚未載入');
+        return;
+    }
+
+    window.UploadUtils.showEmojiPicker((emoji) => {
+        const chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+            chatInput.value += emoji;
+            chatInput.focus();
+        }
+    });
 }
 
-// 選擇圖片
-function selectImage() {
+// 選擇圖片（聊天訊息）
+async function selectImage() {
     console.log('📷 選擇圖片');
-    // TODO: 實作圖片選擇功能
-    showError('圖片選擇功能開發中...');
+
+    if (!window.UploadUtils) {
+        console.error('❌ UploadUtils 未載入');
+        showError('圖片上傳功能尚未載入');
+        return;
+    }
+
+    try {
+        const files = await window.UploadUtils.selectImageFile({ multiple: false });
+        const file = files[0];
+
+        console.log(`✅ 已選擇圖片: ${file.name}`);
+
+        // 預覽圖片
+        const previewUrl = await window.UploadUtils.previewImage(file);
+
+        // 儲存選擇的檔案
+        currentChatImage = file;
+
+        // 顯示預覽（可以在聊天輸入框上方）
+        showImagePreview(previewUrl);
+
+    } catch (error) {
+        console.error('❌ 選擇圖片失敗:', error);
+        if (error.message !== '使用者取消選擇') {
+            showError('選擇圖片失敗: ' + error.message);
+        }
+    }
 }
 
-// 發送訊息
-function sendMessage() {
+// 顯示圖片預覽（聊天）
+function showImagePreview(previewUrl) {
+    const chatContainer = document.querySelector('.chat-container');
+    if (!chatContainer) return;
+
+    // 移除舊的預覽
+    const oldPreview = document.querySelector('.chat-image-preview');
+    if (oldPreview) {
+        oldPreview.remove();
+    }
+
+    // 建立新的預覽
+    const preview = document.createElement('div');
+    preview.className = 'chat-image-preview';
+    preview.innerHTML = `
+        <div class="preview-wrapper">
+            <img src="${previewUrl}" alt="預覽圖片">
+            <button class="remove-preview-btn" onclick="removeChatImagePreview()">✕</button>
+        </div>
+    `;
+
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.parentElement.insertBefore(preview, chatInput);
+    }
+}
+
+// 移除聊天圖片預覽
+function removeChatImagePreview() {
+    currentChatImage = null;
+    const preview = document.querySelector('.chat-image-preview');
+    if (preview) {
+        preview.remove();
+    }
+}
+
+// 暴露給全域
+window.removeChatImagePreview = removeChatImagePreview;
+
+// 發送訊息（支援文字和圖片）
+async function sendMessage() {
     const chatInput = document.getElementById('chatInput');
     if (!chatInput) return;
 
     const message = chatInput.value.trim();
-    if (!message) {
+
+    // 檢查是否有訊息或圖片
+    if (!message && !currentChatImage) {
         return;
     }
 
-    console.log('📤 發送訊息:', message);
+    console.log('📤 發送訊息:', message, currentChatImage ? '(含圖片)' : '');
 
     try {
         // 取得當前使用者
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) {
             console.error('❌ 未登入');
-            showToast('請先登入', 'error');
+            showError('請先登入');
             return;
         }
 
         // 檢查是否有選擇聊天對象
         if (!window.currentChatFriend) {
             console.error('❌ 沒有選擇聊天對象');
-            showToast('請先選擇聊天對象', 'error');
+            showError('請先選擇聊天對象');
             return;
+        }
+
+        let mediaUrl = null;
+        let messageType = 'text';
+
+        // 如果有圖片，先上傳
+        if (currentChatImage) {
+            try {
+                console.log('📤 上傳圖片中...');
+                showError('上傳圖片中...', 'info');
+
+                mediaUrl = await window.UploadUtils.uploadImage(
+                    currentChatImage,
+                    userProfile.id,
+                    'chat',
+                    true
+                );
+
+                messageType = 'image';
+                console.log('✅ 圖片上傳成功:', mediaUrl);
+
+            } catch (error) {
+                console.error('❌ 圖片上傳失敗:', error);
+                showError('圖片上傳失敗: ' + error.message);
+                return;
+            }
         }
 
         // 發送訊息到資料庫
@@ -2160,10 +2268,11 @@ function sendMessage() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                userId: user.id,
-                receiverUserId: window.currentChatFriend.userId,
-                messageText: message,
-                messageType: 'text'
+                userId: userProfile.id,
+                receiverUserId: window.currentChatFriend.id,
+                messageText: message || '',
+                messageType: messageType,
+                mediaUrl: mediaUrl
             })
         });
 
@@ -2176,8 +2285,9 @@ function sendMessage() {
 
         console.log('✅ 訊息已發送:', savedMessage.id);
 
-        // 清空輸入框
+        // 清空輸入框和圖片
         chatInput.value = '';
+        removeChatImagePreview();
 
         // 顯示訊息在聊天室中
         const chatMessages = document.getElementById('chatMessages');
@@ -2189,14 +2299,14 @@ function sendMessage() {
             }
 
             // 添加新訊息
-            const messageDiv = createMessageElement(savedMessage, user.id);
+            const messageDiv = createMessageElement(savedMessage, userProfile.id);
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
     } catch (error) {
-        console.error('發送訊息失敗:', error);
-        showToast('發送訊息失敗', 'error');
+        console.error('❌ 發送訊息失敗:', error);
+        showError('發送訊息失敗: ' + error.message);
     }
 }
 

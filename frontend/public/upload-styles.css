@@ -1,0 +1,449 @@
+/**
+ * 檔案上傳功能樣式
+ * 包含圖片選擇器、預覽、進度條、表情符號選擇器等
+ */
+
+/* ===================================
+   圖片上傳元件
+   =================================== */
+
+.image-upload-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.image-upload-wrapper:hover {
+    border-color: #0A84FF;
+    background: #f0f8ff;
+}
+
+/* 預覽區域 */
+.image-preview-area {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.preview-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+}
+
+.remove-preview-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.remove-preview-btn:hover {
+    background: rgba(255, 59, 48, 0.9);
+    transform: scale(1.1);
+}
+
+/* 選擇按鈕 */
+.select-image-btn {
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #0A84FF 0%, #0051D5 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+}
+
+.select-image-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(10, 132, 255, 0.4);
+}
+
+.select-image-btn:active {
+    transform: translateY(0);
+}
+
+/* 進度條 */
+.upload-progress {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0A84FF 0%, #00D4FF 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* ===================================
+   圖片放大預覽 Modal
+   =================================== */
+
+.image-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.image-modal .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+}
+
+.image-modal .modal-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    z-index: 10001;
+    animation: scaleIn 0.3s ease;
+}
+
+.image-modal .modal-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.image-modal .modal-close-btn {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.image-modal .modal-close-btn:hover {
+    background: rgba(255, 59, 48, 0.9);
+    transform: rotate(90deg);
+}
+
+/* ===================================
+   表情符號選擇器
+   =================================== */
+
+.emoji-picker-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.emoji-picker-modal .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.emoji-picker-content {
+    position: relative;
+    width: 90%;
+    max-width: 480px;
+    max-height: 80vh;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+.emoji-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.emoji-picker-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #212529;
+}
+
+.emoji-picker-header .modal-close-btn {
+    width: 32px;
+    height: 32px;
+    background: #f8f9fa;
+    color: #6c757d;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.emoji-picker-header .modal-close-btn:hover {
+    background: #ff3b30;
+    color: white;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    padding: 16px;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.emoji-btn {
+    width: 48px;
+    height: 48px;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.emoji-btn:hover {
+    background: #f8f9fa;
+    border-color: #0A84FF;
+    transform: scale(1.2);
+}
+
+.emoji-btn:active {
+    transform: scale(1.1);
+}
+
+/* ===================================
+   聊天訊息中的圖片
+   =================================== */
+
+.chat-message-image {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-message-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ===================================
+   動態貼文中的圖片
+   =================================== */
+
+.post-image {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    margin-top: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.post-image:hover {
+    opacity: 0.95;
+}
+
+/* ===================================
+   響應式設計
+   =================================== */
+
+@media (max-width: 768px) {
+    .emoji-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 6px;
+    }
+
+    .emoji-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
+    }
+
+    .chat-message-image {
+        max-width: 250px;
+        max-height: 250px;
+    }
+
+    .image-modal .modal-content img {
+        max-width: 95vw;
+        max-height: 85vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .emoji-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+
+    .emoji-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 22px;
+    }
+
+    .chat-message-image {
+        max-width: 200px;
+        max-height: 200px;
+    }
+}
+
+/* ===================================
+   動畫
+   =================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ===================================
+   暗黑模式支援（未來擴展）
+   =================================== */
+
+@media (prefers-color-scheme: dark) {
+    .emoji-picker-content {
+        background: #1c1c1e;
+        color: #ffffff;
+    }
+
+    .emoji-picker-header {
+        border-bottom-color: #38383a;
+    }
+
+    .emoji-picker-header h3 {
+        color: #ffffff;
+    }
+
+    .emoji-picker-header .modal-close-btn {
+        background: #38383a;
+        color: #aeaeb2;
+    }
+
+    .emoji-btn:hover {
+        background: #2c2c2e;
+    }
+
+    .image-upload-wrapper {
+        background: #1c1c1e;
+        border-color: #38383a;
+    }
+
+    .image-upload-wrapper:hover {
+        background: #2c2c2e;
+        border-color: #0A84FF;
+    }
+
+    .progress-bar {
+        background: #38383a;
+    }
+}

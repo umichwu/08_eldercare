@@ -183,16 +183,50 @@ async function loadTimeline() {
     try {
         console.log('📰 載入動態時間軸...');
 
-        // TODO: 從資料庫載入動態
-        // 目前顯示空白狀態（因為資料庫表格還未建立）
+        // 取得當前使用者
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            console.error('❌ 未登入');
+            return;
+        }
 
+        // 從資料庫載入動態
+        const response = await fetch(`${API_BASE_URL}/api/social/posts/timeline?userId=${user.id}&limit=20`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('載入動態時間軸失敗');
+        }
+
+        const result = await response.json();
+        const posts = result.posts || [];
+
+        console.log(`✅ 載入了 ${posts.length} 則動態`);
+
+        // 清空現有內容
         timelineList.innerHTML = '';
-        noPostsPlaceholder.style.display = 'block';
 
-        console.log('✅ 動態時間軸載入完成（目前為空）');
+        if (posts.length === 0) {
+            noPostsPlaceholder.style.display = 'block';
+        } else {
+            noPostsPlaceholder.style.display = 'none';
+
+            // 渲染每則動態
+            posts.forEach(post => {
+                const postElement = createPostElement(post, user.id);
+                timelineList.appendChild(postElement);
+            });
+        }
+
+        console.log('✅ 動態時間軸載入完成');
     } catch (error) {
         console.error('❌ 載入動態時間軸失敗:', error);
         timelineList.innerHTML = '<p style="text-align: center; color: #999;">載入失敗，請重試</p>';
+        showToast('載入動態失敗', 'error');
     }
 }
 
@@ -507,11 +541,45 @@ async function submitPost() {
         console.log('📤 發布動態...');
         showLoading();
 
-        // TODO: 儲存動態到資料庫
-        // 目前只是模擬
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            hideLoading();
+            showError('請先登入');
+            return;
+        }
 
-        console.log('✅ 動態發布成功');
+        // 處理圖片（如果有）
+        const imagePreview = document.getElementById('imagePreview');
+        const mediaUrls = [];
+        const images = imagePreview.querySelectorAll('img');
+        images.forEach(img => {
+            if (img.src) {
+                mediaUrls.push(img.src);
+            }
+        });
+
+        // 發送到後端
+        const response = await fetch(`${API_BASE_URL}/api/social/posts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            },
+            body: JSON.stringify({
+                content: content,
+                mood: mood || undefined,
+                visibility: visibility,
+                mediaUrls: mediaUrls
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('發布動態失敗');
+        }
+
+        const result = await response.json();
+
+        console.log('✅ 動態發布成功:', result);
         closePostModal();
         hideLoading();
         showSuccess('動態發布成功！');
@@ -964,11 +1032,145 @@ async function loadNotifications() {
     try {
         console.log('📥 載入通知...');
 
-        // TODO: 從資料庫載入通知
-        notificationsList.innerHTML = '<p style="text-align: center; color: #999;">目前沒有通知</p>';
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            notificationsList.innerHTML = '<p style="text-align: center; color: #999;">請先登入</p>';
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/social/notifications?userId=${user.id}&limit=20`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('載入通知失敗');
+        }
+
+        const result = await response.json();
+        const notifications = result.notifications || [];
+
+        notificationsList.innerHTML = '';
+
+        if (notifications.length === 0) {
+            notificationsList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">目前沒有通知</p>';
+            return;
+        }
+
+        notifications.forEach(notification => {
+            const notifElement = createNotificationElement(notification);
+            notificationsList.appendChild(notifElement);
+        });
+
+        console.log(`✅ 已載入 ${notifications.length} 則通知`);
     } catch (error) {
         console.error('❌ 載入通知失敗:', error);
         notificationsList.innerHTML = '<p style="text-align: center; color: #999;">載入失敗，請重試</p>';
+    }
+}
+
+/**
+ * 建立通知元素
+ */
+function createNotificationElement(notification) {
+    const div = document.createElement('div');
+    div.className = `notification-item ${notification.is_read ? '' : 'unread'}`;
+    div.dataset.notificationId = notification.id;
+
+    const avatarUrl = notification.actor_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(notification.actor_name || 'User')}&background=667eea&color=fff&size=60`;
+    const actorName = notification.actor_name || '某位用戶';
+    const timeAgo = formatTimeAgo(notification.created_at);
+
+    // 根據通知類型顯示不同圖示和文字
+    let icon = '🔔';
+    let actionText = '';
+
+    switch (notification.notification_type) {
+        case 'like':
+            icon = '❤️';
+            actionText = '按讚了你的動態';
+            break;
+        case 'comment':
+            icon = '💬';
+            actionText = '留言了你的動態';
+            break;
+        case 'friend_request':
+            icon = '👋';
+            actionText = '向你發送好友邀請';
+            break;
+        case 'friend_accepted':
+            icon = '✅';
+            actionText = '接受了你的好友邀請';
+            break;
+        case 'mention':
+            icon = '📢';
+            actionText = '在動態中提到你';
+            break;
+        default:
+            actionText = notification.message || '有新的通知';
+    }
+
+    div.innerHTML = `
+        <div class="notification-icon">${icon}</div>
+        <img class="notification-avatar" src="${avatarUrl}" alt="${actorName}">
+        <div class="notification-content">
+            <div class="notification-text">
+                <strong>${actorName}</strong> ${actionText}
+            </div>
+            <div class="notification-time">${timeAgo}</div>
+        </div>
+        ${!notification.is_read ? '<div class="notification-badge"></div>' : ''}
+    `;
+
+    // 點擊通知時標記為已讀並跳轉
+    div.addEventListener('click', async () => {
+        if (!notification.is_read) {
+            await markNotificationAsRead(notification.id);
+        }
+
+        // 根據通知類型跳轉
+        if (notification.target_type === 'post' && notification.target_id) {
+            // 跳轉到動態（可以實作滾動到該動態）
+            closeNotificationsModal();
+            showTab('timeline');
+        } else if (notification.target_type === 'friend_request') {
+            closeNotificationsModal();
+            // 可以打開好友邀請列表
+        }
+    });
+
+    return div;
+}
+
+/**
+ * 標記單一通知為已讀
+ */
+async function markNotificationAsRead(notificationId) {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (response.ok) {
+            // 更新 UI
+            const notifElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            if (notifElement) {
+                notifElement.classList.remove('unread');
+                const badge = notifElement.querySelector('.notification-badge');
+                if (badge) badge.remove();
+            }
+        }
+    } catch (error) {
+        console.error('標記通知失敗:', error);
     }
 }
 
@@ -976,9 +1178,26 @@ async function markAllNotificationsRead() {
     try {
         console.log('✅ 標記所有通知為已讀');
 
-        // TODO: 更新資料庫
-        showSuccess('已標記所有通知為已讀');
-        await loadNotifications();
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            showError('請先登入');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/social/notifications/mark-all-read`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (response.ok) {
+            showSuccess('已標記所有通知為已讀');
+            await loadNotifications();
+        } else {
+            throw new Error('標記失敗');
+        }
     } catch (error) {
         console.error('❌ 標記失敗:', error);
         showError('操作失敗，請重試');
@@ -2122,6 +2341,281 @@ async function markMessagesAsRead(friendUserId) {
     } catch (error) {
         console.error('標記已讀失敗:', error);
     }
+}
+
+// ===================================
+// 動態貼文相關函數
+// ===================================
+
+/**
+ * 建立動態貼文元素
+ */
+function createPostElement(post, currentUserId) {
+    const div = document.createElement('div');
+    div.className = 'timeline-post';
+    div.dataset.postId = post.post_id || post.id;
+
+    const authorAvatar = post.author_avatar || post.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author_name || post.display_name || 'User')}&background=667eea&color=fff&size=80`;
+    const authorName = post.author_name || post.display_name || '未知用戶';
+    const postTime = formatTimeAgo(post.created_at);
+    const content = escapeHtml(post.content || '');
+    const mood = post.mood ? getMoodEmoji(post.mood) : '';
+    const isLiked = post.user_liked || false;
+    const likeCount = post.like_count || 0;
+    const commentCount = post.comment_count || 0;
+
+    // 建立動態內容
+    let mediaHtml = '';
+    if (post.media_urls && post.media_urls.length > 0) {
+        mediaHtml = '<div class="post-media">';
+        post.media_urls.forEach(url => {
+            mediaHtml += `<img src="${escapeHtml(url)}" alt="動態圖片" class="post-image">`;
+        });
+        mediaHtml += '</div>';
+    }
+
+    div.innerHTML = `
+        <div class="post-header">
+            <img class="post-avatar" src="${authorAvatar}" alt="${authorName}">
+            <div class="post-author-info">
+                <div class="post-author-name">${authorName}</div>
+                <div class="post-time">
+                    ${postTime}
+                    ${mood ? `<span class="post-mood">${mood}</span>` : ''}
+                </div>
+            </div>
+        </div>
+        <div class="post-content">${content}</div>
+        ${mediaHtml}
+        <div class="post-stats">
+            <span class="post-stat">${likeCount > 0 ? `❤️ ${likeCount}` : ''}</span>
+            <span class="post-stat">${commentCount > 0 ? `💬 ${commentCount}` : ''}</span>
+        </div>
+        <div class="post-actions">
+            <button class="post-action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLikePost('${post.post_id || post.id}', this)">
+                <span class="action-icon">${isLiked ? '❤️' : '🤍'}</span>
+                <span class="action-text">讚</span>
+            </button>
+            <button class="post-action-btn" onclick="showPostComments('${post.post_id || post.id}')">
+                <span class="action-icon">💬</span>
+                <span class="action-text">留言</span>
+            </button>
+            <button class="post-action-btn" onclick="sharePost('${post.post_id || post.id}')">
+                <span class="action-icon">📤</span>
+                <span class="action-text">分享</span>
+            </button>
+        </div>
+        <div id="comments-${post.post_id || post.id}" class="post-comments" style="display: none;">
+            <div class="comments-list"></div>
+            <div class="comment-input-area">
+                <input type="text" class="comment-input" placeholder="留言..." onkeypress="if(event.key==='Enter') postComment('${post.post_id || post.id}', this.value, this)">
+                <button class="btn-send-comment" onclick="postComment('${post.post_id || post.id}', this.previousElementSibling.value, this.previousElementSibling)">發送</button>
+            </div>
+        </div>
+    `;
+
+    return div;
+}
+
+/**
+ * 格式化時間為「X分鐘前」、「X小時前」等
+ */
+function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return '剛剛';
+    if (diffMins < 60) return `${diffMins}分鐘前`;
+    if (diffHours < 24) return `${diffHours}小時前`;
+    if (diffDays < 7) return `${diffDays}天前`;
+
+    return date.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
+}
+
+/**
+ * 取得心情表情符號
+ */
+function getMoodEmoji(mood) {
+    const moodMap = {
+        'happy': '😊',
+        'excited': '🎉',
+        'relaxed': '😌',
+        'grateful': '🙏',
+        'thoughtful': '🤔',
+        'sad': '😢',
+        'tired': '😴',
+        'angry': '😠'
+    };
+    return moodMap[mood] || '';
+}
+
+/**
+ * 按讚/取消按讚動態
+ */
+async function toggleLikePost(postId, buttonElement) {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            showError('請先登入');
+            return;
+        }
+
+        const isLiked = buttonElement.classList.contains('liked');
+        const method = isLiked ? 'DELETE' : 'POST';
+
+        const response = await fetch(`${API_BASE_URL}/api/social/posts/${postId}/like`, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+
+            // 更新按鈕狀態
+            if (isLiked) {
+                buttonElement.classList.remove('liked');
+                buttonElement.querySelector('.action-icon').textContent = '🤍';
+            } else {
+                buttonElement.classList.add('liked');
+                buttonElement.querySelector('.action-icon').textContent = '❤️';
+            }
+
+            // 更新按讚數量
+            const statsElement = buttonElement.closest('.timeline-post').querySelector('.post-stats');
+            const likeCountElement = statsElement.querySelector('.post-stat');
+            const newCount = result.likeCount || 0;
+            likeCountElement.textContent = newCount > 0 ? `❤️ ${newCount}` : '';
+        }
+    } catch (error) {
+        console.error('按讚失敗:', error);
+        showError('操作失敗，請重試');
+    }
+}
+
+/**
+ * 顯示動態留言
+ */
+async function showPostComments(postId) {
+    try {
+        const commentsSection = document.getElementById(`comments-${postId}`);
+
+        // 切換顯示/隱藏
+        if (commentsSection.style.display === 'none') {
+            commentsSection.style.display = 'block';
+
+            // 載入留言
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
+            const response = await fetch(`${API_BASE_URL}/api/social/posts/${postId}/comments`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user.id
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const comments = result.comments || [];
+                const commentsList = commentsSection.querySelector('.comments-list');
+
+                commentsList.innerHTML = '';
+                comments.forEach(comment => {
+                    const commentEl = createCommentElement(comment);
+                    commentsList.appendChild(commentEl);
+                });
+
+                if (comments.length === 0) {
+                    commentsList.innerHTML = '<p class="no-comments">還沒有留言，來留下第一則吧！</p>';
+                }
+            }
+        } else {
+            commentsSection.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('載入留言失敗:', error);
+    }
+}
+
+/**
+ * 建立留言元素
+ */
+function createCommentElement(comment) {
+    const div = document.createElement('div');
+    div.className = 'comment-item';
+
+    const avatarUrl = comment.author_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author_name || 'User')}&background=667eea&color=fff&size=60`;
+    const authorName = comment.author_name || '未知用戶';
+    const commentText = escapeHtml(comment.comment_text || '');
+    const timeAgo = formatTimeAgo(comment.created_at);
+
+    div.innerHTML = `
+        <img class="comment-avatar" src="${avatarUrl}" alt="${authorName}">
+        <div class="comment-content">
+            <div class="comment-author">${authorName}</div>
+            <div class="comment-text">${commentText}</div>
+            <div class="comment-time">${timeAgo}</div>
+        </div>
+    `;
+
+    return div;
+}
+
+/**
+ * 發送留言
+ */
+async function postComment(postId, commentText, inputElement) {
+    if (!commentText || !commentText.trim()) return;
+
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            showError('請先登入');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/social/posts/${postId}/comments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-id': user.id
+            },
+            body: JSON.stringify({
+                commentText: commentText.trim()
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+
+            // 清空輸入框
+            inputElement.value = '';
+
+            // 重新載入留言
+            await showPostComments(postId);
+            // 再次顯示（因為 showPostComments 會切換）
+            document.getElementById(`comments-${postId}`).style.display = 'block';
+
+            showSuccess('留言成功！');
+        }
+    } catch (error) {
+        console.error('留言失敗:', error);
+        showError('留言失敗，請重試');
+    }
+}
+
+/**
+ * 分享動態（預留功能）
+ */
+function sharePost(postId) {
+    showError('分享功能即將推出');
 }
 
 console.log('✅ social.js 載入完成');

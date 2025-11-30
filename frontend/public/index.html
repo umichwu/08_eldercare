@@ -746,28 +746,162 @@
     <script src="app-detection.js"></script>
 
     <script>
+    /**
+     * 註冊 FCM Token 到後端
+     */
+    async function registerFCMTokenToBackend(token) {
+        try {
+            // 取得當前使用者
+            const { createClient } = supabase;
+            const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
+            const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+
+            if (!session || !session.user) {
+                console.log('⚠️ 使用者未登入，將在登入後註冊 FCM Token');
+                return false;
+            }
+
+            const authUserId = session.user.id;
+
+            // 取得使用者 profile 以確定 userType 和實際的 userId
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('user_profiles')
+                .select('role, elder_id, family_member_id')
+                .eq('auth_user_id', authUserId)
+                .single();
+
+            if (profileError || !profile) {
+                console.error('❌ 無法取得使用者資料:', profileError);
+                return false;
+            }
+
+            // 判斷 userType 和實際的 userId（根據 role）
+            let userType;
+            let userId;
+
+            if (profile.role === 'family_member' || profile.role === 'family') {
+                userType = 'family_member';
+                userId = profile.family_member_id;
+            } else if (profile.role === 'elder') {
+                userType = 'elder';
+                userId = profile.elder_id;
+            } else if (profile.role === 'both') {
+                // 如果是兩者都是，優先使用 elder
+                userType = 'elder';
+                userId = profile.elder_id;
+            }
+
+            if (!userId) {
+                console.error('❌ 無法取得使用者 ID');
+                return false;
+            }
+
+            // 取得裝置資訊
+            const deviceInfo = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                screenResolution: `${window.screen.width}x${window.screen.height}`,
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('📤 正在註冊 FCM Token 到後端...');
+            console.log('   userId:', userId);
+            console.log('   userType:', userType);
+            console.log('   token:', token.substring(0, 20) + '...');
+
+            // 發送到後端
+            const response = await fetch(`${API_BASE_URL}/api/fcm/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    userType: userType,
+                    fcmToken: token,
+                    deviceInfo: deviceInfo
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('❌ FCM Token 註冊失敗:', errorData);
+                return false;
+            }
+
+            const result = await response.json();
+            console.log('✅ FCM Token 註冊成功:', result);
+
+            // 儲存註冊時間
+            localStorage.setItem('fcm_token_registered_at', new Date().toISOString());
+
+            return true;
+
+        } catch (error) {
+            console.error('❌ 註冊 FCM Token 時發生錯誤:', error);
+            return false;
+        }
+    }
+
     // 初始化 FCM
     (async function() {
         const initialized = await window.FCM.init();
 
         if (initialized) {
-        // 請求通知權限
-        const token = await window.FCM.requestPermission();
+            // 請求通知權限
+            const token = await window.FCM.requestPermission();
 
-        if (token) {
-            // 將 Token 儲存到 localStorage
-            localStorage.setItem('fcm_token', token);
+            if (token) {
+                // 將 Token 儲存到 localStorage
+                localStorage.setItem('fcm_token', token);
+                console.log('✅ FCM Token 已取得並儲存');
 
-            // TODO: 將 Token 發送到後端儲存
-            console.log('FCM Token:', token);
-        }
+                // 發送到後端儲存
+                const registered = await registerFCMTokenToBackend(token);
 
-        // 監聽前景訊息
-        window.FCM.listenToMessages((payload) => {
-            console.log('收到通知:', payload);
-        });
+                if (registered) {
+                    console.log('✅ FCM Token 已成功註冊到後端');
+                } else {
+                    console.log('⚠️ FCM Token 未註冊到後端（可能使用者未登入）');
+
+                    // 監聽登入事件，在登入後重新註冊
+                    window.addEventListener('user-logged-in', async () => {
+                        console.log('🔄 使用者已登入，重新註冊 FCM Token...');
+                        const reregistered = await registerFCMTokenToBackend(token);
+                        if (reregistered) {
+                            console.log('✅ FCM Token 重新註冊成功');
+                        }
+                    });
+                }
+            }
+
+            // 監聽前景訊息
+            window.FCM.listenToMessages((payload) => {
+                console.log('📬 收到通知:', payload);
+
+                // 顯示通知（如果有通知權限）
+                if (payload.notification) {
+                    const notification = payload.notification;
+
+                    // 如果瀏覽器支援通知 API，可以顯示桌面通知
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification(notification.title, {
+                            body: notification.body,
+                            icon: '/icons/icon-192x192.png',
+                            badge: '/icons/icon-72x72.png'
+                        });
+                    }
+                }
+            });
         }
     })();
+
+    // 暴露全域函數供其他頁面使用
+    window.registerFCMTokenToBackend = registerFCMTokenToBackend;
     </script>
 
 

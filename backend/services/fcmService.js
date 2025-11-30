@@ -219,6 +219,8 @@ export async function sendMulticastPushNotification(fcmTokens, notification, dat
  */
 export async function sendMedicationReminder(elderId, medicationInfo) {
   try {
+    const supabase = getSupabase();
+
     // 從資料庫獲取長輩的 FCM tokens
     const { data: elder, error } = await supabase
       .from('elders')
@@ -267,6 +269,8 @@ export async function sendMedicationReminder(elderId, medicationInfo) {
  */
 export async function notifyFamilyMissedMedication(elderId, medicationInfo) {
   try {
+    const supabase = getSupabase();
+
     // 獲取長輩資訊
     const { data: elder, error: elderError } = await supabase
       .from('elders')
@@ -345,6 +349,7 @@ export async function notifyFamilyMissedMedication(elderId, medicationInfo) {
  */
 export async function registerFCMToken(userId, userType, fcmToken, deviceInfo = {}) {
   try {
+    const supabase = getSupabase();
     const tableName = userType === 'elder' ? 'elders' : 'family_members';
 
     const { data, error } = await supabase
@@ -380,6 +385,7 @@ export async function registerFCMToken(userId, userType, fcmToken, deviceInfo = 
  */
 export async function removeFCMToken(userId, userType) {
   try {
+    const supabase = getSupabase();
     const tableName = userType === 'elder' ? 'elders' : 'family_members';
 
     const { error } = await supabase

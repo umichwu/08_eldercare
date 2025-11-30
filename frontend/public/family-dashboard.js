@@ -335,9 +335,7 @@ async function loadTodayMetrics() {
         }
 
         // 待處理警示
-        // TODO: 實作警示系統後補充
-        document.getElementById('pendingAlerts').textContent = '0';
-        document.getElementById('alertsTrend').innerHTML = '<span class="trend-good">✓ 無異常</span>';
+        await loadAlertStatistics();
 
     } catch (error) {
         console.error('載入今日指標失敗:', error);
@@ -1839,3 +1837,381 @@ async function showTodayMedicationDetail() {
 function closeTodayMedicationModal() {
     document.getElementById('todayMedicationModal').classList.remove('show');
 }
+
+// ============================================================================
+// 警示系統功能
+// ============================================================================
+
+/**
+ * 載入警示統計（顯示在總覽頁面）
+ */
+async function loadAlertStatistics() {
+    try {
+        if (!currentElderId) {
+            document.getElementById('pendingAlerts').textContent = '-';
+            document.getElementById('alertsTrend').innerHTML = '<span class="trend-bad">- 請選擇長輩</span>';
+            return;
+        }
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/alerts/statistics/${currentElderId}?userId=${currentUser.id}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': currentUser.id
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('載入警示統計失敗');
+        }
+
+        const result = await response.json();
+        const stats = result.statistics;
+
+        // 更新待處理警示數量
+        const pendingCount = stats.pending_count || 0;
+        const criticalCount = stats.critical_count || 0;
+        const highCount = stats.high_count || 0;
+
+        document.getElementById('pendingAlerts').textContent = pendingCount;
+
+        // 根據警示嚴重程度和數量顯示趨勢
+        let trend = '';
+        let trendClass = '';
+
+        if (criticalCount > 0) {
+            trend = `✗ ${criticalCount} 則危急警示`;
+            trendClass = 'trend-bad';
+        } else if (highCount > 0) {
+            trend = `⚠ ${highCount} 則重要警示`;
+            trendClass = 'trend-warning';
+        } else if (pendingCount > 0) {
+            trend = `⚠ ${pendingCount} 則待處理`;
+            trendClass = 'trend-warning';
+        } else {
+            trend = '✓ 無異常';
+            trendClass = 'trend-good';
+        }
+
+        document.getElementById('alertsTrend').innerHTML = `<span class="${trendClass}">${trend}</span>`;
+
+    } catch (error) {
+        console.error('載入警示統計失敗:', error);
+        document.getElementById('pendingAlerts').textContent = '錯誤';
+        document.getElementById('alertsTrend').innerHTML = '<span class="trend-bad">- 載入失敗</span>';
+    }
+}
+
+/**
+ * 載入警示列表
+ */
+async function loadAlerts() {
+    try {
+        console.log('🔍 載入警示列表 - Elder ID:', currentElderId);
+
+        if (!currentElderId) {
+            console.warn('⚠️ Elder ID 未設定，無法載入警示');
+            displayEmptyAlerts('請先選擇長輩');
+            return;
+        }
+
+        const statusFilter = document.getElementById('alertStatusFilter')?.value || '';
+        const severityFilter = document.getElementById('alertSeverityFilter')?.value || '';
+        const typeFilter = document.getElementById('alertTypeFilter')?.value || '';
+
+        // 建立查詢參數
+        let queryParams = [`userId=${currentUser.id}`];
+        if (statusFilter) queryParams.push(`status=${statusFilter}`);
+        if (severityFilter) queryParams.push(`severity=${severityFilter}`);
+        if (typeFilter) queryParams.push(`type=${typeFilter}`);
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/alerts/elder/${currentElderId}?${queryParams.join('&')}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': currentUser.id
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('載入警示列表失敗');
+        }
+
+        const result = await response.json();
+        const alerts = result.alerts || [];
+
+        console.log('📊 載入到', alerts.length, '則警示');
+
+        const container = document.getElementById('alertsList');
+        if (alerts.length === 0) {
+            displayEmptyAlerts('目前沒有警示');
+            return;
+        }
+
+        // 渲染警示列表
+        container.innerHTML = alerts.map(alert => createAlertCard(alert)).join('');
+
+    } catch (error) {
+        console.error('載入警示列表失敗:', error);
+        displayEmptyAlerts('載入失敗，請重試');
+    }
+}
+
+/**
+ * 創建警示卡片 HTML
+ */
+function createAlertCard(alert) {
+    const severityIcons = {
+        'critical': '🚨',
+        'high': '⚠️',
+        'medium': 'ℹ️',
+        'low': '💡'
+    };
+
+    const severityColors = {
+        'critical': '#f44336',
+        'high': '#ff9800',
+        'medium': '#2196f3',
+        'low': '#9e9e9e'
+    };
+
+    const severityLabels = {
+        'critical': '危急',
+        'high': '重要',
+        'medium': '中等',
+        'low': '低'
+    };
+
+    const typeIcons = {
+        'medication': '💊',
+        'health': '🏥',
+        'activity': '📊',
+        'emergency': '🚨',
+        'vital_signs': '❤️'
+    };
+
+    const typeLabels = {
+        'medication': '用藥警示',
+        'health': '健康警示',
+        'activity': '活動警示',
+        'emergency': '緊急警示',
+        'vital_signs': '生命徵象'
+    };
+
+    const statusLabels = {
+        'pending': '待處理',
+        'acknowledged': '已確認',
+        'resolved': '已解決',
+        'dismissed': '已忽略'
+    };
+
+    const statusColors = {
+        'pending': '#ff9800',
+        'acknowledged': '#2196f3',
+        'resolved': '#4caf50',
+        'dismissed': '#9e9e9e'
+    };
+
+    const icon = severityIcons[alert.severity] || '📌';
+    const severityColor = severityColors[alert.severity] || '#9e9e9e';
+    const severityLabel = severityLabels[alert.severity] || alert.severity;
+    const typeIcon = typeIcons[alert.alert_type] || '📌';
+    const typeLabel = typeLabels[alert.alert_type] || alert.alert_type;
+    const statusLabel = statusLabels[alert.status] || alert.status;
+    const statusColor = statusColors[alert.status] || '#9e9e9e';
+    const timeAgo = formatTimeAgo(new Date(alert.created_at));
+
+    const isPending = alert.status === 'pending';
+    const isAcknowledged = alert.status === 'acknowledged';
+
+    return `
+        <div class="alert-card severity-${alert.severity}" data-alert-id="${alert.id}">
+            <div class="alert-header">
+                <div class="alert-icon" style="font-size: 24px;">${icon}</div>
+                <div class="alert-title-group">
+                    <div class="alert-title">${escapeHtml(alert.title)}</div>
+                    <div class="alert-meta">
+                        <span class="alert-type">
+                            <span style="margin-right: 4px;">${typeIcon}</span>
+                            ${typeLabel}
+                        </span>
+                        <span class="alert-severity" style="color: ${severityColor};">
+                            ${severityLabel}
+                        </span>
+                        <span class="alert-time">${timeAgo}</span>
+                    </div>
+                </div>
+                <div class="alert-status" style="background: ${statusColor};">
+                    ${statusLabel}
+                </div>
+            </div>
+            <div class="alert-body">
+                <p class="alert-description">${escapeHtml(alert.description || '無詳細說明')}</p>
+                ${alert.resolution_note ? `<p class="alert-resolution"><strong>處理備註:</strong> ${escapeHtml(alert.resolution_note)}</p>` : ''}
+            </div>
+            <div class="alert-actions">
+                ${isPending ? `
+                    <button class="btn btn-secondary" onclick="acknowledgeAlert('${alert.id}')">
+                        確認
+                    </button>
+                    <button class="btn btn-primary" onclick="resolveAlert('${alert.id}')">
+                        標記已解決
+                    </button>
+                    <button class="btn btn-text" onclick="dismissAlert('${alert.id}')">
+                        忽略
+                    </button>
+                ` : isAcknowledged ? `
+                    <button class="btn btn-primary" onclick="resolveAlert('${alert.id}')">
+                        標記已解決
+                    </button>
+                ` : `
+                    <span class="alert-resolved-info">
+                        ${alert.resolver_name ? `由 ${alert.resolver_name} 處理` : '已處理'}
+                        ${alert.resolved_at ? ` · ${formatTimeAgo(new Date(alert.resolved_at))}` : ''}
+                    </span>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * 顯示空狀態
+ */
+function displayEmptyAlerts(message) {
+    const container = document.getElementById('alertsList');
+    container.innerHTML = `
+        <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.5;">🔔</div>
+            <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #666;">沒有警示</h3>
+            <p style="margin: 0; font-size: 14px; color: #999;">${message}</p>
+        </div>
+    `;
+}
+
+/**
+ * 確認警示
+ */
+async function acknowledgeAlert(alertId) {
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/api/alerts/${alertId}/acknowledge?userId=${currentUser.id}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': currentUser.id
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('確認警示失敗');
+        }
+
+        showToast('警示已確認', 'success');
+        await loadAlerts();
+        await loadAlertStatistics();
+
+    } catch (error) {
+        console.error('確認警示失敗:', error);
+        showToast('操作失敗，請重試', 'error');
+    }
+}
+
+/**
+ * 解決警示
+ */
+async function resolveAlert(alertId) {
+    try {
+        // 詢問處理備註（可選）
+        const note = prompt('請輸入處理備註（可選）:');
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/alerts/${alertId}/resolve?userId=${currentUser.id}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': currentUser.id
+                },
+                body: JSON.stringify({
+                    resolutionNote: note || undefined
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('解決警示失敗');
+        }
+
+        showToast('警示已標記為已解決', 'success');
+        await loadAlerts();
+        await loadAlertStatistics();
+
+    } catch (error) {
+        console.error('解決警示失敗:', error);
+        showToast('操作失敗，請重試', 'error');
+    }
+}
+
+/**
+ * 忽略警示
+ */
+async function dismissAlert(alertId) {
+    try {
+        if (!confirm('確定要忽略此警示嗎？')) {
+            return;
+        }
+
+        const note = prompt('請輸入忽略原因（可選）:');
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/alerts/${alertId}/dismiss?userId=${currentUser.id}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': currentUser.id
+                },
+                body: JSON.stringify({
+                    resolutionNote: note || undefined
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('忽略警示失敗');
+        }
+
+        showToast('警示已忽略', 'success');
+        await loadAlerts();
+        await loadAlertStatistics();
+
+    } catch (error) {
+        console.error('忽略警示失敗:', error);
+        showToast('操作失敗，請重試', 'error');
+    }
+}
+
+/**
+ * 篩選警示
+ */
+function filterAlerts() {
+    loadAlerts();
+}
+
+/**
+ * HTML 轉義（防止 XSS）
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+console.log('✅ family-dashboard.js (警示系統) 載入完成');

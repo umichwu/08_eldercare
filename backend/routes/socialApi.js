@@ -1022,6 +1022,437 @@ router.put('/notifications/read-all', async (req, res) => {
 });
 
 // ============================================================================
+// 聊天訊息相關 API
+// ============================================================================
+
+/**
+ * GET /api/social/messages/:friendUserId
+ * 取得與某個好友的聊天記錄
+ */
+router.get('/messages/:friendUserId', async (req, res) => {
+  try {
+    const { friendUserId } = req.params;
+    const { userId, limit = 50, before } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId 參數' });
+    }
+
+    console.log(`📥 取得聊天記錄: userId=${userId}, friendUserId=${friendUserId}`);
+
+    // 取得使用者的 profile ID
+    const { data: userProfile, error: userError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', userId)
+      .single();
+
+    if (userError || !userProfile) {
+      return res.status(404).json({ error: '找不到使用者資料' });
+    }
+
+    // 取得好友的 profile ID
+    const { data: friendProfile, error: friendError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', friendUserId)
+      .single();
+
+    if (friendError || !friendProfile) {
+      return res.status(404).json({ error: '找不到好友資料' });
+    }
+
+    // 建立查詢
+    let query = supabase
+      .from('direct_messages')
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        message_text,
+        message_type,
+        is_read,
+        read_at,
+        reply_to_message_id,
+        metadata,
+        created_at,
+        sender:sender_id(id, display_name, avatar_url, auth_user_id),
+        receiver:receiver_id(id, display_name, avatar_url, auth_user_id)
+      `)
+      .or(`and(sender_id.eq.${userProfile.id},receiver_id.eq.${friendProfile.id}),and(sender_id.eq.${friendProfile.id},receiver_id.eq.${userProfile.id})`)
+      .eq('is_deleted_by_sender', false)
+      .eq('is_deleted_by_receiver', false)
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    // 如果有 before 參數，用於分頁
+    if (before) {
+      query = query.lt('created_at', before);
+    }
+
+    const { data: messages, error } = await query;
+
+    if (error) {
+      console.error('取得聊天記錄錯誤:', error);
+      return res.status(500).json({ error: '取得聊天記錄失敗' });
+    }
+
+    // 反轉順序（最舊的在前）
+    const sortedMessages = (messages || []).reverse();
+
+    res.json({
+      success: true,
+      messages: sortedMessages,
+      count: sortedMessages.length,
+      hasMore: sortedMessages.length === parseInt(limit)
+    });
+
+  } catch (error) {
+    console.error('聊天記錄 API 錯誤:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/social/messages
+ * 發送聊天訊息
+ */
+router.post('/messages', async (req, res) => {
+  try {
+    const { userId, receiverUserId, messageText, messageType = 'text', metadata = {} } = req.body;
+
+    if (!userId || !receiverUserId || !messageText) {
+      return res.status(400).json({ error: '缺少必要參數' });
+    }
+
+    console.log(`📤 發送訊息: from=${userId} to=${receiverUserId}`);
+
+    // 取得發送者的 profile ID
+    const { data: senderProfile, error: senderError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', userId)
+      .single();
+
+    if (senderError || !senderProfile) {
+      return res.status(404).json({ error: '找不到發送者資料' });
+    }
+
+    // 取得接收者的 profile ID
+    const { data: receiverProfile, error: receiverError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', receiverUserId)
+      .single();
+
+    if (receiverError || !receiverProfile) {
+      return res.status(404).json({ error: '找不到接收者資料' });
+    }
+
+    // 插入訊息
+    const { data: message, error } = await supabase
+      .from('direct_messages')
+      .insert([
+        {
+          sender_id: senderProfile.id,
+          receiver_id: receiverProfile.id,
+          message_text: messageText,
+          message_type: messageType,
+          metadata: metadata
+        }
+      ])
+      .select(`
+        id,
+        sender_id,
+        receiver_id,
+        message_text,
+        message_type,
+        is_read,
+        read_at,
+        metadata,
+        created_at,
+        sender:sender_id(id, display_name, avatar_url, auth_user_id),
+        receiver:receiver_id(id, display_name, avatar_url, auth_user_id)
+      `)
+      .single();
+
+    if (error) {
+      console.error('發送訊息錯誤:', error);
+      return res.status(500).json({ error: '發送訊息失敗' });
+    }
+
+    console.log('✅ 訊息已發送:', message.id);
+
+    res.status(201).json({
+      success: true,
+      message: message
+    });
+
+  } catch (error) {
+    console.error('發送訊息 API 錯誤:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/social/messages/:messageId/read
+ * 標記訊息為已讀
+ */
+router.put('/messages/:messageId/read', async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId 參數' });
+    }
+
+    console.log(`✓ 標記訊息為已讀: messageId=${messageId}, userId=${userId}`);
+
+    // 取得使用者的 profile ID
+    const { data: userProfile, error: userError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', userId)
+      .single();
+
+    if (userError || !userProfile) {
+      return res.status(404).json({ error: '找不到使用者資料' });
+    }
+
+    // 更新訊息為已讀（只有接收者可以標記）
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
+      })
+      .eq('id', messageId)
+      .eq('receiver_id', userProfile.id)
+      .select();
+
+    if (error) {
+      console.error('標記已讀錯誤:', error);
+      return res.status(500).json({ error: '標記已讀失敗' });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: '訊息不存在或無權限' });
+    }
+
+    res.json({
+      success: true,
+      message: '訊息已標記為已讀'
+    });
+
+  } catch (error) {
+    console.error('標記已讀 API 錯誤:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/social/messages/batch-read
+ * 批次標記多則訊息為已讀
+ */
+router.put('/messages/batch-read', async (req, res) => {
+  try {
+    const { userId, friendUserId } = req.body;
+
+    if (!userId || !friendUserId) {
+      return res.status(400).json({ error: '缺少必要參數' });
+    }
+
+    console.log(`✓ 批次標記已讀: userId=${userId}, friendUserId=${friendUserId}`);
+
+    // 取得使用者的 profile ID
+    const { data: userProfile, error: userError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', userId)
+      .single();
+
+    if (userError || !userProfile) {
+      return res.status(404).json({ error: '找不到使用者資料' });
+    }
+
+    // 取得好友的 profile ID
+    const { data: friendProfile, error: friendError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', friendUserId)
+      .single();
+
+    if (friendError || !friendProfile) {
+      return res.status(404).json({ error: '找不到好友資料' });
+    }
+
+    // 批次更新所有未讀訊息
+    const { data, error } = await supabase
+      .from('direct_messages')
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
+      })
+      .eq('sender_id', friendProfile.id)
+      .eq('receiver_id', userProfile.id)
+      .eq('is_read', false)
+      .select();
+
+    if (error) {
+      console.error('批次標記已讀錯誤:', error);
+      return res.status(500).json({ error: '批次標記已讀失敗' });
+    }
+
+    console.log(`✅ 已標記 ${data?.length || 0} 則訊息為已讀`);
+
+    res.json({
+      success: true,
+      count: data?.length || 0,
+      message: `已標記 ${data?.length || 0} 則訊息為已讀`
+    });
+
+  } catch (error) {
+    console.error('批次標記已讀 API 錯誤:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/social/conversations
+ * 取得對話列表（所有有聊天記錄的好友）
+ */
+router.get('/conversations', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId 參數' });
+    }
+
+    console.log(`📋 取得對話列表: userId=${userId}`);
+
+    // 取得使用者的 profile ID
+    const { data: userProfile, error: userError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', userId)
+      .single();
+
+    if (userError || !userProfile) {
+      return res.status(404).json({ error: '找不到使用者資料' });
+    }
+
+    // 使用視圖取得對話列表
+    const { data: conversations, error } = await supabase
+      .from('v_conversation_list')
+      .select('*')
+      .or(`sender_id.eq.${userProfile.id},receiver_id.eq.${userProfile.id}`)
+      .order('last_message_at', { ascending: false });
+
+    if (error) {
+      console.error('取得對話列表錯誤:', error);
+      return res.status(500).json({ error: '取得對話列表失敗' });
+    }
+
+    // 處理對話列表，確保每個對話只顯示對方的資訊
+    const processedConversations = (conversations || []).map(conv => {
+      const isUserSender = conv.sender_id === userProfile.id;
+      return {
+        ...conv,
+        friend_user_id: isUserSender ? conv.receiver_id : conv.sender_id,
+        friend_name: isUserSender ? conv.receiver_name : conv.sender_name,
+        friend_avatar: isUserSender ? conv.receiver_avatar : conv.sender_avatar,
+        unread_count: isUserSender ? 0 : conv.unread_count
+      };
+    });
+
+    res.json({
+      success: true,
+      conversations: processedConversations,
+      count: processedConversations.length
+    });
+
+  } catch (error) {
+    console.error('對話列表 API 錯誤:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/social/messages/:messageId
+ * 刪除訊息（軟刪除）
+ */
+router.delete('/messages/:messageId', async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: '缺少 userId 參數' });
+    }
+
+    console.log(`🗑️  刪除訊息: messageId=${messageId}, userId=${userId}`);
+
+    // 取得使用者的 profile ID
+    const { data: userProfile, error: userError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', userId)
+      .single();
+
+    if (userError || !userProfile) {
+      return res.status(404).json({ error: '找不到使用者資料' });
+    }
+
+    // 先取得訊息以確認權限
+    const { data: message, error: fetchError } = await supabase
+      .from('direct_messages')
+      .select('sender_id, receiver_id')
+      .eq('id', messageId)
+      .single();
+
+    if (fetchError || !message) {
+      return res.status(404).json({ error: '訊息不存在' });
+    }
+
+    // 判斷是發送者還是接收者
+    const isSender = message.sender_id === userProfile.id;
+    const isReceiver = message.receiver_id === userProfile.id;
+
+    if (!isSender && !isReceiver) {
+      return res.status(403).json({ error: '無權限刪除此訊息' });
+    }
+
+    // 軟刪除訊息
+    const updateData = isSender
+      ? { is_deleted_by_sender: true }
+      : { is_deleted_by_receiver: true };
+
+    const { error } = await supabase
+      .from('direct_messages')
+      .update(updateData)
+      .eq('id', messageId);
+
+    if (error) {
+      console.error('刪除訊息錯誤:', error);
+      return res.status(500).json({ error: '刪除訊息失敗' });
+    }
+
+    console.log('✅ 訊息已刪除');
+
+    res.json({
+      success: true,
+      message: '訊息已刪除'
+    });
+
+  } catch (error) {
+    console.error('刪除訊息 API 錯誤:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
 // 健康檢查
 // ============================================================================
 

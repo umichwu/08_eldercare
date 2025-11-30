@@ -1151,17 +1151,60 @@ async function loadChatWithSelf() {
     const chatMessages = document.getElementById('chatMessages');
     if (!chatMessages) return;
 
-    // TODO: 從資料庫載入與自己的聊天記錄
-    chatMessages.innerHTML = `
-        <div class="chat-date-divider">
-            <span>今天</span>
-        </div>
-        <div style="text-align: center; padding: 40px 20px; color: #999;">
-            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
-            <p>這是您的私人速記空間</p>
-            <p style="font-size: 14px; margin-top: 8px;">在這裡記錄想法、待辦事項或重要提醒</p>
-        </div>
-    `;
+    try {
+        console.log('📝 載入私人速記...');
+
+        // 從資料庫載入與自己的聊天記錄
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            console.error('❌ 未登入');
+            return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/social/messages/${user.id}?userId=${user.id}`, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('載入私人速記失敗');
+        }
+
+        const result = await response.json();
+        const messages = result.messages || [];
+
+        // 儲存當前聊天對象為自己
+        window.currentChatFriend = {
+            userId: user.id,
+            name: '私人速記',
+            isSelf: true
+        };
+
+        // 渲染訊息
+        renderChatMessages(messages, user.id, '私人速記');
+
+        // 如果沒有訊息，顯示歡迎訊息
+        if (messages.length === 0) {
+            chatMessages.innerHTML = `
+                <div class="chat-date-divider">
+                    <span>今天</span>
+                </div>
+                <div style="text-align: center; padding: 40px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                    <p>這是您的私人速記空間</p>
+                    <p style="font-size: 14px; margin-top: 8px;">在這裡記錄想法、待辦事項或重要提醒</p>
+                </div>
+            `;
+        }
+
+        // 批次標記已讀（對自己的訊息）
+        await markMessagesAsRead(user.id);
+
+    } catch (error) {
+        console.error('載入私人速記失敗:', error);
+        showToast('載入私人速記失敗', 'error');
+    }
 }
 
 // 載入與好友的聊天記錄
@@ -1169,26 +1212,61 @@ async function loadChatWithFriend(friendUserId, friendName) {
     const chatMessages = document.getElementById('chatMessages');
     if (!chatMessages) return;
 
-    console.log(`📥 載入與 ${friendName} 的聊天記錄...`);
+    try {
+        console.log(`📥 載入與 ${friendName} 的聊天記錄...`);
 
-    // TODO: 從資料庫載入聊天記錄
-    // 目前顯示歡迎訊息
-    chatMessages.innerHTML = `
-        <div class="chat-date-divider">
-            <span>今天</span>
-        </div>
-        <div style="text-align: center; padding: 40px 20px; color: #999;">
-            <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
-            <p>開始與 ${friendName} 聊天吧！</p>
-            <p style="font-size: 14px; margin-top: 8px;">這是您和 ${friendName} 的對話空間</p>
-        </div>
-    `;
+        // 取得當前使用者
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            console.error('❌ 未登入');
+            return;
+        }
 
-    // 儲存當前聊天對象（用於發送訊息）
-    window.currentChatFriend = {
-        userId: friendUserId,
-        name: friendName
-    };
+        // 從資料庫載入聊天記錄
+        const response = await fetch(`${API_BASE_URL}/api/social/messages/${friendUserId}?userId=${user.id}`, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('載入聊天記錄失敗');
+        }
+
+        const result = await response.json();
+        const messages = result.messages || [];
+
+        // 儲存當前聊天對象（用於發送訊息）
+        window.currentChatFriend = {
+            userId: friendUserId,
+            name: friendName,
+            isSelf: false
+        };
+
+        // 渲染訊息
+        renderChatMessages(messages, user.id, friendName);
+
+        // 如果沒有訊息，顯示歡迎訊息
+        if (messages.length === 0) {
+            chatMessages.innerHTML = `
+                <div class="chat-date-divider">
+                    <span>今天</span>
+                </div>
+                <div style="text-align: center; padding: 40px 20px; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+                    <p>開始與 ${friendName} 聊天吧！</p>
+                    <p style="font-size: 14px; margin-top: 8px;">這是您和 ${friendName} 的對話空間</p>
+                </div>
+            `;
+        }
+
+        // 批次標記已讀
+        await markMessagesAsRead(friendUserId);
+
+    } catch (error) {
+        console.error('載入聊天記錄失敗:', error);
+        showToast('載入聊天記錄失敗', 'error');
+    }
 }
 
 // 切換內容標籤（聊天/動態）
@@ -1840,29 +1918,66 @@ function sendMessage() {
 
     console.log('📤 發送訊息:', message);
 
-    // TODO: 實作發送訊息功能到資料庫
-    // 目前只是清空輸入框並顯示訊息
-    chatInput.value = '';
-
-    // 顯示訊息在聊天室中（暫時的模擬）
-    const chatMessages = document.getElementById('chatMessages');
-    if (chatMessages) {
-        // 移除歡迎訊息（如果存在）
-        const welcomeMessage = chatMessages.querySelector('div[style*="text-align: center"]');
-        if (welcomeMessage && welcomeMessage.parentElement) {
-            welcomeMessage.parentElement.remove();
+    try {
+        // 取得當前使用者
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
+            console.error('❌ 未登入');
+            showToast('請先登入', 'error');
+            return;
         }
 
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'chat-message me';
-        messageDiv.innerHTML = `
-            <div class="message-bubble">
-                <div class="message-text">${escapeHtml(message)}</div>
-                <div class="message-time">${new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
-            </div>
-        `;
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // 檢查是否有選擇聊天對象
+        if (!window.currentChatFriend) {
+            console.error('❌ 沒有選擇聊天對象');
+            showToast('請先選擇聊天對象', 'error');
+            return;
+        }
+
+        // 發送訊息到資料庫
+        const response = await fetch(`${API_BASE_URL}/api/social/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: user.id,
+                receiverUserId: window.currentChatFriend.userId,
+                messageText: message,
+                messageType: 'text'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('發送訊息失敗');
+        }
+
+        const result = await response.json();
+        const savedMessage = result.message;
+
+        console.log('✅ 訊息已發送:', savedMessage.id);
+
+        // 清空輸入框
+        chatInput.value = '';
+
+        // 顯示訊息在聊天室中
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            // 移除歡迎訊息（如果存在）
+            const welcomeMessage = chatMessages.querySelector('div[style*="text-align: center"]');
+            if (welcomeMessage && welcomeMessage.parentElement) {
+                welcomeMessage.parentElement.remove();
+            }
+
+            // 添加新訊息
+            const messageDiv = createMessageElement(savedMessage, user.id);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+    } catch (error) {
+        console.error('發送訊息失敗:', error);
+        showToast('發送訊息失敗', 'error');
     }
 }
 
@@ -1879,6 +1994,134 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ============================================================================
+// 聊天訊息相關輔助函數
+// ============================================================================
+
+/**
+ * 渲染聊天訊息列表
+ */
+function renderChatMessages(messages, currentUserId, friendName) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+
+    // 清空現有訊息
+    chatMessages.innerHTML = '';
+
+    // 依日期分組訊息
+    const messagesByDate = groupMessagesByDate(messages);
+
+    // 渲染每個日期的訊息
+    Object.keys(messagesByDate).forEach(date => {
+        // 添加日期分隔線
+        const dateDivider = document.createElement('div');
+        dateDivider.className = 'chat-date-divider';
+        dateDivider.innerHTML = `<span>${formatDateDivider(date)}</span>`;
+        chatMessages.appendChild(dateDivider);
+
+        // 渲染該日期的所有訊息
+        messagesByDate[date].forEach(msg => {
+            const messageDiv = createMessageElement(msg, currentUserId);
+            chatMessages.appendChild(messageDiv);
+        });
+    });
+
+    // 滾動到底部
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+/**
+ * 創建單一訊息元素
+ */
+function createMessageElement(message, currentUserId) {
+    const messageDiv = document.createElement('div');
+
+    // 判斷是自己還是對方的訊息
+    const isSender = message.sender?.auth_user_id === currentUserId;
+    messageDiv.className = `chat-message ${isSender ? 'me' : 'friend'}`;
+
+    const messageTime = new Date(message.created_at).toLocaleTimeString('zh-TW', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    messageDiv.innerHTML = `
+        <div class="message-bubble">
+            <div class="message-text">${escapeHtml(message.message_text)}</div>
+            <div class="message-time">${messageTime}</div>
+        </div>
+    `;
+
+    return messageDiv;
+}
+
+/**
+ * 依日期分組訊息
+ */
+function groupMessagesByDate(messages) {
+    const groups = {};
+
+    messages.forEach(msg => {
+        const date = new Date(msg.created_at).toLocaleDateString('zh-TW');
+        if (!groups[date]) {
+            groups[date] = [];
+        }
+        groups[date].push(msg);
+    });
+
+    return groups;
+}
+
+/**
+ * 格式化日期分隔線
+ */
+function formatDateDivider(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const dateStr = date.toLocaleDateString('zh-TW');
+    const todayStr = today.toLocaleDateString('zh-TW');
+    const yesterdayStr = yesterday.toLocaleDateString('zh-TW');
+
+    if (dateStr === todayStr) {
+        return '今天';
+    } else if (dateStr === yesterdayStr) {
+        return '昨天';
+    } else {
+        return date.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
+    }
+}
+
+/**
+ * 批次標記訊息為已讀
+ */
+async function markMessagesAsRead(friendUserId) {
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) return;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/messages/batch-read`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: user.id,
+                friendUserId: friendUserId
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log(`✅ 已標記 ${result.count} 則訊息為已讀`);
+        }
+    } catch (error) {
+        console.error('標記已讀失敗:', error);
+    }
 }
 
 console.log('✅ social.js 載入完成');

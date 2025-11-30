@@ -226,7 +226,7 @@ async function loadTimeline() {
     } catch (error) {
         console.error('❌ 載入動態時間軸失敗:', error);
         timelineList.innerHTML = '<p style="text-align: center; color: #999;">載入失敗，請重試</p>';
-        showToast('載入動態失敗', 'error');
+        showError('載入動態失敗');
     }
 }
 
@@ -1422,7 +1422,7 @@ async function loadChatWithSelf() {
 
     } catch (error) {
         console.error('載入私人速記失敗:', error);
-        showToast('載入私人速記失敗', 'error');
+        showError('載入私人速記失敗');
     }
 }
 
@@ -1484,7 +1484,7 @@ async function loadChatWithFriend(friendUserId, friendName) {
 
     } catch (error) {
         console.error('載入聊天記錄失敗:', error);
-        showToast('載入聊天記錄失敗', 'error');
+        showError('載入聊天記錄失敗');
     }
 }
 

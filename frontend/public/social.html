@@ -247,6 +247,9 @@
                           placeholder="分享您的生活點滴..."
                           rows="5"></textarea>
 
+                <!-- 圖片預覽區域 -->
+                <div id="imagePreview" class="image-preview-container" style="margin-top: 12px;"></div>
+
                 <div class="post-options">
                     <div class="post-option">
                         <label>心情</label>
@@ -270,6 +273,9 @@
                         </select>
                     </div>
                 </div>
+
+                <!-- 圖片上傳按鈕 (隱藏) -->
+                <input type="file" id="postImage" accept="image/*" style="display: none;">
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closePostModal()">取消</button>

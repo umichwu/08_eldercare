@@ -1261,8 +1261,50 @@ async function editMedication(id) {
             shorttermSettings.style.display = 'block';
 
             // ✅ 填充短期用藥的設定（如果有的話）
-            // TODO: 這裡可以根據 reminder 的 metadata 來還原短期用藥的設定
-            console.log('⚠️ 短期用藥編輯功能待完善');
+            if (reminder.metadata && reminder.metadata.is_short_term) {
+                const metadata = reminder.metadata;
+
+                // 還原總次數
+                const totalTimesInput = document.getElementById('shortterm-total-times');
+                if (totalTimesInput && metadata.total_times) {
+                    totalTimesInput.value = metadata.total_times;
+                }
+
+                // 還原總天數
+                const totalDaysInput = document.getElementById('shortterm-total-days');
+                if (totalDaysInput && metadata.total_days) {
+                    totalDaysInput.value = metadata.total_days;
+                }
+
+                // 還原每次劑量
+                const dosageInput = document.getElementById('shortterm-dosage');
+                if (dosageInput && metadata.dosage_per_time) {
+                    dosageInput.value = metadata.dosage_per_time;
+                }
+
+                // 還原備註
+                const notesInput = document.getElementById('shortterm-notes');
+                if (notesInput && metadata.notes) {
+                    notesInput.value = metadata.notes;
+                }
+
+                // 顯示進度資訊（如果已開始）
+                if (metadata.completed_times > 0) {
+                    const progressInfo = document.createElement('div');
+                    progressInfo.className = 'alert alert-info';
+                    progressInfo.style.marginTop = '10px';
+                    progressInfo.innerHTML = `
+                        <strong>📊 目前進度：</strong>
+                        已完成 ${metadata.completed_times} / ${metadata.total_times} 次
+                        （剩餘 ${metadata.remaining_times} 次）
+                    `;
+                    shorttermSettings.appendChild(progressInfo);
+                }
+
+                console.log('✅ 短期用藥設定已還原:', metadata);
+            } else {
+                console.log('⚠️  此提醒沒有短期用藥的 metadata');
+            }
         }
 
     } catch (error) {

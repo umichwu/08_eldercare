@@ -245,7 +245,15 @@ DROP POLICY IF EXISTS "Group members can send group messages" ON public.chat_mes
 -- 然後重新執行 group_chat_schema.sql
 ```
 
-### 8. 執行時出現「權限不足」或「無法刪除」錯誤
+### 8. 執行 `short_term_medication_schema.sql` 時出現 `column m.name does not exist` 錯誤
+
+**已修復！** ✅（2025-12-01 更新）
+
+- 問題原因：視圖中使用 `m.name`，但 `medications` 表的欄位名稱是 `medication_name`
+- 修正方式：將 `m.name AS medication_name` 改為 `m.medication_name`
+- 同時加入 STEP 1 清理邏輯（刪除舊視圖、觸發器、函數）
+
+### 9. 執行時出現「權限不足」或「無法刪除」錯誤
 
 請確認：
 - 您在 Supabase Dashboard 已登入為 Owner 或有完整權限的帳號

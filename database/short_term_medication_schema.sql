@@ -2,16 +2,41 @@
 -- 短期用藥提醒功能資料庫結構
 -- ===================================
 
--- 1. 為 medication_reminders 表增加 metadata 欄位
+-- ============================================================================
+-- STEP 1: 清理舊資料（如果存在）
+-- ============================================================================
+
+-- 1.1 刪除視圖
+DROP VIEW IF EXISTS public.short_term_medication_reminders CASCADE;
+
+-- 1.2 刪除觸發器
+DO $$
+BEGIN
+    DROP TRIGGER IF EXISTS trigger_update_short_term_medication ON public.medication_logs;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
+
+-- 1.3 刪除函數
+DROP FUNCTION IF EXISTS public.update_short_term_medication_progress() CASCADE;
+DROP FUNCTION IF EXISTS public.is_short_term_medication_completed(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.restore_short_term_medication(UUID, INTEGER, INTEGER) CASCADE;
+
+-- ============================================================================
+-- STEP 2: 建立短期用藥功能
+-- ============================================================================
+
+-- 2.1 為 medication_reminders 表增加 metadata 欄位
 ALTER TABLE public.medication_reminders
 ADD COLUMN IF NOT EXISTS metadata JSONB;
 
--- 2. 增加索引以加速查詢短期用藥
+-- 2.2 增加索引以加速查詢短期用藥
 CREATE INDEX IF NOT EXISTS idx_medication_reminders_metadata
 ON public.medication_reminders USING GIN (metadata)
 WHERE metadata IS NOT NULL;
 
--- 3. 增加註解說明 metadata 欄位的用途
+-- 2.3 增加註解說明 metadata 欄位的用途
 COMMENT ON COLUMN public.medication_reminders.metadata IS '
 短期用藥提醒的額外資訊，JSON 格式：
 {
@@ -27,7 +52,7 @@ COMMENT ON COLUMN public.medication_reminders.metadata IS '
 }
 ';
 
--- 4. 建立輔助函數：檢查短期用藥是否已完成
+-- 2.4 建立輔助函數：檢查短期用藥是否已完成
 CREATE OR REPLACE FUNCTION is_short_term_medication_completed(reminder_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -55,7 +80,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 5. 建立觸發器：當服藥記錄新增時，自動更新短期用藥的完成次數
+-- 2.5 建立觸發器函數：當服藥記錄新增時，自動更新短期用藥的完成次數
 CREATE OR REPLACE FUNCTION update_short_term_medication_progress()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -114,20 +139,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 建立觸發器
-DROP TRIGGER IF EXISTS trigger_update_short_term_medication ON public.medication_logs;
+-- 2.6 建立觸發器
 CREATE TRIGGER trigger_update_short_term_medication
 AFTER INSERT ON public.medication_logs
 FOR EACH ROW
 EXECUTE FUNCTION update_short_term_medication_progress();
 
--- 6. 建立視圖：短期用藥提醒列表
+-- 2.7 建立視圖：短期用藥提醒列表
 CREATE OR REPLACE VIEW public.short_term_medication_reminders AS
 SELECT
     mr.id,
     mr.elder_id,
     mr.medication_id,
-    m.name AS medication_name,
+    m.medication_name,
     m.dosage,
     mr.metadata->>'total_times' AS total_times,
     mr.metadata->>'total_days' AS total_days,
@@ -144,7 +168,7 @@ INNER JOIN public.medications m ON mr.medication_id = m.id
 WHERE mr.metadata->>'is_short_term' = 'true'
 ORDER BY mr.created_at DESC;
 
--- 7. 建立函數：還原短期用藥設定（重新啟用提醒）
+-- 2.8 建立函數：還原短期用藥設定（重新啟用提醒）
 CREATE OR REPLACE FUNCTION restore_short_term_medication(
     p_reminder_id UUID,
     p_total_times INTEGER DEFAULT NULL,
@@ -207,7 +231,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 8. 使用範例
+-- ===================================
+-- 使用範例
+-- ===================================
 
 /*
 -- 建立短期用藥提醒

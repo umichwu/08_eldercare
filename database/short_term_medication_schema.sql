@@ -129,7 +129,7 @@ BEGIN
     -- 如果已完成所有次數，將提醒設為非活動狀態
     IF completed_count >= total_times THEN
         UPDATE public.medication_reminders
-        SET is_active = FALSE
+        SET is_enabled = FALSE
         WHERE id = NEW.reminder_id;
 
         RAISE NOTICE '短期用藥已完成，提醒已停用: %', NEW.reminder_id;
@@ -161,7 +161,7 @@ SELECT
     mr.metadata->>'end_date' AS end_date,
     mr.metadata->>'dosage_per_time' AS dosage_per_time,
     mr.metadata->>'notes' AS notes,
-    mr.is_active,
+    mr.is_enabled,
     mr.created_at
 FROM public.medication_reminders mr
 INNER JOIN public.medications m ON mr.medication_id = m.id
@@ -215,7 +215,7 @@ BEGIN
             '{total_times}',
             to_jsonb(new_total_times)
         ),
-        is_active = TRUE
+        is_enabled = TRUE
     WHERE id = p_reminder_id;
 
     -- 返回結果
@@ -240,13 +240,13 @@ $$ LANGUAGE plpgsql;
 INSERT INTO public.medication_reminders (
     elder_id,
     medication_id,
-    reminder_time,
-    is_active,
+    cron_schedule,
+    is_enabled,
     metadata
 ) VALUES (
     'elder-uuid-here',
     'medication-uuid-here',
-    '{"daily": ["08:00"]}',
+    '0 8,20 * * *',  -- 每天早上 8:00 和晚上 8:00
     true,
     '{
         "is_short_term": true,

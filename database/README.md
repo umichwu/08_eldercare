@@ -245,12 +245,21 @@ DROP POLICY IF EXISTS "Group members can send group messages" ON public.chat_mes
 -- 然後重新執行 group_chat_schema.sql
 ```
 
-### 8. 執行 `short_term_medication_schema.sql` 時出現 `column m.name does not exist` 錯誤
+### 8. 執行 `short_term_medication_schema.sql` 時出現欄位不存在錯誤
 
-**已修復！** ✅（2025-12-01 更新）
+**已修復！** ✅（2025-12-01 更新 v2）
 
+**錯誤 1**: `column m.name does not exist`
 - 問題原因：視圖中使用 `m.name`，但 `medications` 表的欄位名稱是 `medication_name`
 - 修正方式：將 `m.name AS medication_name` 改為 `m.medication_name`
+
+**錯誤 2**: `column mr.is_active does not exist`
+- 問題原因：視圖和函數中使用 `is_active`，但 `medication_reminders` 表的欄位名稱是 `is_enabled`
+- 修正方式：將所有 `is_active` 改為 `is_enabled`
+  - 視圖中：`mr.is_active` → `mr.is_enabled`
+  - 觸發器函數中：`SET is_active = FALSE` → `SET is_enabled = FALSE`
+  - 還原函數中：`is_active = TRUE` → `is_enabled = TRUE`
+
 - 同時加入 STEP 1 清理邏輯（刪除舊視圖、觸發器、函數）
 
 ### 9. 執行時出現「權限不足」或「無法刪除」錯誤

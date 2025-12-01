@@ -111,12 +111,21 @@ CREATE INDEX idx_group_members_role ON public.chat_group_members(group_id, role)
 -- STEP 3: 修改 chat_messages 表，支援群組訊息
 -- ============================================================================
 
--- 3.1 增加 group_id 欄位
-ALTER TABLE public.chat_messages
-ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES public.chat_groups(id) ON DELETE CASCADE;
+-- 3.1 增加 group_id 欄位（先不加外鍵約束）
+DO $$
+BEGIN
+    -- 檢查欄位是否存在，不存在則新增
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'chat_messages'
+        AND column_name = 'group_id'
+    ) THEN
+        ALTER TABLE public.chat_messages ADD COLUMN group_id UUID;
+    END IF;
+END $$;
 
 -- 3.2 修改 receiver_id 為可選（群組訊息不需要 receiver_id）
--- 注意：先檢查欄位是否存在 NOT NULL 約束
 DO $$
 BEGIN
     -- 嘗試移除 NOT NULL 約束
@@ -135,16 +144,52 @@ EXCEPTION
         NULL;
 END $$;
 
--- 3.3 增加群組訊息索引
+-- 3.3 增加外鍵約束（確保 chat_groups 表已存在）
+DO $$
+BEGIN
+    -- 檢查外鍵約束是否已存在
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_schema = 'public'
+        AND table_name = 'chat_messages'
+        AND constraint_name = 'chat_messages_group_id_fkey'
+    ) THEN
+        -- 新增外鍵約束
+        ALTER TABLE public.chat_messages
+        ADD CONSTRAINT chat_messages_group_id_fkey
+        FOREIGN KEY (group_id) REFERENCES public.chat_groups(id) ON DELETE CASCADE;
+    END IF;
+EXCEPTION
+    WHEN undefined_table THEN
+        RAISE NOTICE 'chat_groups table does not exist yet, skipping foreign key';
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Foreign key constraint already exists';
+END $$;
+
+-- 3.4 增加群組訊息索引
 CREATE INDEX IF NOT EXISTS idx_chat_messages_group ON public.chat_messages(group_id, created_at DESC) WHERE group_id IS NOT NULL;
 
--- 3.4 增加檢查約束：訊息必須是一對一或群組訊息（不能兩者都是）
-ALTER TABLE public.chat_messages
-ADD CONSTRAINT check_message_type
-CHECK (
-    (receiver_id IS NOT NULL AND group_id IS NULL) OR
-    (receiver_id IS NULL AND group_id IS NOT NULL)
-);
+-- 3.5 增加檢查約束：訊息必須是一對一或群組訊息（不能兩者都是）
+DO $$
+BEGIN
+    -- 檢查約束是否已存在
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_schema = 'public'
+        AND table_name = 'chat_messages'
+        AND constraint_name = 'check_message_type'
+    ) THEN
+        ALTER TABLE public.chat_messages
+        ADD CONSTRAINT check_message_type
+        CHECK (
+            (receiver_id IS NOT NULL AND group_id IS NULL) OR
+            (receiver_id IS NULL AND group_id IS NOT NULL)
+        );
+    END IF;
+EXCEPTION
+    WHEN duplicate_object THEN
+        RAISE NOTICE 'Check constraint already exists';
+END $$;
 
 -- ============================================================================
 -- STEP 4: 建立群組邀請表

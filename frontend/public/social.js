@@ -2751,7 +2751,7 @@ async function postComment(postId, commentText, inputElement) {
                 'x-user-id': user.id
             },
             body: JSON.stringify({
-                commentText: commentText.trim()
+                content: commentText.trim()
             })
         });
 

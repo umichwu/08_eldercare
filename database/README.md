@@ -11,7 +11,17 @@
 
 ## 🚀 執行方式
 
-### 方式一：Supabase Dashboard（推薦）
+### 方式一：Supabase Dashboard（推薦）⭐
+
+#### ⚠️ 重要提示
+
+**請先確認是否已執行過 `social_media_schema.sql`**
+
+- 如果您**已經執行過** `social_media_schema.sql`，`chat_messages` 表已存在
+- 執行 `group_chat_schema.sql` 時會自動處理表格衝突（關閉 RLS、刪除舊政策等）
+- **這是安全的！** 現有的一對一聊天訊息不會被刪除，只會新增 `group_id` 欄位
+
+#### 執行步驟
 
 1. **開啟 Supabase Dashboard**
    - 前往：https://app.supabase.com/project/oatdjdelzybcacwqafkk
@@ -23,15 +33,20 @@
 
 3. **執行 Schema**
 
-   #### 步驟 1：執行群組聊天 Schema
+   #### 步驟 1：執行群組聊天 Schema ✅
    ```bash
    # 1. 複製 database/group_chat_schema.sql 的全部內容
    # 2. 貼到 SQL Editor
    # 3. 點擊 Run（或按 Ctrl+Enter）
-   # 4. 確認執行成功（查看是否有錯誤訊息）
+   # 4. 確認執行成功（查看執行結果）
+
+   # ⚠️ 注意事項：
+   # - 執行過程中可能會看到一些 NOTICE 訊息（例如：表格已存在、政策已存在等）
+   # - 這些是正常的，不影響執行結果
+   # - 只要最後顯示 "Success. No rows returned" 就表示執行成功
    ```
 
-   #### 步驟 2：執行短期用藥提醒 Schema
+   #### 步驟 2：執行短期用藥提醒 Schema ✅
    ```bash
    # 1. 複製 database/short_term_medication_schema.sql 的全部內容
    # 2. 貼到新的 SQL Editor Query
@@ -89,17 +104,33 @@ psql "postgresql://postgres:[YOUR-PASSWORD]@db.oatdjdelzybcacwqafkk.supabase.co:
 
 ### 1. 執行時出現「already exists」錯誤
 
-這是正常的！SQL 檔案中使用了 `IF NOT EXISTS`、`IF EXISTS` 等語法，重複執行是安全的。
+**這是正常的！** ✅
 
-### 2. 執行時出現權限錯誤
+- SQL 檔案中使用了 `IF NOT EXISTS`、`IF EXISTS` 等語法
+- 重複執行是安全的，不會覆蓋現有資料
+- 這些訊息是 PostgreSQL 的 NOTICE，不是錯誤
+
+### 2. 執行時出現 `column "receiver_id" does not exist` 錯誤
+
+**已修復！** ✅（2025-12-01 更新）
+
+- 新版本的 `group_chat_schema.sql` 已使用 `DO $$ BEGIN ... END $$` 區塊
+- 會先檢查欄位是否存在再進行修改
+- 如果仍遇到此錯誤，請確認您使用的是最新版本的 SQL 檔案
+
+### 3. 執行時出現權限錯誤
 
 請確認：
-- 您使用的是 Service Role Key（不是 Anon Key）
 - 您在 Supabase Dashboard 已登入有權限的帳號
+- 使用 SQL Editor 執行（不是透過 API）
+- 檢查是否有防火牆或網路限制
 
-### 3. `update_updated_at_column()` 函數不存在
+### 4. `update_updated_at_column()` 函數不存在
 
-您可能需要先建立這個觸發器函數：
+**已包含在 Schema 中！** ✅
+
+- 新版本的 `group_chat_schema.sql` 已自動建立此函數
+- 如果仍出現錯誤，可手動執行：
 
 ```sql
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -109,6 +140,26 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+```
+
+### 5. 執行後發現 `chat_messages` 表的資料消失了
+
+**不會發生！** ✅
+
+- `group_chat_schema.sql` 只會**修改表格結構**（新增 `group_id` 欄位）
+- **不會刪除 `chat_messages` 表**或其中的資料
+- 所有現有的一對一聊天訊息都會保留
+
+### 6. RLS 政策衝突
+
+如果出現政策名稱衝突，執行以下 SQL 清理：
+
+```sql
+-- 刪除舊的群組訊息政策
+DROP POLICY IF EXISTS "Group members can view group messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Group members can send group messages" ON public.chat_messages;
+
+-- 然後重新執行 group_chat_schema.sql
 ```
 
 ---

@@ -378,12 +378,12 @@ CREATE OR REPLACE VIEW public.v_user_friends AS
 SELECT
     f.requester_id AS user_id,
     f.addressee_id AS friend_id,
-    up.full_name AS friend_name,
+    up.display_name AS friend_name,
     up.avatar_url AS friend_avatar,
     up.email AS friend_email,
     up.phone AS friend_phone,
-    up.birth_date AS friend_birth_date,
-    up.gender AS friend_gender,
+    NULL::DATE AS friend_birth_date,
+    NULL::VARCHAR(20) AS friend_gender,
     f.created_at AS friends_since,
     f.status
 FROM public.friendships f
@@ -396,12 +396,12 @@ UNION ALL
 SELECT
     f.addressee_id AS user_id,
     f.requester_id AS friend_id,
-    up.full_name AS friend_name,
+    up.display_name AS friend_name,
     up.avatar_url AS friend_avatar,
     up.email AS friend_email,
     up.phone AS friend_phone,
-    up.birth_date AS friend_birth_date,
-    up.gender AS friend_gender,
+    NULL::DATE AS friend_birth_date,
+    NULL::VARCHAR(20) AS friend_gender,
     f.created_at AS friends_since,
     f.status
 FROM public.friendships f
@@ -414,7 +414,7 @@ SELECT
     f.id AS friendship_id,
     f.addressee_id AS receiver_id,
     f.requester_id AS sender_id,
-    up.full_name AS sender_name,
+    up.display_name AS sender_name,
     up.avatar_url AS sender_avatar,
     up.email AS sender_email,
     f.created_at AS requested_at,
@@ -428,7 +428,7 @@ CREATE OR REPLACE VIEW public.v_post_timeline AS
 SELECT
     sp.id AS post_id,
     sp.user_profile_id AS author_id,
-    up.full_name AS author_name,
+    up.display_name AS author_name,
     up.avatar_url AS author_avatar,
     sp.content,
     sp.mood,

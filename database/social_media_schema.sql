@@ -6,7 +6,10 @@
 -- STEP 1: 清理舊資料（如果存在）
 -- ============================================================================
 
--- 1.1 關閉 RLS（避免刪除時權限問題）
+-- 1.1 刪除視圖
+DROP VIEW IF EXISTS public.v_user_friends CASCADE;
+
+-- 1.2 關閉 RLS（避免刪除時權限問題）
 DO $$
 BEGIN
     ALTER TABLE IF EXISTS public.friendships DISABLE ROW LEVEL SECURITY;
@@ -19,7 +22,7 @@ EXCEPTION
         NULL;
 END $$;
 
--- 1.2 刪除觸發器（按表格順序）
+-- 1.3 刪除觸發器（按表格順序）
 DO $$
 BEGIN
     DROP TRIGGER IF EXISTS post_comments_count_trigger ON public.post_comments;
@@ -33,12 +36,12 @@ EXCEPTION
         NULL;
 END $$;
 
--- 1.3 刪除函數（使用 CASCADE 自動刪除依賴項）
+-- 1.4 刪除函數（使用 CASCADE 自動刪除依賴項）
 DROP FUNCTION IF EXISTS public.update_post_comments_count() CASCADE;
 DROP FUNCTION IF EXISTS public.update_post_likes_count() CASCADE;
 DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
 
--- 1.4 刪除表格（依相依性順序：先刪除子表，再刪除父表）
+-- 1.5 刪除表格（依相依性順序：先刪除子表，再刪除父表）
 DROP TABLE IF EXISTS public.post_comments CASCADE;
 DROP TABLE IF EXISTS public.post_likes CASCADE;
 DROP TABLE IF EXISTS public.chat_messages CASCADE;
@@ -361,3 +364,42 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER post_comments_count_trigger
 AFTER INSERT OR DELETE ON public.post_comments
 FOR EACH ROW EXECUTE FUNCTION update_post_comments_count();
+
+-- ===================================
+-- 視圖：使用者好友列表
+-- ===================================
+
+CREATE OR REPLACE VIEW public.v_user_friends AS
+-- 當前使用者是 requester 的好友關係
+SELECT
+    f.requester_id AS user_id,
+    f.addressee_id AS friend_id,
+    up.full_name AS friend_name,
+    up.avatar_url AS friend_avatar,
+    up.email AS friend_email,
+    up.phone AS friend_phone,
+    up.birth_date AS friend_birth_date,
+    up.gender AS friend_gender,
+    f.created_at AS friends_since,
+    f.status
+FROM public.friendships f
+INNER JOIN public.user_profiles up ON f.addressee_id = up.id
+WHERE f.status = 'accepted'
+
+UNION ALL
+
+-- 當前使用者是 addressee 的好友關係
+SELECT
+    f.addressee_id AS user_id,
+    f.requester_id AS friend_id,
+    up.full_name AS friend_name,
+    up.avatar_url AS friend_avatar,
+    up.email AS friend_email,
+    up.phone AS friend_phone,
+    up.birth_date AS friend_birth_date,
+    up.gender AS friend_gender,
+    f.created_at AS friends_since,
+    f.status
+FROM public.friendships f
+INNER JOIN public.user_profiles up ON f.requester_id = up.id
+WHERE f.status = 'accepted';

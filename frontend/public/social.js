@@ -183,9 +183,9 @@ async function loadTimeline() {
     try {
         console.log('📰 載入動態時間軸...');
 
-        // 取得當前使用者
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) {
+        // 取得當前使用者和 session
+        const { data: { user, session } } = await supabaseClient.auth.getSession();
+        if (!user || !session) {
             console.error('❌ 未登入');
             return;
         }
@@ -194,6 +194,7 @@ async function loadTimeline() {
         const response = await fetch(`${API_BASE_URL}/api/social/posts/timeline?userId=${user.id}&limit=20`, {
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
                 'x-user-id': user.id
             }
         });

@@ -556,6 +556,14 @@ async function submitPost() {
             return;
         }
 
+        // 取得 session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            hideLoading();
+            showError('無法取得認證資訊');
+            return;
+        }
+
         // 處理圖片（如果有）
         const imagePreview = document.getElementById('imagePreview');
         const mediaUrls = [];
@@ -571,6 +579,7 @@ async function submitPost() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
                 'x-user-id': user.id
             },
             body: JSON.stringify({
@@ -1046,9 +1055,16 @@ async function loadNotifications() {
             return;
         }
 
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            notificationsList.innerHTML = '<p style="text-align: center; color: #999;">無法取得認證資訊</p>';
+            return;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/social/notifications?userId=${user.id}&limit=20`, {
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
                 'x-user-id': user.id
             }
         });
@@ -1160,10 +1176,14 @@ async function markNotificationAsRead(notificationId) {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) return;
 
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
         const response = await fetch(`${API_BASE_URL}/api/social/notifications/${notificationId}/read`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
                 'x-user-id': user.id
             }
         });
@@ -1192,10 +1212,17 @@ async function markAllNotificationsRead() {
             return;
         }
 
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            showError('無法取得認證資訊');
+            return;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/social/notifications/mark-all-read`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
                 'x-user-id': user.id
             }
         });
@@ -2582,6 +2609,12 @@ async function toggleLikePost(postId, buttonElement) {
             return;
         }
 
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            showError('無法取得認證資訊');
+            return;
+        }
+
         const isLiked = buttonElement.classList.contains('liked');
         const method = isLiked ? 'DELETE' : 'POST';
 
@@ -2589,6 +2622,7 @@ async function toggleLikePost(postId, buttonElement) {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
                 'x-user-id': user.id
             }
         });
@@ -2632,9 +2666,13 @@ async function showPostComments(postId) {
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
             const response = await fetch(`${API_BASE_URL}/api/social/posts/${postId}/comments`, {
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
                     'x-user-id': user.id
                 }
             });
@@ -2699,10 +2737,17 @@ async function postComment(postId, commentText, inputElement) {
             return;
         }
 
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            showError('無法取得認證資訊');
+            return;
+        }
+
         const response = await fetch(`${API_BASE_URL}/api/social/posts/${postId}/comments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
                 'x-user-id': user.id
             },
             body: JSON.stringify({

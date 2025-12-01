@@ -2,6 +2,44 @@
 -- 群組聊天功能資料庫結構
 -- ===================================
 
+-- ============================================================================
+-- STEP 1: 清理舊資料（如果存在）
+-- ============================================================================
+
+-- 關閉 RLS（避免刪除時權限問題）
+ALTER TABLE IF EXISTS public.chat_group_invites DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.chat_group_members DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.chat_groups DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.chat_messages DISABLE ROW LEVEL SECURITY;
+
+-- 刪除視圖
+DROP VIEW IF EXISTS public.chat_group_stats CASCADE;
+
+-- 刪除觸發器
+DROP TRIGGER IF EXISTS update_chat_groups_updated_at ON public.chat_groups;
+DROP TRIGGER IF EXISTS update_chat_group_members_updated_at ON public.chat_group_members;
+DROP TRIGGER IF EXISTS update_chat_group_invites_updated_at ON public.chat_group_invites;
+DROP TRIGGER IF EXISTS add_creator_to_group_trigger ON public.chat_groups;
+
+-- 刪除函數
+DROP FUNCTION IF EXISTS public.add_creator_to_group() CASCADE;
+
+-- 刪除現有的群組訊息政策（避免衝突）
+DROP POLICY IF EXISTS "Group members can view group messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Group members can send group messages" ON public.chat_messages;
+
+-- 刪除約束（如果存在）
+ALTER TABLE IF EXISTS public.chat_messages DROP CONSTRAINT IF EXISTS check_message_type;
+
+-- 刪除群組相關表格（依相依性順序）
+DROP TABLE IF EXISTS public.chat_group_invites CASCADE;
+DROP TABLE IF EXISTS public.chat_group_members CASCADE;
+DROP TABLE IF EXISTS public.chat_groups CASCADE;
+
+-- ============================================================================
+-- STEP 2: 建立群組聊天表格
+-- ============================================================================
+
 -- 1. 聊天群組表
 CREATE TABLE IF NOT EXISTS public.chat_groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,25 +107,48 @@ CREATE INDEX idx_group_members_group ON public.chat_group_members(group_id, is_a
 CREATE INDEX idx_group_members_user ON public.chat_group_members(user_id, is_active) WHERE is_active = true;
 CREATE INDEX idx_group_members_role ON public.chat_group_members(group_id, role) WHERE is_active = true;
 
--- 3. 修改 chat_messages 表，增加 group_id 欄位
--- 注意：如果 chat_messages 表已存在，使用 ALTER TABLE
+-- ============================================================================
+-- STEP 3: 修改 chat_messages 表，支援群組訊息
+-- ============================================================================
+
+-- 3.1 增加 group_id 欄位
 ALTER TABLE public.chat_messages
 ADD COLUMN IF NOT EXISTS group_id UUID REFERENCES public.chat_groups(id) ON DELETE CASCADE;
 
--- 修改 receiver_id 為可選（群組訊息不需要 receiver_id）
-ALTER TABLE public.chat_messages
-ALTER COLUMN receiver_id DROP NOT NULL;
+-- 3.2 修改 receiver_id 為可選（群組訊息不需要 receiver_id）
+-- 注意：先檢查欄位是否存在 NOT NULL 約束
+DO $$
+BEGIN
+    -- 嘗試移除 NOT NULL 約束
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'chat_messages'
+        AND column_name = 'receiver_id'
+        AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE public.chat_messages ALTER COLUMN receiver_id DROP NOT NULL;
+    END IF;
+EXCEPTION
+    WHEN undefined_column THEN
+        -- 如果欄位不存在，忽略錯誤
+        NULL;
+END $$;
 
--- 增加群組訊息索引
+-- 3.3 增加群組訊息索引
 CREATE INDEX IF NOT EXISTS idx_chat_messages_group ON public.chat_messages(group_id, created_at DESC) WHERE group_id IS NOT NULL;
 
--- 增加檢查約束：訊息必須是一對一或群組訊息（不能兩者都是）
+-- 3.4 增加檢查約束：訊息必須是一對一或群組訊息（不能兩者都是）
 ALTER TABLE public.chat_messages
 ADD CONSTRAINT check_message_type
 CHECK (
     (receiver_id IS NOT NULL AND group_id IS NULL) OR
     (receiver_id IS NULL AND group_id IS NOT NULL)
 );
+
+-- ============================================================================
+-- STEP 4: 建立群組邀請表
+-- ============================================================================
 
 -- 4. 群組邀請表（可選）
 CREATE TABLE IF NOT EXISTS public.chat_group_invites (
@@ -123,6 +184,7 @@ CREATE INDEX idx_group_invites_group ON public.chat_group_invites(group_id, stat
 ALTER TABLE public.chat_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_group_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_group_invites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- chat_groups 政策
 
@@ -197,7 +259,7 @@ CREATE POLICY "Users can leave groups"
 ON public.chat_group_members FOR DELETE
 USING (user_id = (SELECT id FROM public.user_profiles WHERE auth_user_id = auth.uid()));
 
--- chat_messages 群組訊息政策（修改現有政策）
+-- chat_messages 群組訊息政策（新增）
 
 -- 群組成員可以查看群組訊息
 CREATE POLICY "Group members can view group messages"
@@ -249,6 +311,15 @@ USING (invitee_id = (SELECT id FROM public.user_profiles WHERE auth_user_id = au
 -- ===================================
 -- 觸發器：自動更新 updated_at
 -- ===================================
+
+-- 確保 update_updated_at_column 函數存在
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_chat_groups_updated_at BEFORE UPDATE ON public.chat_groups
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -118,6 +118,15 @@ psql "postgresql://postgres:[YOUR-PASSWORD]@db.oatdjdelzybcacwqafkk.supabase.co:
 - 會先檢查欄位是否存在再進行修改
 - 如果仍遇到此錯誤，請確認您使用的是最新版本的 SQL 檔案
 
+### 2-1. 執行時出現 `relation "public.chat_groups" does not exist` 錯誤
+
+**已修復！** ✅（2025-12-01 更新 v2）
+
+- 新版本已將新增欄位和外鍵約束分開處理
+- 先新增 `group_id` 欄位，再新增外鍵約束
+- 使用 `DO $$ BEGIN ... END $$` 區塊捕獲異常，避免執行失敗
+- 如果 `chat_groups` 表不存在，會顯示 NOTICE 而不會中斷執行
+
 ### 3. 執行時出現權限錯誤
 
 請確認：

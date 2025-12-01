@@ -2,6 +2,41 @@
 -- 社交功能資料庫結構
 -- ===================================
 
+-- ============================================================================
+-- STEP 1: 清理舊資料（如果存在）
+-- ============================================================================
+
+-- 關閉 RLS（避免刪除時權限問題）
+ALTER TABLE IF EXISTS public.friendships DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.chat_messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.post_comments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.post_likes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.social_posts DISABLE ROW LEVEL SECURITY;
+
+-- 刪除觸發器
+DROP TRIGGER IF EXISTS post_comments_count_trigger ON public.post_comments;
+DROP TRIGGER IF EXISTS post_likes_count_trigger ON public.post_likes;
+DROP TRIGGER IF EXISTS update_friendships_updated_at ON public.friendships;
+DROP TRIGGER IF EXISTS update_chat_messages_updated_at ON public.chat_messages;
+DROP TRIGGER IF EXISTS update_post_comments_updated_at ON public.post_comments;
+DROP TRIGGER IF EXISTS update_social_posts_updated_at ON public.social_posts;
+
+-- 刪除函數
+DROP FUNCTION IF EXISTS public.update_post_comments_count() CASCADE;
+DROP FUNCTION IF EXISTS public.update_post_likes_count() CASCADE;
+DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
+
+-- 刪除表格（依相依性順序）
+DROP TABLE IF EXISTS public.post_comments CASCADE;
+DROP TABLE IF EXISTS public.post_likes CASCADE;
+DROP TABLE IF EXISTS public.chat_messages CASCADE;
+DROP TABLE IF EXISTS public.friendships CASCADE;
+DROP TABLE IF EXISTS public.social_posts CASCADE;
+
+-- ============================================================================
+-- STEP 2: 建立社交功能表格
+-- ============================================================================
+
 -- 1. 社交動態貼文表
 CREATE TABLE IF NOT EXISTS public.social_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -93,7 +128,7 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
 
     -- 發送者和接收者
     sender_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
-    receiver_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    receiver_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE, -- 改為可選（支援群組訊息）
 
     -- 訊息內容
     message_type VARCHAR(20) DEFAULT 'text' CHECK (message_type IN ('text', 'image', 'video', 'audio', 'file')),
@@ -125,7 +160,7 @@ CREATE INDEX idx_chat_messages_receiver ON public.chat_messages(receiver_id);
 CREATE INDEX idx_chat_messages_conversation ON public.chat_messages(sender_id, receiver_id, created_at DESC);
 CREATE INDEX idx_chat_messages_unread ON public.chat_messages(receiver_id, is_read) WHERE is_read = false;
 
--- 5. 好友關係表（如果還沒有）
+-- 5. 好友關係表
 CREATE TABLE IF NOT EXISTS public.friendships (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -248,13 +283,14 @@ USING (
 -- 觸發器：自動更新 updated_at
 -- ===================================
 
+-- 確保函數存在
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_social_posts_updated_at BEFORE UPDATE ON public.social_posts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -287,7 +323,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER post_likes_count_trigger
 AFTER INSERT OR DELETE ON public.post_likes
@@ -308,7 +344,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER post_comments_count_trigger
 AFTER INSERT OR DELETE ON public.post_comments

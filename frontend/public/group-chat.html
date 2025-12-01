@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="群組聊天功能">
+    <meta name="theme-color" content="#4CAF50">
+    <title>群組聊天 - ElderCare</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="social.css">
+    <style>
+        /* 群組聊天特定樣式 */
+        .group-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+
+        .group-member-count {
+            font-size: 0.85rem;
+            color: #666;
+            margin-left: 8px;
+        }
+
+        .group-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .message-sender-name {
+            font-size: 0.85rem;
+            color: #4CAF50;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .group-info-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: 20px;
+        }
+
+        .member-list-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            gap: 12px;
+        }
+
+        .member-role-badge {
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .member-role-badge.admin {
+            background: #ff9800;
+            color: white;
+        }
+
+        .member-role-badge.moderator {
+            background: #2196F3;
+            color: white;
+        }
+
+        .member-role-badge.member {
+            background: #e0e0e0;
+            color: #666;
+        }
+    </style>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- 頂部導航欄 -->
+    <header class="social-header">
+        <button class="header-back-btn" onclick="window.location.href='index.html'">
+            <span class="back-arrow">←</span>
+            <span>返回</span>
+        </button>
+        <h1 class="header-title">
+            <span class="header-icon">👥</span>
+            群組聊天
+        </h1>
+        <div class="header-actions">
+            <button class="header-btn" onclick="showNotifications()" title="通知">
+                <span class="notification-badge" id="notificationBadge" style="display: none;"></span>
+                🔔
+            </button>
+            <button class="header-btn" onclick="showCreateGroupModal()" title="建立群組">
+                ➕
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要內容區 - 左右分欄架構 -->
+    <div class="social-main-container">
+        <!-- 左側：群組列表 -->
+        <aside class="friends-sidebar">
+            <!-- 搜尋框 -->
+            <div class="sidebar-search">
+                <input type="text"
+                       id="groupSearchInput"
+                       class="search-input"
+                       placeholder="🔍 搜尋群組..."
+                       oninput="filterGroups(event)">
+            </div>
+
+            <!-- 群組列表 -->
+            <div class="friends-list" id="groupsList">
+                <!-- 載入中 -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>載入群組列表中...</p>
+                </div>
+            </div>
+
+            <!-- 無群組提示 -->
+            <div id="noGroupsPlaceholder" class="empty-state" style="display: none;">
+                <div class="empty-icon">👥</div>
+                <h3>還沒有群組</h3>
+                <p>建立或加入群組，開始群聊吧！</p>
+                <button class="btn-primary" onclick="showCreateGroupModal()">
+                    ➕ 建立群組
+                </button>
+            </div>
+        </aside>
+
+        <!-- 右側：內容區域 -->
+        <main class="content-area">
+            <!-- 未選擇群組的歡迎畫面 -->
+            <div id="welcomeScreen" class="welcome-screen">
+                <div class="welcome-content">
+                    <div class="welcome-icon">👥</div>
+                    <h2>歡迎來到群組聊天</h2>
+                    <p class="welcome-text">選擇左側的群組開始聊天，或建立新群組</p>
+                    <div class="welcome-quick-actions">
+                        <button class="quick-action-btn" onclick="showCreateGroupModal()">
+                            <span class="action-icon">➕</span>
+                            <span>建立群組</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 群組聊天區 -->
+            <div id="groupChatArea" class="chat-area" style="display: none;">
+                <!-- 聊天標題欄 -->
+                <div class="chat-header">
+                    <div class="chat-header-left">
+                        <div class="group-avatar" id="currentGroupAvatar">👥</div>
+                        <div class="chat-header-info">
+                            <h2 class="chat-header-name" id="currentGroupName">群組名稱</h2>
+                            <p class="chat-header-status" id="currentGroupInfo">
+                                <span id="currentGroupMemberCount">0</span> 位成員
+                            </p>
+                        </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="header-btn" onclick="showGroupMembers()" title="成員列表">
+                            👥
+                        </button>
+                        <button class="header-btn" onclick="showGroupSettings()" title="群組設定">
+                            ⚙️
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 訊息列表 -->
+                <div class="messages-container" id="messagesContainer">
+                    <!-- 訊息會動態載入 -->
+                </div>
+
+                <!-- 輸入區 -->
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <button class="chat-input-btn" onclick="selectImage()" title="上傳圖片">
+                            📷
+                        </button>
+                        <textarea
+                            id="messageInput"
+                            class="chat-input"
+                            placeholder="輸入訊息..."
+                            rows="1"
+                            onkeypress="handleMessageKeyPress(event)"></textarea>
+                        <button class="chat-send-btn" onclick="sendGroupMessage()">
+                            發送
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 建立群組對話框 -->
+    <div id="createGroupModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>建立新群組</h2>
+                <button class="modal-close-btn" onclick="hideCreateGroupModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createGroupForm" onsubmit="createGroup(event)">
+                    <div class="form-group">
+                        <label for="groupName">群組名稱 *</label>
+                        <input type="text"
+                               id="groupName"
+                               class="form-input"
+                               placeholder="請輸入群組名稱"
+                               required
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="groupDescription">群組描述</label>
+                        <textarea
+                            id="groupDescription"
+                            class="form-input"
+                            placeholder="請輸入群組描述（可選）"
+                            rows="3"
+                            maxlength="500"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="groupAvatarUrl">群組頭像網址</label>
+                        <input type="url"
+                               id="groupAvatarUrl"
+                               class="form-input"
+                               placeholder="https://example.com/avatar.jpg（可選）">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maxMembers">人數上限</label>
+                        <input type="number"
+                               id="maxMembers"
+                               class="form-input"
+                               value="50"
+                               min="2"
+                               max="500">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="isPrivate">
+                            <span>私密群組（需要邀請才能加入）</span>
+                        </label>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="hideCreateGroupModal()">
+                            取消
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            建立群組
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 群組成員列表對話框 -->
+    <div id="groupMembersModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>群組成員</h2>
+                <button class="modal-close-btn" onclick="hideGroupMembersModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- 成員列表 -->
+                <div id="membersList" class="members-list">
+                    <!-- 成員會動態載入 -->
+                </div>
+
+                <!-- 新增成員按鈕 -->
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button class="btn-primary" onclick="showAddMemberModal()">
+                        ➕ 新增成員
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 群組設定對話框 -->
+    <div id="groupSettingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>群組設定</h2>
+                <button class="modal-close-btn" onclick="hideGroupSettingsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="groupSettingsForm" onsubmit="updateGroupSettings(event)">
+                    <div class="form-group">
+                        <label for="editGroupName">群組名稱</label>
+                        <input type="text"
+                               id="editGroupName"
+                               class="form-input"
+                               placeholder="請輸入群組名稱"
+                               required
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editGroupDescription">群組描述</label>
+                        <textarea
+                            id="editGroupDescription"
+                            class="form-input"
+                            placeholder="請輸入群組描述"
+                            rows="3"
+                            maxlength="500"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editGroupAvatarUrl">群組頭像網址</label>
+                        <input type="url"
+                               id="editGroupAvatarUrl"
+                               class="form-input"
+                               placeholder="https://example.com/avatar.jpg">
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="hideGroupSettingsModal()">
+                            取消
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            儲存變更
+                        </button>
+                        <button type="button" class="btn-danger" onclick="leaveGroup()" style="margin-left: auto;">
+                            離開群組
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增成員對話框 -->
+    <div id="addMemberModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>新增成員</h2>
+                <button class="modal-close-btn" onclick="hideAddMemberModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="searchUserInput">搜尋使用者</label>
+                    <input type="text"
+                           id="searchUserInput"
+                           class="form-input"
+                           placeholder="輸入使用者名稱或 Email"
+                           oninput="searchUsers(event)">
+                </div>
+
+                <!-- 搜尋結果 -->
+                <div id="userSearchResults" class="search-results">
+                    <!-- 搜尋結果會動態載入 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隱藏的檔案輸入 -->
+    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+
+    <!-- Scripts -->
+    <script src="group-chat.js"></script>
+</body>
+</html>

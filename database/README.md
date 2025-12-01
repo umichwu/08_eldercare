@@ -213,15 +213,24 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-### 5. 執行後發現 `chat_messages` 表的資料消失了
+### 5. 執行 `social_media_schema.sql` 時出現 `relation "public.social_posts" does not exist` 錯誤
 
-**不會發生！** ✅
+**已修復！** ✅（2025-12-01 更新 v3）
 
-- `group_chat_schema.sql` 只會**修改表格結構**（新增 `group_id` 欄位）
-- **不會刪除 `chat_messages` 表**或其中的資料
-- 所有現有的一對一聊天訊息都會保留
+- 新版本已使用 `DO $$ BEGIN ... END $$` 區塊包裝 ALTER TABLE 和 DROP TRIGGER
+- 會捕獲 `undefined_table` 異常，避免執行失敗
+- 如果表格不存在，會自動忽略錯誤並繼續執行
 
-### 6. RLS 政策衝突
+### 6. 執行後發現 `chat_messages` 表的資料消失了
+
+**這是預期行為！** ⚠️
+
+- `social_media_schema.sql` 和 `group_chat_schema.sql` 都有 `DROP TABLE ... CASCADE` 語句
+- **重複執行會刪除現有資料！**
+- 如果有重要資料，請先備份
+- 建議只在開發環境或初次設定時執行
+
+### 7. RLS 政策衝突
 
 如果出現政策名稱衝突，執行以下 SQL 清理：
 
@@ -232,6 +241,13 @@ DROP POLICY IF EXISTS "Group members can send group messages" ON public.chat_mes
 
 -- 然後重新執行 group_chat_schema.sql
 ```
+
+### 8. 執行時出現「權限不足」或「無法刪除」錯誤
+
+請確認：
+- 您在 Supabase Dashboard 已登入為 Owner 或有完整權限的帳號
+- 使用 SQL Editor 執行（不是透過 API）
+- 如果仍有問題，請嘗試分步驟執行（先執行 STEP 1 清理，再執行 STEP 2 建立）
 
 ---
 

@@ -182,11 +182,14 @@ psql "postgresql://postgres:[YOUR-PASSWORD]@db.oatdjdelzybcacwqafkk.supabase.co:
 
 ### 2-1. 執行時出現 `relation "public.chat_groups" does not exist` 錯誤
 
-**已修復！** ✅（2025-12-01 更新 v2）
+**已修復！** ✅（2025-12-01 更新 v3）
 
-- 新版本已將新增欄位和外鍵約束分開處理
-- 先新增 `group_id` 欄位，再新增外鍵約束
-- 使用 `DO $$ BEGIN ... END $$` 區塊捕獲異常，避免執行失敗
+- 問題原因：`DROP TRIGGER ... ON public.chat_groups` 會在表格不存在時失敗
+- 修正方式：
+  1. 使用 `DO $$ BEGIN ... END $$` 區塊包裝 `ALTER TABLE` 和 `DROP TRIGGER`
+  2. 捕獲 `undefined_table` 異常，避免執行失敗
+  3. 將新增欄位和外鍵約束分開處理
+  4. 先新增 `group_id` 欄位，再新增外鍵約束
 - 如果 `chat_groups` 表不存在，會顯示 NOTICE 而不會中斷執行
 
 ### 3. 執行時出現權限錯誤

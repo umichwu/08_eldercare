@@ -6,32 +6,44 @@
 -- STEP 1: 清理舊資料（如果存在）
 -- ============================================================================
 
--- 關閉 RLS（避免刪除時權限問題）
-ALTER TABLE IF EXISTS public.chat_group_invites DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.chat_group_members DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.chat_groups DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.chat_messages DISABLE ROW LEVEL SECURITY;
+-- 1.1 關閉 RLS（避免刪除時權限問題）
+DO $$
+BEGIN
+    ALTER TABLE IF EXISTS public.chat_group_invites DISABLE ROW LEVEL SECURITY;
+    ALTER TABLE IF EXISTS public.chat_group_members DISABLE ROW LEVEL SECURITY;
+    ALTER TABLE IF EXISTS public.chat_groups DISABLE ROW LEVEL SECURITY;
+    ALTER TABLE IF EXISTS public.chat_messages DISABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
 
--- 刪除視圖
+-- 1.2 刪除視圖
 DROP VIEW IF EXISTS public.chat_group_stats CASCADE;
 
--- 刪除觸發器
-DROP TRIGGER IF EXISTS update_chat_groups_updated_at ON public.chat_groups;
-DROP TRIGGER IF EXISTS update_chat_group_members_updated_at ON public.chat_group_members;
-DROP TRIGGER IF EXISTS update_chat_group_invites_updated_at ON public.chat_group_invites;
-DROP TRIGGER IF EXISTS add_creator_to_group_trigger ON public.chat_groups;
+-- 1.3 刪除觸發器（使用 DO $$ 區塊捕獲異常）
+DO $$
+BEGIN
+    DROP TRIGGER IF EXISTS update_chat_groups_updated_at ON public.chat_groups;
+    DROP TRIGGER IF EXISTS update_chat_group_members_updated_at ON public.chat_group_members;
+    DROP TRIGGER IF EXISTS update_chat_group_invites_updated_at ON public.chat_group_invites;
+    DROP TRIGGER IF EXISTS add_creator_to_group_trigger ON public.chat_groups;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
 
--- 刪除函數
+-- 1.4 刪除函數
 DROP FUNCTION IF EXISTS public.add_creator_to_group() CASCADE;
 
--- 刪除現有的群組訊息政策（避免衝突）
+-- 1.5 刪除現有的群組訊息政策（避免衝突）
 DROP POLICY IF EXISTS "Group members can view group messages" ON public.chat_messages;
 DROP POLICY IF EXISTS "Group members can send group messages" ON public.chat_messages;
 
--- 刪除約束（如果存在）
+-- 1.6 刪除約束（如果存在）
 ALTER TABLE IF EXISTS public.chat_messages DROP CONSTRAINT IF EXISTS check_message_type;
 
--- 刪除群組相關表格（依相依性順序）
+-- 1.7 刪除群組相關表格（依相依性順序）
 DROP TABLE IF EXISTS public.chat_group_invites CASCADE;
 DROP TABLE IF EXISTS public.chat_group_members CASCADE;
 DROP TABLE IF EXISTS public.chat_groups CASCADE;

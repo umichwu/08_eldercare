@@ -6,27 +6,39 @@
 -- STEP 1: 清理舊資料（如果存在）
 -- ============================================================================
 
--- 關閉 RLS（避免刪除時權限問題）
-ALTER TABLE IF EXISTS public.friendships DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.chat_messages DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.post_comments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.post_likes DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.social_posts DISABLE ROW LEVEL SECURITY;
+-- 1.1 關閉 RLS（避免刪除時權限問題）
+DO $$
+BEGIN
+    ALTER TABLE IF EXISTS public.friendships DISABLE ROW LEVEL SECURITY;
+    ALTER TABLE IF EXISTS public.chat_messages DISABLE ROW LEVEL SECURITY;
+    ALTER TABLE IF EXISTS public.post_comments DISABLE ROW LEVEL SECURITY;
+    ALTER TABLE IF EXISTS public.post_likes DISABLE ROW LEVEL SECURITY;
+    ALTER TABLE IF EXISTS public.social_posts DISABLE ROW LEVEL SECURITY;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
 
--- 刪除觸發器
-DROP TRIGGER IF EXISTS post_comments_count_trigger ON public.post_comments;
-DROP TRIGGER IF EXISTS post_likes_count_trigger ON public.post_likes;
-DROP TRIGGER IF EXISTS update_friendships_updated_at ON public.friendships;
-DROP TRIGGER IF EXISTS update_chat_messages_updated_at ON public.chat_messages;
-DROP TRIGGER IF EXISTS update_post_comments_updated_at ON public.post_comments;
-DROP TRIGGER IF EXISTS update_social_posts_updated_at ON public.social_posts;
+-- 1.2 刪除觸發器（按表格順序）
+DO $$
+BEGIN
+    DROP TRIGGER IF EXISTS post_comments_count_trigger ON public.post_comments;
+    DROP TRIGGER IF EXISTS post_likes_count_trigger ON public.post_likes;
+    DROP TRIGGER IF EXISTS update_friendships_updated_at ON public.friendships;
+    DROP TRIGGER IF EXISTS update_chat_messages_updated_at ON public.chat_messages;
+    DROP TRIGGER IF EXISTS update_post_comments_updated_at ON public.post_comments;
+    DROP TRIGGER IF EXISTS update_social_posts_updated_at ON public.social_posts;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
 
--- 刪除函數
+-- 1.3 刪除函數（使用 CASCADE 自動刪除依賴項）
 DROP FUNCTION IF EXISTS public.update_post_comments_count() CASCADE;
 DROP FUNCTION IF EXISTS public.update_post_likes_count() CASCADE;
 DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
 
--- 刪除表格（依相依性順序）
+-- 1.4 刪除表格（依相依性順序：先刪除子表，再刪除父表）
 DROP TABLE IF EXISTS public.post_comments CASCADE;
 DROP TABLE IF EXISTS public.post_likes CASCADE;
 DROP TABLE IF EXISTS public.chat_messages CASCADE;

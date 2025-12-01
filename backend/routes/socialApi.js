@@ -658,14 +658,14 @@ router.post('/posts', async (req, res) => {
     const profileId = await getUserProfileId(authUserId);
 
     const { data: post, error } = await supabase
-      .from('life_posts')
+      .from('social_posts')
       .insert({
-        author_id: profileId,
+        user_profile_id: profileId,
         content: content.trim(),
         mood,
         visibility,
-        media_urls: mediaUrls,
-        media_type: mediaUrls.length > 0 ? 'image' : 'none'
+        media_url: mediaUrls.length > 0 ? mediaUrls[0] : null,
+        media_type: mediaUrls.length > 0 ? 'image' : null
       })
       .select()
       .single();
@@ -740,7 +740,7 @@ router.post('/posts/:postId/like', async (req, res) => {
       .from('post_likes')
       .select('id')
       .eq('post_id', postId)
-      .eq('user_id', profileId)
+      .eq('user_profile_id', profileId)
       .single();
 
     if (existing) {
@@ -751,8 +751,7 @@ router.post('/posts/:postId/like', async (req, res) => {
       .from('post_likes')
       .insert({
         post_id: postId,
-        user_id: profileId,
-        reaction_type: reactionType
+        user_profile_id: profileId
       })
       .select()
       .single();
@@ -791,7 +790,7 @@ router.delete('/posts/:postId/like', async (req, res) => {
       .from('post_likes')
       .delete()
       .eq('post_id', postId)
-      .eq('user_id', profileId);
+      .eq('user_profile_id', profileId);
 
     if (error) {
       console.error('取消按讚錯誤:', error);
@@ -825,7 +824,7 @@ router.get('/posts/:postId/comments', async (req, res) => {
       .from('post_comments')
       .select(`
         *,
-        user_profiles:user_id (
+        user_profiles:user_profile_id (
           id,
           display_name,
           avatar_url
@@ -875,13 +874,13 @@ router.post('/posts/:postId/comments', async (req, res) => {
       .from('post_comments')
       .insert({
         post_id: postId,
-        user_id: profileId,
+        user_profile_id: profileId,
         content: content.trim(),
         parent_comment_id: parentCommentId
       })
       .select(`
         *,
-        user_profiles:user_id (
+        user_profiles:user_profile_id (
           id,
           display_name,
           avatar_url
@@ -1064,20 +1063,20 @@ router.get('/messages/:friendUserId', async (req, res) => {
 
     // 建立查詢
     let query = supabase
-      .from('direct_messages')
+      .from('chat_messages')
       .select(`
         id,
         sender_id,
         receiver_id,
-        message_text,
+        content,
         message_type,
+        media_url,
+        media_thumbnail_url,
+        file_name,
+        file_size,
         is_read,
         read_at,
-        reply_to_message_id,
-        metadata,
-        created_at,
-        sender:sender_id(id, display_name, avatar_url, auth_user_id),
-        receiver:receiver_id(id, display_name, avatar_url, auth_user_id)
+        created_at
       `)
       .or(`and(sender_id.eq.${userProfile.id},receiver_id.eq.${friendProfile.id}),and(sender_id.eq.${friendProfile.id},receiver_id.eq.${userProfile.id})`)
       .eq('is_deleted_by_sender', false)
@@ -1119,10 +1118,15 @@ router.get('/messages/:friendUserId', async (req, res) => {
  */
 router.post('/messages', async (req, res) => {
   try {
-    const { userId, receiverUserId, messageText, messageType = 'text', metadata = {} } = req.body;
+    const { userId, receiverUserId, messageText, messageType = 'text', mediaUrl = null } = req.body;
 
-    if (!userId || !receiverUserId || !messageText) {
+    if (!userId || !receiverUserId) {
       return res.status(400).json({ error: '缺少必要參數' });
+    }
+
+    // 文字訊息需要內容，其他類型可能只有 mediaUrl
+    if (messageType === 'text' && !messageText) {
+      return res.status(400).json({ error: '文字訊息不能為空' });
     }
 
     console.log(`📤 發送訊息: from=${userId} to=${receiverUserId}`);
@@ -1151,28 +1155,26 @@ router.post('/messages', async (req, res) => {
 
     // 插入訊息
     const { data: message, error } = await supabase
-      .from('direct_messages')
+      .from('chat_messages')
       .insert([
         {
           sender_id: senderProfile.id,
           receiver_id: receiverProfile.id,
-          message_text: messageText,
+          content: messageText || null,
           message_type: messageType,
-          metadata: metadata
+          media_url: mediaUrl
         }
       ])
       .select(`
         id,
         sender_id,
         receiver_id,
-        message_text,
+        content,
         message_type,
+        media_url,
         is_read,
         read_at,
-        metadata,
-        created_at,
-        sender:sender_id(id, display_name, avatar_url, auth_user_id),
-        receiver:receiver_id(id, display_name, avatar_url, auth_user_id)
+        created_at
       `)
       .single();
 
@@ -1222,7 +1224,7 @@ router.put('/messages/:messageId/read', async (req, res) => {
 
     // 更新訊息為已讀（只有接收者可以標記）
     const { data, error } = await supabase
-      .from('direct_messages')
+      .from('chat_messages')
       .update({
         is_read: true,
         read_at: new Date().toISOString()
@@ -1289,7 +1291,7 @@ router.put('/messages/batch-read', async (req, res) => {
 
     // 批次更新所有未讀訊息
     const { data, error } = await supabase
-      .from('direct_messages')
+      .from('chat_messages')
       .update({
         is_read: true,
         read_at: new Date().toISOString()
@@ -1407,7 +1409,7 @@ router.delete('/messages/:messageId', async (req, res) => {
 
     // 先取得訊息以確認權限
     const { data: message, error: fetchError } = await supabase
-      .from('direct_messages')
+      .from('chat_messages')
       .select('sender_id, receiver_id')
       .eq('id', messageId)
       .single();
@@ -1430,7 +1432,7 @@ router.delete('/messages/:messageId', async (req, res) => {
       : { is_deleted_by_receiver: true };
 
     const { error } = await supabase
-      .from('direct_messages')
+      .from('chat_messages')
       .update(updateData)
       .eq('id', messageId);
 

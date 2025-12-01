@@ -7,6 +7,9 @@
 -- ============================================================================
 
 -- 1.1 刪除視圖
+DROP VIEW IF EXISTS public.v_conversation_list CASCADE;
+DROP VIEW IF EXISTS public.v_post_timeline CASCADE;
+DROP VIEW IF EXISTS public.v_user_friend_requests CASCADE;
 DROP VIEW IF EXISTS public.v_user_friends CASCADE;
 
 -- 1.2 關閉 RLS（避免刪除時權限問題）
@@ -366,9 +369,10 @@ AFTER INSERT OR DELETE ON public.post_comments
 FOR EACH ROW EXECUTE FUNCTION update_post_comments_count();
 
 -- ===================================
--- 視圖：使用者好友列表
+-- 視圖
 -- ===================================
 
+-- 1. 使用者好友列表
 CREATE OR REPLACE VIEW public.v_user_friends AS
 -- 當前使用者是 requester 的好友關係
 SELECT
@@ -403,3 +407,64 @@ SELECT
 FROM public.friendships f
 INNER JOIN public.user_profiles up ON f.requester_id = up.id
 WHERE f.status = 'accepted';
+
+-- 2. 好友邀請列表
+CREATE OR REPLACE VIEW public.v_user_friend_requests AS
+SELECT
+    f.id AS friendship_id,
+    f.addressee_id AS receiver_id,
+    f.requester_id AS sender_id,
+    up.full_name AS sender_name,
+    up.avatar_url AS sender_avatar,
+    up.email AS sender_email,
+    f.created_at AS requested_at,
+    f.status
+FROM public.friendships f
+INNER JOIN public.user_profiles up ON f.requester_id = up.id
+WHERE f.status = 'pending';
+
+-- 3. 動態時間軸
+CREATE OR REPLACE VIEW public.v_post_timeline AS
+SELECT
+    sp.id AS post_id,
+    sp.user_profile_id AS author_id,
+    up.full_name AS author_name,
+    up.avatar_url AS author_avatar,
+    sp.content,
+    sp.mood,
+    sp.media_type,
+    sp.media_url,
+    sp.media_thumbnail_url,
+    sp.likes_count,
+    sp.comments_count,
+    sp.shares_count,
+    sp.visibility,
+    sp.location_name,
+    sp.latitude,
+    sp.longitude,
+    sp.tags,
+    sp.created_at,
+    sp.updated_at
+FROM public.social_posts sp
+INNER JOIN public.user_profiles up ON sp.user_profile_id = up.id
+WHERE sp.is_deleted = false;
+
+-- 4. 對話列表
+CREATE OR REPLACE VIEW public.v_conversation_list AS
+SELECT
+    CASE
+        WHEN cm.sender_id < cm.receiver_id THEN cm.sender_id
+        ELSE cm.receiver_id
+    END AS user1_id,
+    CASE
+        WHEN cm.sender_id < cm.receiver_id THEN cm.receiver_id
+        ELSE cm.sender_id
+    END AS user2_id,
+    MAX(cm.created_at) AS last_message_at,
+    COUNT(*) AS message_count,
+    SUM(CASE WHEN NOT cm.is_read THEN 1 ELSE 0 END) AS unread_count
+FROM public.chat_messages cm
+WHERE cm.receiver_id IS NOT NULL -- 只統計一對一訊息
+  AND cm.is_deleted_by_sender = false
+  AND cm.is_deleted_by_receiver = false
+GROUP BY user1_id, user2_id;

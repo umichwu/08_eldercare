@@ -183,10 +183,17 @@ async function loadTimeline() {
     try {
         console.log('📰 載入動態時間軸...');
 
-        // 取得當前使用者和 session
-        const { data: { user, session } } = await supabaseClient.auth.getSession();
-        if (!user || !session) {
+        // 取得當前使用者
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) {
             console.error('❌ 未登入');
+            return;
+        }
+
+        // 取得 session 以獲取 access token
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            console.error('❌ 未找到 session');
             return;
         }
 

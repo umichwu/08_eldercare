@@ -36,7 +36,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 /**
  * 從請求中取得 auth user id
  */
-function getAuthUserId(req) {
+async function getAuthUserId(req) {
   // 從 Authorization header 中取得 JWT token
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -44,9 +44,21 @@ function getAuthUserId(req) {
   }
 
   const token = authHeader.substring(7);
-  // 這裡應該驗證 JWT token 並取得 user id
-  // 暫時從 header 中取得
-  return req.headers['x-user-id'];
+
+  try {
+    // 使用 Supabase 驗證 JWT token
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      console.error('JWT 驗證失敗:', error);
+      return null;
+    }
+
+    return user.id; // 返回 auth_user_id
+  } catch (error) {
+    console.error('驗證 token 時發生錯誤:', error);
+    return null;
+  }
 }
 
 /**
@@ -76,7 +88,7 @@ async function getUserProfileId(authUserId) {
  */
 router.get('/friends', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -111,7 +123,7 @@ router.get('/friends', async (req, res) => {
  */
 router.get('/friends/requests', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -146,7 +158,7 @@ router.get('/friends/requests', async (req, res) => {
  */
 router.post('/friends/search', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -214,16 +226,22 @@ router.post('/friends/search', async (req, res) => {
     // 如果沒找到使用者且是 Email/電話搜尋，檢查是否有待處理的邀請
     let pendingInvitation = null;
     if (usersWithStatus.length === 0 && (isEmail || isPhone)) {
-      const { data: invitation } = await supabase
+      let invitationQuery = supabase
         .from('pending_invitations')
         .select('*')
         .eq('inviter_id', profileId)
         .eq('status', 'pending');
 
-      if (isEmail && invitation) {
-        pendingInvitation = invitation.find(inv => inv.invitee_email?.toLowerCase() === searchTerm.toLowerCase());
-      } else if (isPhone && invitation) {
-        pendingInvitation = invitation.find(inv => inv.invitee_phone === searchTerm);
+      if (isEmail) {
+        invitationQuery = invitationQuery.ilike('invitee_email', searchTerm);
+      } else if (isPhone) {
+        invitationQuery = invitationQuery.eq('invitee_phone', searchTerm);
+      }
+
+      const { data: invitations, error: invError } = await invitationQuery.limit(1);
+
+      if (!invError && invitations && invitations.length > 0) {
+        pendingInvitation = invitations[0];
       }
     }
 
@@ -247,7 +265,7 @@ router.post('/friends/search', async (req, res) => {
  */
 router.post('/friends/request', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -290,7 +308,7 @@ router.post('/friends/request', async (req, res) => {
  */
 router.post('/friends/accept', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -325,7 +343,7 @@ router.post('/friends/accept', async (req, res) => {
  */
 router.post('/friends/reject', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -360,7 +378,7 @@ router.post('/friends/reject', async (req, res) => {
  */
 router.post('/friends/invite', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -493,7 +511,7 @@ router.post('/friends/invite', async (req, res) => {
  */
 router.get('/friends/invitations', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -528,7 +546,7 @@ router.get('/friends/invitations', async (req, res) => {
  */
 router.put('/friends/invitations/:invitationId/cancel', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -564,7 +582,7 @@ router.put('/friends/invitations/:invitationId/cancel', async (req, res) => {
  */
 router.post('/friends/invitations/:invitationId/resend', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -647,7 +665,7 @@ router.post('/friends/invitations/:invitationId/resend', async (req, res) => {
  */
 router.delete('/friends/:friendshipId', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -687,7 +705,7 @@ router.delete('/friends/:friendshipId', async (req, res) => {
  */
 router.get('/posts/timeline', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -727,7 +745,7 @@ router.get('/posts/timeline', async (req, res) => {
  */
 router.post('/posts', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -775,7 +793,7 @@ router.post('/posts', async (req, res) => {
  */
 router.get('/posts/:postId', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -809,7 +827,7 @@ router.get('/posts/:postId', async (req, res) => {
  */
 router.post('/posts/:postId/like', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -861,7 +879,7 @@ router.post('/posts/:postId/like', async (req, res) => {
  */
 router.delete('/posts/:postId/like', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -896,7 +914,7 @@ router.delete('/posts/:postId/like', async (req, res) => {
  */
 router.get('/posts/:postId/comments', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -939,7 +957,7 @@ router.get('/posts/:postId/comments', async (req, res) => {
  */
 router.post('/posts/:postId/comments', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -997,7 +1015,7 @@ router.post('/posts/:postId/comments', async (req, res) => {
  */
 router.get('/notifications', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -1040,7 +1058,7 @@ router.get('/notifications', async (req, res) => {
  */
 router.put('/notifications/:notificationId/read', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -1075,7 +1093,7 @@ router.put('/notifications/:notificationId/read', async (req, res) => {
  */
 router.put('/notifications/read-all', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }

@@ -36,12 +36,29 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 /**
  * 從請求中取得 auth user id
  */
-function getAuthUserId(req) {
+async function getAuthUserId(req) {
+  // 從 Authorization header 中取得 JWT token
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
-  return req.headers['x-user-id'];
+
+  const token = authHeader.substring(7);
+
+  try {
+    // 使用 Supabase 驗證 JWT token
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      console.error('JWT 驗證失敗:', error);
+      return null;
+    }
+
+    return user.id; // 返回 auth_user_id
+  } catch (error) {
+    console.error('驗證 token 時發生錯誤:', error);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -54,7 +71,7 @@ function getAuthUserId(req) {
  */
 router.get('/', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -105,7 +122,7 @@ router.get('/:userId', async (req, res) => {
  */
 router.put('/', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -144,7 +161,7 @@ router.put('/', async (req, res) => {
  */
 router.post('/avatar', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }
@@ -178,7 +195,7 @@ router.post('/avatar', async (req, res) => {
  */
 router.post('/avatar/upload', async (req, res) => {
   try {
-    const authUserId = getAuthUserId(req);
+    const authUserId = await getAuthUserId(req);
     if (!authUserId) {
       return res.status(401).json({ error: '未授權' });
     }

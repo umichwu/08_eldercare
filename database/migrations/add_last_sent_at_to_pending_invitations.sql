@@ -1,76 +1,87 @@
 -- ============================================================================
--- Migration: 新增 last_sent_at 欄位到 pending_invitations 表
+-- Migration: 好友邀請系統 - 新增 pending_invitations 表
 -- ============================================================================
--- 日期: 2025-01-21
--- 目的: 支援好友邀請重新發送功能，記錄最後一次發送時間
+-- 建立日期: 2025-01-21
+-- 版本: 1.1
+-- 用途: 支援好友邀請功能，包含重新發送邀請機制
+--   - pending_invitations 表（待處理邀請）
+--   - v_pending_invitations 視圖（有效邀請視圖）
+--   - cleanup_expired_invitations() 函數（清理過期邀請）
 -- ============================================================================
 
--- 檢查 pending_invitations 表是否存在
-DO $$
-BEGIN
-    -- 如果表不存在，先建立表
-    IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pending_invitations') THEN
-        CREATE TABLE public.pending_invitations (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- ============================================================================
+-- STEP 1: 清理舊資料（如果存在）
+-- ============================================================================
 
-            -- 邀請者資訊
-            inviter_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+-- 關閉 RLS（避免刪除時權限問題）
+ALTER TABLE IF EXISTS public.pending_invitations DISABLE ROW LEVEL SECURITY;
 
-            -- 被邀請者資訊
-            invitee_email VARCHAR(255),
-            invitee_phone VARCHAR(20),
-            invitee_name VARCHAR(100),
+-- 刪除視圖
+DROP VIEW IF EXISTS public.v_pending_invitations CASCADE;
 
-            -- 邀請內容
-            invitation_message TEXT,
-            invitation_type VARCHAR(20) CHECK (invitation_type IN ('email', 'phone', 'both')),
-            invitation_code VARCHAR(20) UNIQUE NOT NULL,
+-- 刪除觸發器
+DROP TRIGGER IF EXISTS trigger_pending_invitations_updated_at ON public.pending_invitations;
 
-            -- 狀態
-            status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'cancelled', 'expired')),
+-- 刪除函數
+DROP FUNCTION IF EXISTS public.update_pending_invitations_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS public.cleanup_expired_invitations() CASCADE;
 
-            -- 時間戳記
-            created_at TIMESTAMPTZ DEFAULT NOW(),
-            updated_at TIMESTAMPTZ DEFAULT NOW(),
-            expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
+-- 刪除表格
+DROP TABLE IF EXISTS public.pending_invitations CASCADE;
 
-            -- 確保至少有一個聯絡方式
-            CHECK (invitee_email IS NOT NULL OR invitee_phone IS NOT NULL)
-        );
+-- ============================================================================
+-- STEP 2: 啟用擴展功能（如果需要）
+-- ============================================================================
 
-        -- 建立索引
-        CREATE INDEX idx_pending_invitations_inviter ON public.pending_invitations(inviter_id);
-        CREATE INDEX idx_pending_invitations_status ON public.pending_invitations(status);
-        CREATE INDEX idx_pending_invitations_code ON public.pending_invitations(invitation_code);
-        CREATE INDEX idx_pending_invitations_email ON public.pending_invitations(invitee_email) WHERE invitee_email IS NOT NULL;
-        CREATE INDEX idx_pending_invitations_phone ON public.pending_invitations(invitee_phone) WHERE invitee_phone IS NOT NULL;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-        RAISE NOTICE '✅ pending_invitations 表已建立';
-    END IF;
+-- ============================================================================
+-- STEP 3: 建立 pending_invitations 表
+-- ============================================================================
 
-    -- 新增 last_sent_at 欄位（如果不存在）
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_schema = 'public'
-        AND table_name = 'pending_invitations'
-        AND column_name = 'last_sent_at'
-    ) THEN
-        ALTER TABLE public.pending_invitations
-        ADD COLUMN last_sent_at TIMESTAMPTZ;
+CREATE TABLE public.pending_invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-        -- 將現有記錄的 last_sent_at 設為 created_at
-        UPDATE public.pending_invitations
-        SET last_sent_at = created_at
-        WHERE last_sent_at IS NULL;
+    -- 邀請者資訊
+    inviter_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
 
-        RAISE NOTICE '✅ last_sent_at 欄位已新增到 pending_invitations 表';
-    ELSE
-        RAISE NOTICE 'ℹ️  last_sent_at 欄位已存在';
-    END IF;
-END $$;
+    -- 被邀請者資訊
+    invitee_email VARCHAR(255),
+    invitee_phone VARCHAR(20),
+    invitee_name VARCHAR(100),
 
--- 建立或更新 v_pending_invitations 視圖
-CREATE OR REPLACE VIEW public.v_pending_invitations AS
+    -- 邀請內容
+    invitation_message TEXT,
+    invitation_type VARCHAR(20) CHECK (invitation_type IN ('email', 'phone', 'both')),
+    invitation_code VARCHAR(20) UNIQUE NOT NULL,
+
+    -- 狀態
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'cancelled', 'expired')),
+
+    -- 時間戳記
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
+    last_sent_at TIMESTAMPTZ DEFAULT NOW(),  -- 最後一次發送時間（新增）
+
+    -- 確保至少有一個聯絡方式
+    CONSTRAINT check_contact_method CHECK (invitee_email IS NOT NULL OR invitee_phone IS NOT NULL)
+);
+
+-- 建立索引
+CREATE INDEX idx_pending_invitations_inviter ON public.pending_invitations(inviter_id);
+CREATE INDEX idx_pending_invitations_status ON public.pending_invitations(status);
+CREATE INDEX idx_pending_invitations_code ON public.pending_invitations(invitation_code);
+CREATE INDEX idx_pending_invitations_email ON public.pending_invitations(invitee_email) WHERE invitee_email IS NOT NULL;
+CREATE INDEX idx_pending_invitations_phone ON public.pending_invitations(invitee_phone) WHERE invitee_phone IS NOT NULL;
+CREATE INDEX idx_pending_invitations_expires_at ON public.pending_invitations(expires_at);
+CREATE INDEX idx_pending_invitations_last_sent_at ON public.pending_invitations(last_sent_at);
+
+-- ============================================================================
+-- STEP 4: 建立 v_pending_invitations 視圖
+-- ============================================================================
+
+CREATE VIEW public.v_pending_invitations AS
 SELECT
     pi.id,
     pi.inviter_id,
@@ -98,17 +109,21 @@ SELECT
             EXTRACT(DAY FROM (pi.expires_at - NOW()))
         ELSE 0
     END AS days_until_expiry,
-    -- 計算重新發送的次數（基於 updated_at 和 created_at 的差異）
+    -- 計算距離上次發送的小時數
     CASE
-        WHEN pi.last_sent_at IS NOT NULL AND pi.last_sent_at > pi.created_at THEN
-            EXTRACT(EPOCH FROM (pi.last_sent_at - pi.created_at)) / 3600 -- 小時差
+        WHEN pi.last_sent_at IS NOT NULL THEN
+            EXTRACT(EPOCH FROM (NOW() - pi.last_sent_at)) / 3600
         ELSE 0
-    END AS hours_since_first_sent
+    END AS hours_since_last_sent
 FROM public.pending_invitations pi
 INNER JOIN public.user_profiles up ON pi.inviter_id = up.id
 WHERE pi.status = 'pending' AND pi.expires_at > NOW();
 
--- 建立觸發器自動更新 updated_at
+-- ============================================================================
+-- STEP 5: 建立觸發器函數
+-- ============================================================================
+
+-- 更新 updated_at 的觸發器函數
 CREATE OR REPLACE FUNCTION update_pending_invitations_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -117,13 +132,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trigger_pending_invitations_updated_at ON public.pending_invitations;
+-- 建立觸發器
 CREATE TRIGGER trigger_pending_invitations_updated_at
     BEFORE UPDATE ON public.pending_invitations
     FOR EACH ROW
     EXECUTE FUNCTION update_pending_invitations_updated_at();
 
--- 建立函數：自動清理過期邀請
+-- ============================================================================
+-- STEP 6: 建立清理過期邀請的函數
+-- ============================================================================
+
 CREATE OR REPLACE FUNCTION cleanup_expired_invitations()
 RETURNS INTEGER AS $$
 DECLARE
@@ -140,14 +158,50 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 註解
-COMMENT ON COLUMN public.pending_invitations.last_sent_at IS '最後一次發送邀請的時間（用於重新發送功能）';
-COMMENT ON VIEW public.v_pending_invitations IS '待處理邀請視圖（只包含有效且未過期的邀請）';
-COMMENT ON FUNCTION cleanup_expired_invitations() IS '清理過期邀請的函數（建議定期執行）';
+-- ============================================================================
+-- STEP 7: 建立資料表註解
+-- ============================================================================
 
--- 完成訊息
-DO $$
-BEGIN
-    RAISE NOTICE '✅ Migration 完成：pending_invitations 表已準備就緒';
-    RAISE NOTICE 'ℹ️  建議定期執行 cleanup_expired_invitations() 清理過期邀請';
-END $$;
+COMMENT ON TABLE public.pending_invitations IS '待處理好友邀請表 - 儲存尚未接受的好友邀請';
+COMMENT ON COLUMN public.pending_invitations.inviter_id IS '邀請者的 user_profile ID';
+COMMENT ON COLUMN public.pending_invitations.invitee_email IS '被邀請者的電子郵件';
+COMMENT ON COLUMN public.pending_invitations.invitee_phone IS '被邀請者的手機號碼';
+COMMENT ON COLUMN public.pending_invitations.invitation_code IS '邀請碼（唯一）';
+COMMENT ON COLUMN public.pending_invitations.status IS '邀請狀態：pending, accepted, cancelled, expired';
+COMMENT ON COLUMN public.pending_invitations.last_sent_at IS '最後一次發送邀請的時間（用於重新發送功能）';
+COMMENT ON COLUMN public.pending_invitations.expires_at IS '邀請過期時間（預設 7 天）';
+
+COMMENT ON VIEW public.v_pending_invitations IS '待處理邀請視圖（只包含有效且未過期的邀請）';
+COMMENT ON FUNCTION cleanup_expired_invitations() IS '清理過期邀請的函數（建議定期執行，例如每天一次）';
+
+-- ============================================================================
+-- Migration 完成！
+-- ============================================================================
+--
+-- ✅ 已完成項目：
+--   1. 清理舊資料（表格、視圖、函數、觸發器）
+--   2. 啟用必要的擴展（uuid-ossp）
+--   3. 建立 pending_invitations 表（含 last_sent_at 欄位）
+--   4. 建立 v_pending_invitations 視圖
+--   5. 建立 updated_at 自動更新觸發器
+--   6. 建立 cleanup_expired_invitations() 清理函數
+--   7. 建立資料表與欄位註解
+--
+-- ⏳ 後續步驟：
+--   1. 測試邀請功能 API
+--   2. 設定定期任務（Cron Job）執行 cleanup_expired_invitations()
+--   3. 測試重新發送邀請功能
+--
+-- 📝 測試範例：
+--   -- 查看所有待處理邀請
+--   SELECT * FROM v_pending_invitations;
+--
+--   -- 手動清理過期邀請
+--   SELECT cleanup_expired_invitations();
+--
+--   -- 測試重新發送（更新 last_sent_at）
+--   UPDATE pending_invitations
+--   SET last_sent_at = NOW()
+--   WHERE id = 'your-invitation-id';
+--
+-- ============================================================================

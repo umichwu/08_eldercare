@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心靈偏好設定 - ElderCare Companion</title>
+    <link rel="stylesheet" href="styles-modern.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .form-group .description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .religion-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .religion-option {
+            position: relative;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .religion-option:hover {
+            border-color: #D4AF37;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+        }
+
+        .religion-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .religion-option input[type="radio"]:checked + .option-content {
+            border-color: #D4AF37;
+            background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
+        }
+
+        .religion-option.selected {
+            border-color: #D4AF37;
+            background: linear-gradient(135deg, #FFF8E7 0%, #F5E6D3 100%);
+        }
+
+        .option-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .option-icon {
+            font-size: 32px;
+        }
+
+        .option-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            border-color: #D4AF37;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item input[type="checkbox"]:checked {
+            accent-color: #D4AF37;
+        }
+
+        .checkbox-item.checked {
+            border-color: #D4AF37;
+            background: #FFF8E7;
+        }
+
+        .privacy-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .privacy-option {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .privacy-option:hover {
+            border-color: #D4AF37;
+        }
+
+        .privacy-option input[type="radio"] {
+            margin-right: 12px;
+            margin-top: 2px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .privacy-option input[type="radio"]:checked {
+            accent-color: #D4AF37;
+        }
+
+        .privacy-option.selected {
+            border-color: #D4AF37;
+            background: #FFF8E7;
+        }
+
+        .privacy-info {
+            flex: 1;
+        }
+
+        .privacy-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .privacy-desc {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+        }
+
+        .toggle-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #D4AF37;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #D4AF37 0%, #C19A1D 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            border-color: #D4AF37;
+            color: #D4AF37;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">🙏</div>
+            <h1>讓我更了解您的心靈需求</h1>
+            <p>為了更好地陪伴您，我想了解您的宗教信仰或人生哲學。<br>這些資訊會幫助我提供更貼近您心靈的陪伴。</p>
+        </div>
+
+        <form id="spiritualPreferencesForm">
+            <!-- 宗教信仰選擇 -->
+            <div class="form-group">
+                <label>您的信仰或哲理偏好</label>
+                <div class="description">選擇最貼近您的信仰或生活哲學</div>
+                <div class="religion-options">
+                    <div class="religion-option" data-religion="buddhism">
+                        <input type="radio" name="religion" value="buddhism" id="buddhism">
+                        <div class="option-content">
+                            <div class="option-icon">🙏</div>
+                            <div class="option-label">佛教</div>
+                        </div>
+                    </div>
+                    <div class="religion-option" data-religion="christianity">
+                        <input type="radio" name="religion" value="christianity" id="christianity">
+                        <div class="option-content">
+                            <div class="option-icon">✝️</div>
+                            <div class="option-label">基督教</div>
+                        </div>
+                    </div>
+                    <div class="religion-option" data-religion="taoism">
+                        <input type="radio" name="religion" value="taoism" id="taoism">
+                        <div class="option-content">
+                            <div class="option-icon">☯️</div>
+                            <div class="option-label">道教</div>
+                        </div>
+                    </div>
+                    <div class="religion-option" data-religion="confucianism">
+                        <input type="radio" name="religion" value="confucianism" id="confucianism">
+                        <div class="option-content">
+                            <div class="option-icon">📚</div>
+                            <div class="option-label">儒家思想</div>
+                        </div>
+                    </div>
+                    <div class="religion-option" data-religion="secular">
+                        <input type="radio" name="religion" value="secular" id="secular">
+                        <div class="option-content">
+                            <div class="option-icon">🌟</div>
+                            <div class="option-label">無特定信仰</div>
+                        </div>
+                    </div>
+                    <div class="religion-option" data-religion="none">
+                        <input type="radio" name="religion" value="none" id="none">
+                        <div class="option-content">
+                            <div class="option-icon">💭</div>
+                            <div class="option-label">不需要心靈話題</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 心靈實踐偏好 (佛教專用，其他信仰類似) -->
+            <div class="form-group" id="practicesGroup" style="display: none;">
+                <label>您喜歡的心靈實踐</label>
+                <div class="description">選擇您有興趣或正在實踐的方式（可多選）</div>
+                <div class="checkbox-group" id="practicesCheckboxes">
+                    <!-- 動態生成 -->
+                </div>
+            </div>
+
+            <!-- 心靈陪伴功能開關 -->
+            <div class="form-group">
+                <div class="toggle-group">
+                    <div class="toggle-label">啟用心靈陪伴功能</div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mindfulnessEnabled" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 隱私設定 -->
+            <div class="form-group">
+                <label>我的心情日記與情緒資料</label>
+                <div class="description">決定誰可以看到您的心靈記錄</div>
+                <div class="privacy-options">
+                    <div class="privacy-option" data-privacy="private">
+                        <input type="radio" name="privacy" value="private" id="private">
+                        <div class="privacy-info">
+                            <div class="privacy-title">只有我自己能看</div>
+                            <div class="privacy-desc">所有情緒細節都完全保密</div>
+                        </div>
+                    </div>
+                    <div class="privacy-option selected" data-privacy="family_visible">
+                        <input type="radio" name="privacy" value="family_visible" id="family_visible" checked>
+                        <div class="privacy-info">
+                            <div class="privacy-title">家人可以看到摘要</div>
+                            <div class="privacy-desc">家人只能看到整體趨勢，不會看到詳細內容</div>
+                        </div>
+                    </div>
+                    <div class="privacy-option" data-privacy="public">
+                        <input type="radio" name="privacy" value="public" id="public">
+                        <div class="privacy-info">
+                            <div class="privacy-title">完全公開給家人</div>
+                            <div class="privacy-desc">家人可以看到所有心情記錄</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 按鈕 -->
+            <div class="button-group">
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">稍後再說</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">儲存設定</button>
+            </div>
+
+            <div class="success-message" id="successMessage">
+                ✅ 設定已儲存！系統會根據您的偏好提供更貼心的陪伴。
+            </div>
+        </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        // 各宗教的實踐選項
+        const practiceOptions = {
+            buddhism: ['禪修/靜坐', '念佛', '讀經', '抄經', '聽佛曲'],
+            christianity: ['禱告', '讀經', '唱詩歌', '參加崇拜', '默想'],
+            taoism: ['靜坐', '養生', '讀道德經', '太極', '氣功'],
+            confucianism: ['讀論語', '反思修身', '孝道實踐', '感恩練習'],
+            secular: ['冥想', '正念練習', '感恩日記', '呼吸練習', '聽音樂']
+        };
+
+        // 初始化 Supabase
+        const { createClient } = supabase;
+        const supabaseUrl = window.APP_CONFIG?.SUPABASE_URL || '';
+        const supabaseKey = window.APP_CONFIG?.SUPABASE_ANON_KEY || '';
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        // 當前使用者 ID
+        let currentUserId = null;
+
+        // 載入使用者資訊
+        async function loadUserInfo() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) {
+                currentUserId = user.id;
+                await loadExistingPreferences();
+            } else {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 載入現有偏好
+        async function loadExistingPreferences() {
+            try {
+                const response = await fetch(`${window.APP_CONFIG.API_URL}/api/spiritual/preferences/${currentUserId}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        populateForm(result.data);
+                    }
+                }
+            } catch (error) {
+                console.error('載入偏好失敗:', error);
+            }
+        }
+
+        // 填充表單
+        function populateForm(data) {
+            if (data.spiritual_preference) {
+                const radio = document.querySelector(`input[name="religion"][value="${data.spiritual_preference}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    radio.closest('.religion-option').classList.add('selected');
+                    showPractices(data.spiritual_preference);
+                }
+            }
+
+            if (data.mindfulness_enabled !== undefined) {
+                document.getElementById('mindfulnessEnabled').checked = data.mindfulness_enabled;
+            }
+
+            if (data.emotional_privacy_level) {
+                const privacyRadio = document.querySelector(`input[name="privacy"][value="${data.emotional_privacy_level}"]`);
+                if (privacyRadio) {
+                    privacyRadio.checked = true;
+                    document.querySelectorAll('.privacy-option').forEach(opt => opt.classList.remove('selected'));
+                    privacyRadio.closest('.privacy-option').classList.add('selected');
+                }
+            }
+
+            if (data.spiritual_details && data.spiritual_details.practices) {
+                setTimeout(() => {
+                    data.spiritual_details.practices.forEach(practice => {
+                        const checkbox = document.querySelector(`input[type="checkbox"][value="${practice}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                            checkbox.closest('.checkbox-item').classList.add('checked');
+                        }
+                    });
+                }, 100);
+            }
+        }
+
+        // 宗教選項點擊事件
+        document.querySelectorAll('.religion-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+
+                document.querySelectorAll('.religion-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+
+                const religion = radio.value;
+                if (religion !== 'none') {
+                    showPractices(religion);
+                } else {
+                    document.getElementById('practicesGroup').style.display = 'none';
+                }
+            });
+        });
+
+        // 顯示相應的實踐選項
+        function showPractices(religion) {
+            const practicesGroup = document.getElementById('practicesGroup');
+            const checkboxesContainer = document.getElementById('practicesCheckboxes');
+
+            if (religion === 'none') {
+                practicesGroup.style.display = 'none';
+                return;
+            }
+
+            const practices = practiceOptions[religion] || practiceOptions.secular;
+            checkboxesContainer.innerHTML = '';
+
+            practices.forEach(practice => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" value="${practice}" id="${practice.replace(/\s+/g, '_')}">
+                    <label for="${practice.replace(/\s+/g, '_')}">${practice}</label>
+                `;
+
+                div.querySelector('input').addEventListener('change', function() {
+                    if (this.checked) {
+                        div.classList.add('checked');
+                    } else {
+                        div.classList.remove('checked');
+                    }
+                });
+
+                checkboxesContainer.appendChild(div);
+            });
+
+            practicesGroup.style.display = 'block';
+        }
+
+        // 隱私選項點擊事件
+        document.querySelectorAll('.privacy-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+
+                document.querySelectorAll('.privacy-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // 表單提交
+        document.getElementById('spiritualPreferencesForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loader"></span> 儲存中...';
+
+            const selectedReligion = document.querySelector('input[name="religion"]:checked')?.value;
+            const selectedPrivacy = document.querySelector('input[name="privacy"]:checked')?.value;
+            const mindfulnessEnabled = document.getElementById('mindfulnessEnabled').checked;
+
+            const selectedPractices = Array.from(document.querySelectorAll('#practicesCheckboxes input:checked'))
+                .map(cb => cb.value);
+
+            const preferences = {
+                religion: selectedReligion,
+                details: {
+                    practices: selectedPractices
+                },
+                mindfulness_enabled: mindfulnessEnabled,
+                privacy_level: selectedPrivacy
+            };
+
+            try {
+                const response = await fetch(`${window.APP_CONFIG.API_URL}/api/spiritual/preferences/${currentUserId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(preferences)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const successMsg = document.getElementById('successMessage');
+                    successMsg.classList.add('show');
+
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } else {
+                    alert('儲存失敗：' + result.error);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '儲存設定';
+                }
+            } catch (error) {
+                console.error('儲存失敗:', error);
+                alert('儲存失敗，請稍後再試');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '儲存設定';
+            }
+        });
+
+        // 頁面載入時初始化
+        window.addEventListener('load', loadUserInfo);
+    </script>
+</body>
+</html>

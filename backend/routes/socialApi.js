@@ -559,6 +559,89 @@ router.put('/friends/invitations/:invitationId/cancel', async (req, res) => {
 });
 
 /**
+ * POST /api/social/friends/invitations/:invitationId/resend
+ * 重新發送邀請
+ */
+router.post('/friends/invitations/:invitationId/resend', async (req, res) => {
+  try {
+    const authUserId = getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { invitationId } = req.params;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 取得邀請資料
+    const { data: invitation, error: fetchError } = await supabase
+      .from('pending_invitations')
+      .select('*')
+      .eq('id', invitationId)
+      .eq('inviter_id', profileId)
+      .eq('status', 'pending')
+      .single();
+
+    if (fetchError || !invitation) {
+      console.error('取得邀請錯誤:', fetchError);
+      return res.status(404).json({ error: '找不到邀請或邀請已失效' });
+    }
+
+    // 檢查邀請是否過期
+    if (invitation.expires_at && new Date(invitation.expires_at) < new Date()) {
+      return res.status(400).json({ error: '邀請已過期，請建立新邀請' });
+    }
+
+    // 取得邀請者資訊
+    const { data: inviter } = await supabase
+      .from('user_profiles')
+      .select('display_name')
+      .eq('id', profileId)
+      .single();
+
+    // 重新發送 Email 或 SMS 通知
+    const notificationResults = await sendFriendInvitation({
+      email: invitation.invitee_email,
+      phone: invitation.invitee_phone,
+      inviterName: inviter?.display_name || '使用者',
+      invitationCode: invitation.invitation_code,
+      message: invitation.invitation_message
+    });
+
+    // 更新發送時間
+    const { error: updateError } = await supabase
+      .from('pending_invitations')
+      .update({
+        updated_at: new Date().toISOString(),
+        last_sent_at: new Date().toISOString()
+      })
+      .eq('id', invitationId);
+
+    if (updateError) {
+      console.warn('更新發送時間失敗:', updateError);
+      // 不阻斷執行，因為通知已經發送
+    }
+
+    console.log('📨 重新發送邀請結果:', notificationResults);
+
+    res.json({
+      success: true,
+      invitation: {
+        id: invitation.id,
+        invitationCode: invitation.invitation_code,
+        email: invitation.invitee_email,
+        phone: invitation.invitee_phone,
+        name: invitation.invitee_name
+      },
+      notification: notificationResults,
+      message: '邀請已重新發送'
+    });
+  } catch (error) {
+    console.error('重新發送邀請失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * DELETE /api/social/friends/:friendshipId
  * 刪除好友
  */

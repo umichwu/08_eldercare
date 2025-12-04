@@ -881,15 +881,51 @@ async function resendInvitation(invitationId) {
         console.log(`📤 重新發送邀請: ${invitationId}`);
         showLoading();
 
-        // TODO: 實作重新發送邀請 API
-        // 目前先使用簡單的成功訊息
+        // 取得當前使用者的 JWT token
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            throw new Error('請先登入');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/social/friends/invitations/${invitationId}/resend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+                'x-user-id': session.user.id
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || '重新發送邀請失敗');
+        }
 
         hideLoading();
-        showSuccess('邀請已重新發送！');
+
+        // 顯示成功訊息，包含發送結果
+        let message = '邀請已重新發送！';
+        if (result.notification) {
+            const sentMethods = [];
+            if (result.notification.emailSent) sentMethods.push('Email');
+            if (result.notification.smsSent) sentMethods.push('SMS');
+            if (sentMethods.length > 0) {
+                message += ` (已透過 ${sentMethods.join(' 和 ')} 發送)`;
+            }
+        }
+
+        showSuccess(message);
+
+        // 重新載入搜尋結果（如果在搜尋頁面）
+        const searchInput = document.getElementById('searchFriends');
+        if (searchInput && searchInput.value) {
+            await searchFriends();
+        }
     } catch (error) {
         console.error('❌ 重新發送邀請失敗:', error);
         hideLoading();
-        showError('重新發送失敗，請重試');
+        showError(error.message || '重新發送失敗，請重試');
     }
 }
 

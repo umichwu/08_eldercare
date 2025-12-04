@@ -9,10 +9,8 @@
 const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
 
-// API 基礎 URL
-const API_BASE_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:3000'
-    : 'https://eldercare-app.onrender.com';
+// API 基礎 URL - 使用全域配置
+// 注意：API_BASE_URL 在 config.js 中定義
 
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -97,27 +95,57 @@ async function checkAuth() {
 // 載入群組列表
 // ===================================
 async function loadGroups() {
+    const groupsList = document.getElementById('groupsList');
+    const noGroupsPlaceholder = document.getElementById('noGroupsPlaceholder');
+
     try {
         console.log('📋 載入群組列表...');
 
+        // 顯示載入中狀態
+        groupsList.innerHTML = `
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>載入群組列表中...</p>
+            </div>
+        `;
+        noGroupsPlaceholder.style.display = 'none';
+
         const response = await fetch(`${API_BASE_URL}/api/groups?userId=${userProfile.id}`);
-        const data = await response.json();
 
         if (!response.ok) {
+            const data = await response.json();
             throw new Error(data.message || '載入群組列表失敗');
         }
 
+        const data = await response.json();
         groups = data.groups || [];
         console.log(`✅ 載入了 ${groups.length} 個群組`);
 
         renderGroups();
     } catch (error) {
         console.error('❌ 載入群組列表失敗:', error);
-        showError('載入群組列表失敗');
+        console.error('錯誤詳情:', error.message);
 
-        // 顯示空狀態
-        document.getElementById('groupsList').innerHTML = '';
-        document.getElementById('noGroupsPlaceholder').style.display = 'flex';
+        // 清除載入狀態
+        groupsList.innerHTML = '';
+
+        // 顯示錯誤訊息和空狀態
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            // 網路錯誤
+            groupsList.innerHTML = `
+                <div class="empty-state" style="padding: 40px 20px;">
+                    <div class="empty-icon">📡</div>
+                    <h3>無法連線到伺服器</h3>
+                    <p style="color: #666; margin-bottom: 20px;">請檢查網路連線</p>
+                    <button class="btn-primary" onclick="loadGroups()">
+                        🔄 重新載入
+                    </button>
+                </div>
+            `;
+        } else {
+            // 其他錯誤或沒有群組
+            noGroupsPlaceholder.style.display = 'flex';
+        }
     }
 }
 

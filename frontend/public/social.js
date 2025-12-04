@@ -2817,4 +2817,24 @@ function sharePost(postId) {
     showError('分享功能即將推出');
 }
 
+// ===================================
+// 個人資料
+// ===================================
+
+/**
+ * 前往個人資料頁面
+ */
+function goToProfile() {
+    console.log('🔍 前往個人資料頁面');
+    window.location.href = 'profile.html';
+}
+
+/**
+ * 查看其他使用者的個人資料
+ */
+function viewUserProfile(userId) {
+    console.log('🔍 查看使用者資料:', userId);
+    window.location.href = `profile.html?userId=${userId}`;
+}
+
 console.log('✅ social.js 載入完成');

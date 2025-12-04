@@ -22,6 +22,7 @@ const translations = {
     'quickAction.weather': '☀️ 天氣查詢',
     'quickAction.medication': '💊 用藥提醒',
     'quickAction.social': '👥 好友聊天',
+    'quickAction.groupChat': '👥 群組聊天',
     'quickAction.health': '🏥 健康諮詢',
     'quickAction.familyDashboard': '👨‍👩‍👧‍👦 家屬監控',
 
@@ -94,6 +95,7 @@ const translations = {
     'quickAction.weather': '☀️ 天气查询',
     'quickAction.medication': '💊 用药提醒',
     'quickAction.social': '👥 好友聊天',
+    'quickAction.groupChat': '👥 群组聊天',
     'quickAction.health': '🏥 健康咨询',
     'quickAction.familyDashboard': '👨‍👩‍👧‍👦 家属监控',
 
@@ -156,6 +158,7 @@ const translations = {
     'quickAction.weather': '☀️ Weather',
     'quickAction.medication': '💊 Medication',
     'quickAction.social': '👥 Social',
+    'quickAction.groupChat': '👥 Group Chat',
     'quickAction.health': '🏥 Health',
     'quickAction.familyDashboard': '👨‍👩‍👧‍👦 Family Dashboard',
 
@@ -218,6 +221,7 @@ const translations = {
     'quickAction.weather': '☀️ 天気',
     'quickAction.medication': '💊 服薬',
     'quickAction.social': '👥 友達チャット',
+    'quickAction.groupChat': '👥 グループチャット',
     'quickAction.health': '🏥 健康相談',
     'quickAction.familyDashboard': '👨‍👩‍👧‍👦 家族ダッシュボード',
 
@@ -280,6 +284,7 @@ const translations = {
     'quickAction.weather': '☀️ 날씨',
     'quickAction.medication': '💊 복약',
     'quickAction.social': '👥 친구 채팅',
+    'quickAction.groupChat': '👥 그룹 채팅',
     'quickAction.health': '🏥 건강 상담',
     'quickAction.familyDashboard': '👨‍👩‍👧‍👦 가족 대시보드',
 

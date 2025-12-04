@@ -25,6 +25,102 @@ class UserService {
   }
 
   /**
+   * 更新使用者個人資料
+   */
+  async updateUserProfile(authUserId, updates) {
+    try {
+      // 允許更新的欄位
+      const allowedFields = [
+        'display_name',
+        'email',
+        'phone',
+        'avatar_url',
+        'bio',
+        'birth_date',
+        'gender',
+        'language',
+        'theme',
+        'font_size'
+      ];
+
+      const validUpdates = {};
+
+      // 過濾只允許的欄位
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key) && value !== undefined) {
+          validUpdates[key] = value;
+        }
+      }
+
+      if (Object.keys(validUpdates).length === 0) {
+        throw new Error('沒有有效的更新欄位');
+      }
+
+      validUpdates.updated_at = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update(validUpdates)
+        .eq('auth_user_id', authUserId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ 使用者資料已更新:', authUserId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('❌ 更新使用者資料失敗:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 更新頭像
+   */
+  async updateAvatar(authUserId, avatarUrl) {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('auth_user_id', authUserId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ 頭像已更新:', authUserId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('❌ 更新頭像失敗:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 取得其他使用者的公開資料
+   */
+  async getPublicProfile(userId) {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('id, display_name, avatar_url, bio, created_at')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('❌ 取得公開資料失敗:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * 更新使用者語言設定
    */
   async updateLanguage(authUserId, language) {

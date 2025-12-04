@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="個人資料設定">
+    <meta name="theme-color" content="#FFB74D">
+    <title>個人資料 - ElderCare</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 32px 24px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 16px;
+            top: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid white;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .avatar-upload-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .avatar-upload-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .profile-email {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .profile-body {
+            padding: 32px 24px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .privacy-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .privacy-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .privacy-option:last-child {
+            border-bottom: none;
+        }
+
+        .privacy-label {
+            flex: 1;
+        }
+
+        .privacy-label strong {
+            display: block;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .privacy-label span {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-container {
+                border-radius: 0;
+            }
+
+            body {
+                padding: 0;
+            }
+        }
+
+        /* 隱藏實際的檔案輸入 */
+        #avatarInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <!-- 頁首 -->
+        <div class="profile-header">
+            <button class="back-btn" onclick="goBack()">← 返回</button>
+
+            <div class="avatar-container">
+                <img id="avatarImage" class="avatar" src="" alt="頭像" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div id="avatarPlaceholder" class="avatar" style="display: none;">👤</div>
+                <button class="avatar-upload-btn" onclick="document.getElementById('avatarInput').click()" title="更換頭像">
+                    📷
+                </button>
+                <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(event)">
+            </div>
+
+            <div class="profile-name" id="profileName">載入中...</div>
+            <div class="profile-email" id="profileEmail"></div>
+        </div>
+
+        <!-- 內容 -->
+        <div class="profile-body">
+            <!-- 訊息提示 -->
+            <div id="alertSuccess" class="alert alert-success"></div>
+            <div id="alertError" class="alert alert-error"></div>
+
+            <!-- 載入中 -->
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+                <p>載入個人資料中...</p>
+            </div>
+
+            <!-- 個人資料表單 -->
+            <form id="profileForm" style="display: none;">
+                <!-- 基本資訊 -->
+                <div class="section">
+                    <h2 class="section-title">基本資訊</h2>
+
+                    <div class="form-group">
+                        <label class="form-label">暱稱 *</label>
+                        <input type="text" id="displayName" class="form-input" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" id="email" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">電話</label>
+                            <input type="tel" id="phone" class="form-input">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">個人簡介</label>
+                        <textarea id="bio" class="form-textarea" placeholder="分享一些關於自己的事情..."></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">生日</label>
+                            <input type="date" id="birthDate" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">性別</label>
+                            <select id="gender" class="form-select">
+                                <option value="">不指定</option>
+                                <option value="male">男性</option>
+                                <option value="female">女性</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 偏好設定 -->
+                <div class="section">
+                    <h2 class="section-title">偏好設定</h2>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">語言</label>
+                            <select id="language" class="form-select">
+                                <option value="zh-TW">繁體中文</option>
+                                <option value="zh-CN">简体中文</option>
+                                <option value="en-US">English</option>
+                                <option value="ja-JP">日本語</option>
+                                <option value="ko-KR">한국어</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">字體大小</label>
+                            <select id="fontSize" class="form-select">
+                                <option value="small">小</option>
+                                <option value="medium">中</option>
+                                <option value="large">大</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 隱私設定 -->
+                <div class="section">
+                    <h2 class="section-title">隱私設定</h2>
+
+                    <div class="privacy-section">
+                        <div class="privacy-option">
+                            <div class="privacy-label">
+                                <strong>顯示線上狀態</strong>
+                                <span>讓好友看到你的線上狀態</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="showOnlineStatus" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="privacy-option">
+                            <div class="privacy-label">
+                                <strong>允許好友邀請</strong>
+                                <span>讓其他人可以發送好友邀請給你</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="allowFriendRequests" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="privacy-option">
+                            <div class="privacy-label">
+                                <strong>公開個人資料</strong>
+                                <span>讓非好友可以查看你的基本資料</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="publicProfile">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 按鈕組 -->
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                        取消
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        儲存變更
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/config.js"></script>
+    <script>
+        // Supabase 配置
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentProfile = null;
+
+        // 頁面載入時
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadProfile();
+        });
+
+        // 檢查登入狀態
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 載入個人資料
+        async function loadProfile() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) return;
+
+                const response = await fetch(`${API_BASE_URL}/api/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'x-user-id': session.user.id
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentProfile = result.profile;
+                    displayProfile(result.profile);
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('profileForm').style.display = 'block';
+                } else {
+                    throw new Error(result.error || '載入失敗');
+                }
+            } catch (error) {
+                console.error('載入個人資料失敗:', error);
+                showError('載入個人資料失敗');
+            }
+        }
+
+        // 顯示個人資料
+        function displayProfile(profile) {
+            // 頭像
+            if (profile.avatar_url) {
+                document.getElementById('avatarImage').src = profile.avatar_url;
+                document.getElementById('avatarImage').style.display = 'block';
+                document.getElementById('avatarPlaceholder').style.display = 'none';
+            }
+
+            // 頁首資訊
+            document.getElementById('profileName').textContent = profile.display_name || '未設定暱稱';
+            document.getElementById('profileEmail').textContent = profile.email || '';
+
+            // 表單欄位
+            document.getElementById('displayName').value = profile.display_name || '';
+            document.getElementById('email').value = profile.email || '';
+            document.getElementById('phone').value = profile.phone || '';
+            document.getElementById('bio').value = profile.bio || '';
+            document.getElementById('birthDate').value = profile.birth_date || '';
+            document.getElementById('gender').value = profile.gender || '';
+            document.getElementById('language').value = profile.language || 'zh-TW';
+            document.getElementById('fontSize').value = profile.font_size || 'medium';
+        }
+
+        // 處理表單提交
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveProfile();
+        });
+
+        // 儲存個人資料
+        async function saveProfile() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) return;
+
+                const updates = {
+                    display_name: document.getElementById('displayName').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    bio: document.getElementById('bio').value,
+                    birth_date: document.getElementById('birthDate').value || null,
+                    gender: document.getElementById('gender').value || null,
+                    language: document.getElementById('language').value,
+                    font_size: document.getElementById('fontSize').value
+                };
+
+                const response = await fetch(`${API_BASE_URL}/api/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'x-user-id': session.user.id
+                    },
+                    body: JSON.stringify(updates)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess('個人資料已更新！');
+                    currentProfile = result.profile;
+                    displayProfile(result.profile);
+                } else {
+                    throw new Error(result.error || '更新失敗');
+                }
+            } catch (error) {
+                console.error('更新個人資料失敗:', error);
+                showError(error.message || '更新失敗，請重試');
+            }
+        }
+
+        // 處理頭像上傳
+        async function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 驗證檔案類型
+            if (!file.type.startsWith('image/')) {
+                showError('請選擇圖片檔案');
+                return;
+            }
+
+            // 驗證檔案大小（5MB）
+            if (file.size > 5 * 1024 * 1024) {
+                showError('圖片大小不能超過 5MB');
+                return;
+            }
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) return;
+
+                // 上傳到 Supabase Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${session.user.id}_${Date.now()}.${fileExt}`;
+                const filePath = `avatars/${fileName}`;
+
+                const { data, error } = await supabaseClient.storage
+                    .from('user-uploads')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (error) throw error;
+
+                // 取得公開 URL
+                const { data: urlData } = supabaseClient.storage
+                    .from('user-uploads')
+                    .getPublicUrl(filePath);
+
+                const avatarUrl = urlData.publicUrl;
+
+                // 更新資料庫
+                const response = await fetch(`${API_BASE_URL}/api/profile/avatar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'x-user-id': session.user.id
+                    },
+                    body: JSON.stringify({ avatarUrl })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess('頭像已更新！');
+                    document.getElementById('avatarImage').src = avatarUrl;
+                    document.getElementById('avatarImage').style.display = 'block';
+                    document.getElementById('avatarPlaceholder').style.display = 'none';
+                } else {
+                    throw new Error(result.error || '更新失敗');
+                }
+            } catch (error) {
+                console.error('上傳頭像失敗:', error);
+                showError('上傳失敗：' + error.message);
+            }
+        }
+
+        // 重置表單
+        function resetForm() {
+            if (currentProfile) {
+                displayProfile(currentProfile);
+                showSuccess('已恢復原始資料');
+            }
+        }
+
+        // 返回上一頁
+        function goBack() {
+            window.history.back();
+        }
+
+        // 顯示成功訊息
+        function showSuccess(message) {
+            const alert = document.getElementById('alertSuccess');
+            alert.textContent = message;
+            alert.classList.add('show');
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 3000);
+        }
+
+        // 顯示錯誤訊息
+        function showError(message) {
+            const alert = document.getElementById('alertError');
+            alert.textContent = message;
+            alert.classList.add('show');
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

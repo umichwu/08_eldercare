@@ -319,6 +319,13 @@ function subscribeToGroupMessages(groupId) {
             async (payload) => {
                 console.log('📨 收到新訊息:', payload);
 
+                // 檢查訊息是否已存在（避免重複顯示自己剛發送的訊息）
+                const messageExists = currentGroupMessages.some(msg => msg.id === payload.new.id);
+                if (messageExists) {
+                    console.log('訊息已存在，跳過');
+                    return;
+                }
+
                 // 載入訊息的發送者資訊
                 const { data: senderData } = await supabaseClient
                     .from('user_profiles')
@@ -378,6 +385,20 @@ async function sendGroupMessage() {
         }
 
         console.log('✅ 訊息發送成功');
+
+        // 將新訊息加入到當前訊息列表（立即顯示，不等待 realtime）
+        const newMessage = {
+            ...data.data,
+            user_profiles: {
+                id: userProfile.id,
+                display_name: userProfile.display_name,
+                avatar_url: userProfile.avatar_url
+            }
+        };
+        currentGroupMessages.push(newMessage);
+
+        // 重新渲染訊息
+        renderMessages();
 
         // 清空輸入框
         messageInput.value = '';

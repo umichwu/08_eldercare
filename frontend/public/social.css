@@ -584,6 +584,123 @@ body {
     color: var(--text-light);
 }
 
+/* ============================================================================
+   群組聊天訊息樣式 (message-sent / message-received)
+   ============================================================================ */
+
+.message {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--spacing-md);
+    animation: fadeIn 0.3s ease;
+    padding: 0 var(--spacing-md);
+}
+
+.message-sent {
+    align-items: flex-end;
+}
+
+.message-received {
+    align-items: flex-start;
+}
+
+.message-sender-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    padding: 0 4px;
+    font-weight: 600;
+}
+
+.message-sent .message-bubble {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    position: relative;
+    animation: slideInRight 0.3s ease;
+}
+
+.message-received .message-bubble {
+    background: white;
+    color: var(--text-primary);
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: relative;
+    animation: slideInLeft 0.3s ease;
+}
+
+.message-sent .message-text {
+    font-size: 15px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.message-received .message-text {
+    font-size: 15px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.message-sent .message-time {
+    font-size: 11px;
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: right;
+}
+
+.message-received .message-time {
+    font-size: 11px;
+    margin-top: 6px;
+    color: var(--text-light);
+    text-align: left;
+}
+
+/* 訊息圖片樣式 */
+.message-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.message-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 動畫效果 */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
 /* 聊天輸入區 */
 .chat-input-area {
     display: flex;

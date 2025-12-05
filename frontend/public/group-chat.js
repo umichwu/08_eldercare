@@ -868,6 +868,119 @@ function showNotifications() {
 }
 
 // ===================================
+// 邀請好友功能
+// ===================================
+
+/**
+ * 顯示邀請好友對話框
+ */
+function showInviteFriendModal() {
+    const modal = document.getElementById('inviteFriendModal');
+    if (modal) {
+        modal.style.display = 'flex';
+
+        // 重置表單
+        document.getElementById('inviteFriendForm').reset();
+
+        // 隱藏訊息
+        document.getElementById('inviteSuccessMessage').style.display = 'none';
+        document.getElementById('inviteErrorMessage').style.display = 'none';
+    }
+}
+
+/**
+ * 隱藏邀請好友對話框
+ */
+function hideInviteFriendModal() {
+    const modal = document.getElementById('inviteFriendModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * 發送 Email 邀請
+ */
+async function sendEmailInvitation(event) {
+    event.preventDefault();
+
+    const friendEmail = document.getElementById('friendEmail').value.trim();
+    const message = document.getElementById('inviteMessage').value.trim();
+    const sendBtn = document.getElementById('sendInviteBtn');
+    const successMsg = document.getElementById('inviteSuccessMessage');
+    const errorMsg = document.getElementById('inviteErrorMessage');
+    const errorText = document.getElementById('inviteErrorText');
+
+    // 隱藏之前的訊息
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+
+    // 驗證 Email 格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(friendEmail)) {
+        errorText.textContent = '請輸入有效的 Email 地址';
+        errorMsg.style.display = 'block';
+        return;
+    }
+
+    // 檢查使用者
+    if (!userProfile || !userProfile.id) {
+        errorText.textContent = '無法取得使用者資訊，請重新登入';
+        errorMsg.style.display = 'block';
+        return;
+    }
+
+    try {
+        // 顯示載入狀態
+        sendBtn.disabled = true;
+        sendBtn.textContent = '發送中...';
+
+        console.log('📧 發送邀請給:', friendEmail);
+
+        // 呼叫後端 API
+        const response = await fetch(`${API_BASE_URL}/api/invite/email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userProfile.id,
+                friendEmail: friendEmail,
+                message: message
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || '發送邀請失敗');
+        }
+
+        console.log('✅ 邀請發送成功:', data);
+
+        // 顯示成功訊息
+        successMsg.style.display = 'block';
+
+        // 清空表單
+        document.getElementById('inviteFriendForm').reset();
+
+        // 3 秒後自動關閉對話框
+        setTimeout(() => {
+            hideInviteFriendModal();
+        }, 3000);
+
+    } catch (error) {
+        console.error('❌ 發送邀請失敗:', error);
+        errorText.textContent = error.message || '發送邀請時發生錯誤，請稍後再試';
+        errorMsg.style.display = 'block';
+    } finally {
+        // 恢復按鈕狀態
+        sendBtn.disabled = false;
+        sendBtn.textContent = '發送邀請';
+    }
+}
+
+// ===================================
 // 工具函數
 // ===================================
 function formatTime(timestamp) {

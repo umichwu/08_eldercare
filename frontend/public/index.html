@@ -761,12 +761,7 @@
      */
     async function registerFCMTokenToBackend(token) {
         try {
-            // 取得當前使用者
-            const { createClient } = supabase;
-            const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
-            const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+            // 使用已經創建的 supabaseClient（避免創建多個實例）
             const { data: { session } } = await supabaseClient.auth.getSession();
 
             if (!session || !session.user) {
@@ -785,8 +780,18 @@
 
             if (profileError || !profile) {
                 console.error('❌ 無法取得使用者資料:', profileError);
+                console.log('📍 Auth User ID:', authUserId);
+                console.log('ℹ️  可能原因：user_profiles 表中找不到此使用者，請檢查 onboarding 是否完成');
                 return false;
             }
+
+            console.log('✅ 取得使用者 Profile:', {
+                auth_user_id: profile.auth_user_id,
+                role: profile.role,
+                elder_id: profile.elder_id,
+                family_member_id: profile.family_member_id,
+                display_name: profile.display_name
+            });
 
             // 判斷 userType 和實際的 userId（根據 role）
             let userType;
@@ -806,6 +811,12 @@
 
             if (!userId) {
                 console.error('❌ 無法取得使用者 ID');
+                console.error('📊 Profile 資訊:', profile);
+                console.error('ℹ️  可能原因：');
+                console.error('   1. role 欄位值不正確（當前: ' + profile.role + '）');
+                console.error('   2. elder_id 或 family_member_id 為 null');
+                console.error('   3. onboarding 未完成或資料不完整');
+                console.error('💡 建議：請重新完成 onboarding 流程');
                 return false;
             }
 

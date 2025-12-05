@@ -179,6 +179,57 @@ export async function sendTestEmail(to) {
 }
 
 /**
+ * 發送 App 邀請 Email
+ *
+ * @param {Object} invitationData - 邀請資料
+ * @returns {Promise<Object>} - 發送結果
+ */
+export async function sendAppInvitationEmail(invitationData) {
+  if (!resend) {
+    console.warn('⚠️  Resend 未初始化，跳過 Email 發送');
+    return { success: false, error: 'Resend not configured' };
+  }
+
+  try {
+    const {
+      to,
+      inviterName,
+      inviterEmail,
+      message,
+      appUrl = 'https://08-eldercare.vercel.app',
+      language = 'zh-TW'
+    } = invitationData;
+
+    // 驗證必要參數
+    if (!to || !inviterName) {
+      return { success: false, error: 'Missing required parameters' };
+    }
+
+    // 根據語言選擇內容
+    const content = getInvitationEmailContent(language, {
+      inviterName,
+      inviterEmail,
+      message,
+      appUrl
+    });
+
+    // 發送 Email
+    const result = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'ElderCare <noreply@yourdomain.com>',
+      to: to,
+      subject: content.subject,
+      html: content.html
+    });
+
+    console.log('✅ 邀請 Email 發送成功:', result?.data?.id || result?.id || 'success');
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('❌ 邀請 Email 發送失敗:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * 取得用藥提醒 Email 內容
  */
 function getEmailContent(language, data) {
@@ -449,8 +500,192 @@ function getMissedAlertContent(language, data) {
   return templates[language] || templates['zh-TW'];
 }
 
+/**
+ * 取得邀請 Email 內容
+ */
+function getInvitationEmailContent(language, data) {
+  const { inviterName, inviterEmail, message, appUrl } = data;
+
+  const templates = {
+    'zh-TW': {
+      subject: `${inviterName} 邀請您加入 ElderCare`,
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+          <div style="background: white; padding: 30px; border-radius: 8px;">
+            <h1 style="color: #667eea; margin-bottom: 20px; font-size: 28px; text-align: center;">
+              👋 您收到一個邀請！
+            </h1>
+
+            <p style="font-size: 18px; line-height: 1.6; color: #333; margin-bottom: 10px;">
+              您好！
+            </p>
+
+            <p style="font-size: 16px; line-height: 1.6; color: #333;">
+              <strong>${inviterName}</strong> ${inviterEmail ? `(${inviterEmail})` : ''} 邀請您加入 <strong>ElderCare</strong> - 長輩陪伴助手！
+            </p>
+
+            ${message ? `
+            <div style="margin: 30px 0; padding: 20px; background: #f5f7fa; border-radius: 8px; border-left: 4px solid #667eea;">
+              <p style="margin: 0; font-size: 14px; color: #666; font-weight: 600;">來自邀請者的訊息：</p>
+              <p style="margin: 10px 0 0 0; font-size: 16px; color: #333; line-height: 1.6;">${message}</p>
+            </div>
+            ` : ''}
+
+            <div style="margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 8px;">
+              <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 18px;">✨ 關於 ElderCare</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #333; line-height: 1.8;">
+                <li>💊 用藥提醒與管理</li>
+                <li>👥 群組聊天與社交功能</li>
+                <li>📅 日程安排與追蹤</li>
+                <li>🙏 靈性關懷與支持</li>
+                <li>📍 位置分享與安全提醒</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${appUrl}"
+                 style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                立即加入 ElderCare
+              </a>
+            </div>
+
+            <p style="font-size: 14px; line-height: 1.6; color: #666; text-align: center;">
+              點擊上方按鈕或複製以下連結到瀏覽器：<br>
+              <a href="${appUrl}" style="color: #667eea; word-break: break-all;">${appUrl}</a>
+            </p>
+
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #999;">
+                這是由您的朋友 ${inviterName} 發送的邀請郵件<br>
+                ElderCare - 長輩陪伴助手
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    },
+    'zh-CN': {
+      subject: `${inviterName} 邀请您加入 ElderCare`,
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+          <div style="background: white; padding: 30px; border-radius: 8px;">
+            <h1 style="color: #667eea; margin-bottom: 20px; font-size: 28px; text-align: center;">
+              👋 您收到一个邀请！
+            </h1>
+
+            <p style="font-size: 18px; line-height: 1.6; color: #333; margin-bottom: 10px;">
+              您好！
+            </p>
+
+            <p style="font-size: 16px; line-height: 1.6; color: #333;">
+              <strong>${inviterName}</strong> ${inviterEmail ? `(${inviterEmail})` : ''} 邀请您加入 <strong>ElderCare</strong> - 长辈陪伴助手！
+            </p>
+
+            ${message ? `
+            <div style="margin: 30px 0; padding: 20px; background: #f5f7fa; border-radius: 8px; border-left: 4px solid #667eea;">
+              <p style="margin: 0; font-size: 14px; color: #666; font-weight: 600;">来自邀请者的消息：</p>
+              <p style="margin: 10px 0 0 0; font-size: 16px; color: #333; line-height: 1.6;">${message}</p>
+            </div>
+            ` : ''}
+
+            <div style="margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 8px;">
+              <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 18px;">✨ 关于 ElderCare</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #333; line-height: 1.8;">
+                <li>💊 用药提醒与管理</li>
+                <li>👥 群组聊天与社交功能</li>
+                <li>📅 日程安排与追踪</li>
+                <li>🙏 灵性关怀与支持</li>
+                <li>📍 位置分享与安全提醒</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${appUrl}"
+                 style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                立即加入 ElderCare
+              </a>
+            </div>
+
+            <p style="font-size: 14px; line-height: 1.6; color: #666; text-align: center;">
+              点击上方按钮或复制以下链接到浏览器：<br>
+              <a href="${appUrl}" style="color: #667eea; word-break: break-all;">${appUrl}</a>
+            </p>
+
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #999;">
+                这是由您的朋友 ${inviterName} 发送的邀请邮件<br>
+                ElderCare - 长辈陪伴助手
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    },
+    'en': {
+      subject: `${inviterName} invited you to join ElderCare`,
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+          <div style="background: white; padding: 30px; border-radius: 8px;">
+            <h1 style="color: #667eea; margin-bottom: 20px; font-size: 28px; text-align: center;">
+              👋 You've got an invitation!
+            </h1>
+
+            <p style="font-size: 18px; line-height: 1.6; color: #333; margin-bottom: 10px;">
+              Hello!
+            </p>
+
+            <p style="font-size: 16px; line-height: 1.6; color: #333;">
+              <strong>${inviterName}</strong> ${inviterEmail ? `(${inviterEmail})` : ''} invited you to join <strong>ElderCare</strong> - Your Companion Assistant!
+            </p>
+
+            ${message ? `
+            <div style="margin: 30px 0; padding: 20px; background: #f5f7fa; border-radius: 8px; border-left: 4px solid #667eea;">
+              <p style="margin: 0; font-size: 14px; color: #666; font-weight: 600;">Message from the inviter:</p>
+              <p style="margin: 10px 0 0 0; font-size: 16px; color: #333; line-height: 1.6;">${message}</p>
+            </div>
+            ` : ''}
+
+            <div style="margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 8px;">
+              <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 18px;">✨ About ElderCare</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #333; line-height: 1.8;">
+                <li>💊 Medication reminders and management</li>
+                <li>👥 Group chat and social features</li>
+                <li>📅 Schedule planning and tracking</li>
+                <li>🙏 Spiritual care and support</li>
+                <li>📍 Location sharing and safety alerts</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${appUrl}"
+                 style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                Join ElderCare Now
+              </a>
+            </div>
+
+            <p style="font-size: 14px; line-height: 1.6; color: #666; text-align: center;">
+              Click the button above or copy this link to your browser:<br>
+              <a href="${appUrl}" style="color: #667eea; word-break: break-all;">${appUrl}</a>
+            </p>
+
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #999;">
+                This invitation was sent by your friend ${inviterName}<br>
+                ElderCare - Your Companion Assistant
+              </p>
+            </div>
+          </div>
+        </div>
+      `
+    }
+  };
+
+  return templates[language] || templates['zh-TW'];
+}
+
 export default {
   sendMedicationReminderEmail,
   sendMissedMedicationAlert,
-  sendTestEmail
+  sendTestEmail,
+  sendAppInvitationEmail
 };

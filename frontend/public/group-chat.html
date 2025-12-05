@@ -113,6 +113,9 @@
                 <span class="notification-badge" id="notificationBadge" style="display: none;"></span>
                 🔔
             </button>
+            <button class="header-btn" onclick="showInviteFriendModal()" title="邀請好友">
+                ✉️
+            </button>
             <button class="header-btn" onclick="showCreateGroupModal()" title="建立群組">
                 ➕
             </button>
@@ -381,6 +384,71 @@
                 <!-- 搜尋結果 -->
                 <div id="userSearchResults" class="search-results">
                     <!-- 搜尋結果會動態載入 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邀請好友對話框 -->
+    <div id="inviteFriendModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✉️ 邀請好友加入 ElderCare</h2>
+                <button class="modal-close-btn" onclick="hideInviteFriendModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: #666; line-height: 1.6;">
+                    透過 Email 邀請您的朋友加入 ElderCare，一起享受長輩照護的便利功能！
+                </p>
+
+                <form id="inviteFriendForm" onsubmit="sendEmailInvitation(event)">
+                    <div class="form-group">
+                        <label for="friendEmail">好友的 Email *</label>
+                        <input type="email"
+                               id="friendEmail"
+                               class="form-input"
+                               placeholder="請輸入好友的 Email 地址"
+                               required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inviteMessage">個人訊息（可選）</label>
+                        <textarea
+                            id="inviteMessage"
+                            class="form-input"
+                            placeholder="寫一段話邀請您的朋友..."
+                            rows="4"
+                            maxlength="500"></textarea>
+                        <small style="color: #999; font-size: 0.85rem;">最多 500 字</small>
+                    </div>
+
+                    <div style="background: #f5f7fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                            <strong>📧 您的朋友將會收到：</strong><br>
+                            一封包含 ElderCare 介紹和註冊連結的邀請郵件
+                        </p>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="hideInviteFriendModal()">
+                            取消
+                        </button>
+                        <button type="submit" class="btn-primary" id="sendInviteBtn">
+                            發送邀請
+                        </button>
+                    </div>
+                </form>
+
+                <!-- 成功訊息 -->
+                <div id="inviteSuccessMessage" style="display: none; margin-top: 20px; padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; color: #155724;">
+                    <strong>✅ 邀請已成功發送！</strong><br>
+                    您的朋友將會收到邀請郵件。
+                </div>
+
+                <!-- 錯誤訊息 -->
+                <div id="inviteErrorMessage" style="display: none; margin-top: 20px; padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; color: #721c24;">
+                    <strong>❌ 發送失敗</strong><br>
+                    <span id="inviteErrorText">請稍後再試。</span>
                 </div>
             </div>
         </div>

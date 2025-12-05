@@ -676,6 +676,87 @@ router.post('/groups/:groupId/messages', async (req, res) => {
   }
 });
 
+// ===================================
+// 邀請功能 API
+// ===================================
+
+/**
+ * POST /api/invite/email
+ * 透過 Email 邀請好友加入 App
+ */
+router.post('/invite/email', async (req, res) => {
+  try {
+    const { userId, friendEmail, message } = req.body;
+
+    if (!userId || !friendEmail) {
+      return res.status(400).json({
+        error: '缺少必要參數',
+        message: 'userId 和 friendEmail 為必填',
+      });
+    }
+
+    // 驗證 Email 格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(friendEmail)) {
+      return res.status(400).json({
+        error: 'Email 格式不正確',
+        message: '請輸入有效的 Email 地址',
+      });
+    }
+
+    // 取得邀請者的資訊
+    const { data: inviter, error: inviterError } = await supabase
+      .from('user_profiles')
+      .select('display_name, email')
+      .eq('id', userId)
+      .single();
+
+    if (inviterError || !inviter) {
+      console.error('無法取得邀請者資訊:', inviterError);
+      return res.status(404).json({
+        error: '找不到使用者',
+        message: '無法取得您的個人資訊',
+      });
+    }
+
+    // 動態導入 emailNotificationService
+    const { sendAppInvitationEmail } = await import('../services/emailNotificationService.js');
+
+    // 發送邀請 Email
+    const emailResult = await sendAppInvitationEmail({
+      to: friendEmail,
+      inviterName: inviter.display_name || '您的朋友',
+      inviterEmail: inviter.email,
+      message: message || '',
+      appUrl: 'https://08-eldercare.vercel.app',
+      language: 'zh-TW'
+    });
+
+    if (!emailResult.success) {
+      throw new Error(emailResult.error || 'Email 發送失敗');
+    }
+
+    console.log(`✅ 邀請 Email 已發送給 ${friendEmail}`);
+
+    res.json({
+      message: '邀請已成功發送！',
+      success: true,
+      details: {
+        to: friendEmail,
+        from: inviter.display_name,
+        sentAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('API 錯誤 (POST /invite/email):', error);
+    res.status(500).json({
+      error: '伺服器錯誤',
+      message: error.message || '發送邀請時發生錯誤'
+    });
+  }
+});
+
 /**
  * GET /api/groups/test
  * 測試路由
@@ -694,6 +775,7 @@ router.get('/test', (req, res) => {
       removeMember: 'DELETE /api/groups/:groupId/members/:memberId',
       messages: 'GET /api/groups/:groupId/messages',
       sendMessage: 'POST /api/groups/:groupId/messages',
+      inviteEmail: 'POST /api/invite/email',
     },
   });
 });

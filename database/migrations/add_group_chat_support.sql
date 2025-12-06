@@ -39,7 +39,17 @@ DROP POLICY IF EXISTS "Group members can send group messages" ON public.chat_mes
 ALTER TABLE IF EXISTS public.chat_messages DROP CONSTRAINT IF EXISTS check_message_type;
 ALTER TABLE IF EXISTS public.chat_messages DROP CONSTRAINT IF EXISTS chat_messages_group_id_fkey;
 
--- 1.7 刪除群組相關表格（依相依性順序）
+-- 1.7 刪除索引（如果存在）
+DROP INDEX IF EXISTS public.idx_chat_messages_group;
+DROP INDEX IF EXISTS public.idx_chat_groups_created_by;
+DROP INDEX IF EXISTS public.idx_chat_groups_active;
+DROP INDEX IF EXISTS public.idx_group_members_group;
+DROP INDEX IF EXISTS public.idx_group_members_user;
+DROP INDEX IF EXISTS public.idx_group_members_role;
+DROP INDEX IF EXISTS public.idx_group_invites_invitee;
+DROP INDEX IF EXISTS public.idx_group_invites_group;
+
+-- 1.8 刪除群組相關表格（依相依性順序）
 DROP TABLE IF EXISTS public.chat_group_invites CASCADE;
 DROP TABLE IF EXISTS public.chat_group_members CASCADE;
 DROP TABLE IF EXISTS public.chat_groups CASCADE;
@@ -154,18 +164,29 @@ CREATE INDEX idx_group_invites_group ON public.chat_group_invites(group_id, stat
 -- 4.1 新增 group_id 欄位
 ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS group_id UUID;
 
--- 4.2 修改 receiver_id 為可選（群組訊息不需要 receiver_id）
+-- 4.2 清理無效的 group_id 資料（在新增外鍵約束前）
+-- 這是為了處理可能已存在的孤立資料
+UPDATE public.chat_messages SET group_id = NULL WHERE group_id IS NOT NULL;
+
+-- 4.3 修改 receiver_id 為可選（群組訊息不需要 receiver_id）
 ALTER TABLE public.chat_messages ALTER COLUMN receiver_id DROP NOT NULL;
 
--- 4.3 新增外鍵約束
+-- 4.3.1 修復違反檢查約束的資料
+-- 確保所有訊息都符合：receiver_id 和 group_id 其中一個必須有值，但不能兩者都有或都沒有
+-- 刪除兩者都是 NULL 的無效訊息
+DELETE FROM public.chat_messages WHERE receiver_id IS NULL AND group_id IS NULL;
+-- 如果有兩者都不是 NULL 的記錄，將 group_id 設為 NULL（保留為一對一訊息）
+UPDATE public.chat_messages SET group_id = NULL WHERE receiver_id IS NOT NULL AND group_id IS NOT NULL;
+
+-- 4.4 新增外鍵約束
 ALTER TABLE public.chat_messages
 ADD CONSTRAINT chat_messages_group_id_fkey
 FOREIGN KEY (group_id) REFERENCES public.chat_groups(id) ON DELETE CASCADE;
 
--- 4.4 新增群組訊息索引
+-- 4.5 新增群組訊息索引
 CREATE INDEX idx_chat_messages_group ON public.chat_messages(group_id, created_at DESC) WHERE group_id IS NOT NULL;
 
--- 4.5 新增檢查約束：訊息必須是一對一或群組訊息（不能兩者都是）
+-- 4.6 新增檢查約束：訊息必須是一對一或群組訊息（不能兩者都是）
 ALTER TABLE public.chat_messages
 ADD CONSTRAINT check_message_type
 CHECK (

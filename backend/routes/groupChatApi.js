@@ -758,6 +758,128 @@ router.post('/invite/email', async (req, res) => {
 });
 
 /**
+ * GET /api/test-email
+ * 測試 Email 設定和發送功能
+ */
+router.get('/test-email', async (req, res) => {
+  try {
+    // 檢查環境變數
+    const hasApiKey = !!process.env.RESEND_API_KEY;
+    const hasFromEmail = !!process.env.RESEND_FROM_EMAIL;
+    const apiKeyPrefix = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 10) : 'NOT_SET';
+
+    const config = {
+      RESEND_API_KEY: hasApiKey ? `${apiKeyPrefix}...` : '❌ 未設定',
+      RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || '❌ 未設定',
+      status: hasApiKey && hasFromEmail ? '✅ 設定完成' : '❌ 設定不完整'
+    };
+
+    res.json({
+      message: 'Email 設定檢查',
+      config,
+      instructions: {
+        step1: '確認 RESEND_API_KEY 已設定（格式：re_xxxxx）',
+        step2: '確認 RESEND_FROM_EMAIL 已設定（建議：onboarding@resend.dev）',
+        step3: '如果使用測試域名，需要在 Resend 驗證收件者 Email',
+        testEndpoint: 'POST /api/test-email-send'
+      }
+    });
+
+  } catch (error) {
+    console.error('檢查 Email 設定失敗:', error);
+    res.status(500).json({ error: '檢查失敗', message: error.message });
+  }
+});
+
+/**
+ * POST /api/test-email-send
+ * 發送測試 Email
+ */
+router.post('/test-email-send', async (req, res) => {
+  try {
+    const { to } = req.body;
+
+    if (!to) {
+      return res.status(400).json({
+        error: '缺少參數',
+        message: '請提供收件者 Email (to)',
+      });
+    }
+
+    // 驗證 Email 格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      return res.status(400).json({
+        error: 'Email 格式不正確',
+        message: '請輸入有效的 Email 地址',
+      });
+    }
+
+    // 檢查環境變數
+    if (!process.env.RESEND_API_KEY) {
+      return res.status(500).json({
+        error: 'Email 服務未設定',
+        message: 'RESEND_API_KEY 環境變數未設定',
+        fix: '請在 Render Dashboard 設定 RESEND_API_KEY'
+      });
+    }
+
+    if (!process.env.RESEND_FROM_EMAIL) {
+      return res.status(500).json({
+        error: 'Email 服務未設定',
+        message: 'RESEND_FROM_EMAIL 環境變數未設定',
+        fix: '請在 Render Dashboard 設定 RESEND_FROM_EMAIL=onboarding@resend.dev'
+      });
+    }
+
+    // 動態導入 emailNotificationService
+    const { sendTestEmail } = await import('../services/emailNotificationService.js');
+
+    console.log(`📧 發送測試 Email 到: ${to}`);
+
+    // 發送測試 Email
+    const result = await sendTestEmail(to);
+
+    if (!result.success) {
+      return res.status(500).json({
+        error: 'Email 發送失敗',
+        message: result.error,
+        troubleshooting: {
+          step1: '檢查 RESEND_API_KEY 是否正確',
+          step2: '如果使用 onboarding@resend.dev，需要在 Resend 驗證收件者',
+          step3: '查看 Render Logs 取得詳細錯誤訊息'
+        }
+      });
+    }
+
+    console.log('✅ 測試 Email 發送成功');
+
+    res.json({
+      success: true,
+      message: '測試 Email 已發送！',
+      details: {
+        to: to,
+        from: process.env.RESEND_FROM_EMAIL,
+        sentAt: new Date().toISOString()
+      },
+      nextSteps: [
+        '1. 檢查您的信箱（包含垃圾郵件資料夾）',
+        '2. 如果沒收到，檢查 Render Logs',
+        '3. 確認在 Resend Dashboard 已驗證收件者 Email'
+      ]
+    });
+
+  } catch (error) {
+    console.error('❌ 發送測試 Email 失敗:', error);
+    res.status(500).json({
+      error: '伺服器錯誤',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+/**
  * GET /api/groups/test
  * 測試路由
  */
@@ -776,6 +898,8 @@ router.get('/test', (req, res) => {
       messages: 'GET /api/groups/:groupId/messages',
       sendMessage: 'POST /api/groups/:groupId/messages',
       inviteEmail: 'POST /api/invite/email',
+      testEmail: 'GET /api/test-email',
+      testEmailSend: 'POST /api/test-email-send',
     },
   });
 });

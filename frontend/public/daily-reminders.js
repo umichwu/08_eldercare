@@ -128,8 +128,8 @@ function switchTab(tabName) {
     content.classList.remove('active');
   });
 
-  // 顯示對應內容
-  const tabContent = document.getElementById(`${tabName}Tab`);
+  // 顯示對應內容（HTML 使用 "today-tab" 格式，需要轉換）
+  const tabContent = document.getElementById(`${tabName}-tab`);
   if (tabContent) {
     tabContent.classList.add('active');
   }
@@ -238,7 +238,7 @@ function updateTodaySummary(logs) {
 }
 
 function displayTodayReminders(logs) {
-  const container = document.getElementById('todayRemindersList');
+  const container = document.getElementById('todayReminderList');
 
   if (logs.length === 0) {
     container.innerHTML = '<div class="empty-state">📅 今日沒有提醒事項</div>';
@@ -867,7 +867,7 @@ async function skipReminder(logId) {
 // ==================== 統計分析 ====================
 async function loadStatistics() {
   try {
-    const days = document.getElementById('statsDays')?.value || 7;
+    const days = 7; // 預設 7 天
     const response = await fetch(
       `${getApiBaseUrl()}/api/daily-reminder-logs/statistics/${currentElderId}?days=${days}`,
       { headers: getAuthHeaders() }
@@ -878,8 +878,10 @@ async function loadStatistics() {
     const result = await response.json();
     const stats = result.data;
 
+    // 更新統計卡片
+    updateStatsCards(stats.overall);
+
     // 渲染圖表
-    renderCompletionChart(stats.overall);
     renderCategoryChart(stats.by_category);
     renderTrendChart(stats.daily_trend);
   } catch (error) {
@@ -888,43 +890,19 @@ async function loadStatistics() {
   }
 }
 
-function renderCompletionChart(overallStats) {
-  const ctx = document.getElementById('completionChart');
-  if (!ctx) return;
+function updateStatsCards(overallStats) {
+  const statsTotal = document.getElementById('statsTotal');
+  const statsCompleted = document.getElementById('statsCompleted');
+  const statsMissed = document.getElementById('statsMissed');
+  const statsRate = document.getElementById('statsRate');
 
-  if (completionChart) {
-    completionChart.destroy();
-  }
-
-  completionChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['已完成', '待執行', '已錯過', '已跳過'],
-      datasets: [{
-        data: [
-          overallStats.completed,
-          overallStats.pending,
-          overallStats.missed,
-          overallStats.skipped
-        ],
-        backgroundColor: ['#38ef7d', '#667eea', '#ff6b6b', '#ffc107']
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        },
-        title: {
-          display: true,
-          text: `完成率: ${overallStats.completion_rate}%`
-        }
-      }
-    }
-  });
+  if (statsTotal) statsTotal.textContent = overallStats.total || 0;
+  if (statsCompleted) statsCompleted.textContent = overallStats.completed || 0;
+  if (statsMissed) statsMissed.textContent = overallStats.missed || 0;
+  if (statsRate) statsRate.textContent = `${overallStats.completion_rate || 0}%`;
 }
+
+// renderCompletionChart 已移除，改用統計卡片顯示
 
 function renderCategoryChart(categoryStats) {
   const ctx = document.getElementById('categoryChart');

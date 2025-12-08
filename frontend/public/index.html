@@ -809,26 +809,32 @@
 
             if (profile.role === 'family_member' || profile.role === 'family') {
                 userType = 'family_member';
-                userId = profile.family_member_id;
+                // 優先使用 family_member_id，如果為空則使用 profile.id
+                userId = profile.family_member_id || profile.id;
             } else if (profile.role === 'elder') {
                 userType = 'elder';
-                userId = profile.elder_id;
+                // 優先使用 elder_id，如果為空則使用 profile.id
+                userId = profile.elder_id || profile.id;
             } else if (profile.role === 'both') {
                 // 如果是兩者都是，優先使用 elder
                 userType = 'elder';
-                userId = profile.elder_id;
+                userId = profile.elder_id || profile.id;
+            } else {
+                // 未知角色，使用 profile.id 並設定為 elder
+                console.warn('⚠️ 未知角色，使用預設值');
+                userType = 'elder';
+                userId = profile.id;
             }
 
             if (!userId) {
                 console.error('❌ 無法取得使用者 ID');
                 console.error('📊 Profile 資訊:', profile);
-                console.error('ℹ️  可能原因：');
-                console.error('   1. role 欄位值不正確（當前: ' + profile.role + '）');
-                console.error('   2. elder_id 或 family_member_id 為 null');
-                console.error('   3. onboarding 未完成或資料不完整');
+                console.error('ℹ️  可能原因：profile.id 也為 null');
                 console.error('💡 建議：請重新完成 onboarding 流程');
                 return false;
             }
+
+            console.log('✅ 使用者 ID 已確定:', userId, '(類型:', userType + ')');
 
             // 取得裝置資訊
             const deviceInfo = {

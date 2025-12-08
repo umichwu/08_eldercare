@@ -93,12 +93,12 @@ export async function createDailyReminder(reminderData) {
       };
     }
 
-    // 驗證類別是否存在
+    // 驗證類別是否存在（使用 category_key 或 id）
     const sb = getSupabase();
     const { data: categoryExists, error: categoryError } = await sb
       .from('reminder_categories')
-      .select('id')
-      .eq('id', category)
+      .select('id, category_key')
+      .or(`id.eq.${category},category_key.eq.${category}`)
       .single();
 
     if (categoryError || !categoryExists) {

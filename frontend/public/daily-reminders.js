@@ -590,35 +590,50 @@ async function handleReminderSubmit(e) {
     return;
   }
 
+  const title = document.getElementById('title')?.value;
+  if (!title) {
+    showError('請輸入提醒標題');
+    return;
+  }
+
   // 收集所有時間輸入
   const timeInputs = document.querySelectorAll('.time-input');
-  const reminderTime = timeInputs.length > 0 ? timeInputs[0].value : null;
+  if (timeInputs.length === 0) {
+    showError('請設定提醒時間');
+    return;
+  }
 
+  const reminderTime = timeInputs[0].value;
   if (!reminderTime) {
     showError('請設定提醒時間');
     return;
   }
 
+  // 將時間轉換為 cron 表達式（每日提醒）
+  const [hours, minutes] = reminderTime.split(':');
+  const cronSchedule = `${minutes} ${hours} * * *`; // 分 時 日 月 週
+
+  // 準備後端期望的資料格式
   const formData = {
-    elder_id: currentElderId,
-    title: document.getElementById('title')?.value || '',
-    description: document.getElementById('description')?.value || '',
+    elderId: currentElderId, // 後端使用 elderId 而非 elder_id
     category: category,
-    reminder_time: reminderTime,
-    recurrence_pattern: 'daily', // 預設每日
-    category_data: getCategorySpecificData(category),
-    reminder_note: document.getElementById('reminderNote')?.value || null
+    title: title,
+    description: document.getElementById('description')?.value || null,
+    reminderNote: document.getElementById('reminderNote')?.value || null,
+    cronSchedule: cronSchedule, // 必填
+    timezone: 'Asia/Taipei',
+    reminderTimes: { times: [reminderTime] }, // 修正：必須是物件格式 { times: [...] }
+    isEnabled: true,
+    notificationMethods: ['push', 'email'],
+    categorySpecificData: getCategorySpecificData(category), // 改為 categorySpecificData
+    notifyFamilyIfMissed: false,
+    missedThresholdMinutes: 30,
+    startDate: null,
+    endDate: null,
+    isTemporary: false
   };
 
-  // 處理重複天數
-  const pattern = formData.recurrence_pattern;
-  if (pattern === 'weekly' || pattern === 'custom') {
-    const days = Array.from(document.querySelectorAll('input[name="recurrence_days"]:checked'))
-      .map(cb => parseInt(cb.value));
-    if (days.length > 0) {
-      formData.recurrence_days = days;
-    }
-  }
+  console.log('📤 發送資料到後端:', formData);
 
   try {
     const url = editingReminderId
@@ -633,14 +648,24 @@ async function handleReminderSubmit(e) {
       body: JSON.stringify(formData)
     });
 
-    if (!response.ok) throw new Error('儲存失敗');
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ 後端回應錯誤:', errorData);
+      throw new Error(errorData.message || errorData.error || '儲存失敗');
+    }
+
+    const result = await response.json();
+    console.log('✅ 提醒建立成功:', result);
 
     showSuccess(editingReminderId ? '提醒已更新' : '提醒已建立');
     closeReminderModal();
+
+    // 切換到所有提醒標籤並重新載入
+    switchTab('all');
     loadAllReminders();
   } catch (error) {
-    console.error('儲存提醒失敗:', error);
-    showError('儲存提醒失敗');
+    console.error('❌ 儲存提醒失敗:', error);
+    showError('儲存提醒失敗: ' + error.message);
   }
 }
 

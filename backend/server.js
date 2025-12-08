@@ -13,8 +13,10 @@ import alertsRouter from './routes/alertsApi.js';
 import uploadRouter from './routes/uploadApi.js';
 import groupChatRouter from './routes/groupChatApi.js';
 import profileRouter from './routes/profileApi.js';
+import dailyReminderRouter from './routes/dailyReminderApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
+import { startDailyReminderScheduler } from './services/dailyReminderScheduler.js';
 
 // 取得當前檔案的目錄（ES Module 需要）
 const __filename = fileURLToPath(import.meta.url);
@@ -92,6 +94,7 @@ app.use('/api/alerts', alertsRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api', groupChatRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api', dailyReminderRouter);
 
 // 根路由
 app.get('/', (req, res) => {
@@ -187,14 +190,37 @@ app.listen(PORT, HOST, () => {
   console.log(`   GET  /api/geolocation/alerts/elder/:id        - 取得警示記錄`);
   console.log(`   POST /api/geolocation/alerts/sos              - 緊急求助`);
   console.log('');
+  console.log('生活提醒端點:');
+  console.log(`   POST /api/daily-reminders                     - 建立生活提醒`);
+  console.log(`   GET  /api/daily-reminders/elder/:elderId      - 取得長輩提醒`);
+  console.log(`   GET  /api/daily-reminders/:id                 - 取得提醒詳情`);
+  console.log(`   PUT  /api/daily-reminders/:id                 - 更新提醒`);
+  console.log(`   DEL  /api/daily-reminders/:id                 - 刪除提醒`);
+  console.log(`   POST /api/daily-reminders/:id/toggle          - 暫停/恢復提醒`);
+  console.log(`   POST /api/daily-reminders/quick-create        - 快速建立提醒`);
+  console.log(`   GET  /api/daily-reminder-logs/today/:id       - 今日提醒記錄`);
+  console.log(`   POST /api/daily-reminder-logs/:id/confirm     - 確認完成`);
+  console.log(`   POST /api/daily-reminder-logs/:id/skip        - 跳過提醒`);
+  console.log(`   GET  /api/daily-reminder-logs/statistics/:id  - 提醒統計`);
+  console.log(`   GET  /api/reminder-categories                 - 提醒類別`);
+  console.log('');
   console.log('='.repeat(60));
   console.log('');
 
   // 啟動用藥提醒排程器
   try {
     startMedicationScheduler();
+    console.log('✅ 用藥提醒排程器已啟動');
   } catch (error) {
-    console.error('❌ 啟動排程器失敗:', error.message);
+    console.error('❌ 啟動用藥排程器失敗:', error.message);
+  }
+
+  // 啟動生活提醒排程器
+  try {
+    startDailyReminderScheduler();
+    console.log('✅ 生活提醒排程器已啟動');
+  } catch (error) {
+    console.error('❌ 啟動生活提醒排程器失敗:', error.message);
   }
 });
 

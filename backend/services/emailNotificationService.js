@@ -683,9 +683,179 @@ function getInvitationEmailContent(language, data) {
   return templates[language] || templates['zh-TW'];
 }
 
+/**
+ * 發送生活提醒 Email
+ *
+ * @param {Object} reminderData - 提醒資料
+ * @returns {Promise<Object>} { success: boolean, messageId: string, error: string }
+ */
+export async function sendDailyReminderEmail(reminderData) {
+  try {
+    const {
+      to,
+      elderName,
+      category,
+      categoryName,
+      categoryIcon,
+      title,
+      description,
+      reminderNote,
+      scheduledTime,
+      categorySpecificData,
+      language = 'zh-TW'
+    } = reminderData;
+
+    const scheduledDate = new Date(scheduledTime);
+    const formattedTime = scheduledDate.toLocaleTimeString('zh-TW', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    // 根據類別產生特定內容
+    let additionalInfo = '';
+    if (categorySpecificData) {
+      switch (category) {
+        case 'water':
+          additionalInfo = `<p>🎯 目標水量：${categorySpecificData.targetAmount || 250} ${categorySpecificData.unit || 'ml'}</p>`;
+          break;
+        case 'exercise':
+          additionalInfo = `<p>🎯 運動類型：${categorySpecificData.exerciseType === 'walking' ? '散步' : '運動'}</p>
+                           <p>⏱️  建議時長：${categorySpecificData.targetDuration || 30} 分鐘</p>`;
+          break;
+        case 'meal':
+          additionalInfo = `<p>🍽️  用餐時段：${categorySpecificData.mealType === 'breakfast' ? '早餐' : categorySpecificData.mealType === 'lunch' ? '午餐' : categorySpecificData.mealType === 'dinner' ? '晚餐' : '點心'}</p>
+                           <p>📝 ${categorySpecificData.timing === 'before' ? '飯前' : '飯後'}</p>`;
+          break;
+        case 'sleep':
+          additionalInfo = `<p>🛏️  建議就寢時間：${categorySpecificData.targetTime || '22:00'}</p>`;
+          break;
+        case 'appointment':
+          additionalInfo = `<p>🏥 醫院：${categorySpecificData.hospital || '（未設定）'}</p>
+                           <p>👨‍⚕️ 醫生：${categorySpecificData.doctor || '（未設定）'}</p>`;
+          break;
+      }
+    }
+
+    const msg = {
+      to,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL,
+        name: '長輩照護系統 - 生活提醒'
+      },
+      subject: `${categoryIcon} ${categoryName}提醒 - ${title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body {
+              font-family: 'Microsoft JhengHei', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 30px;
+              border-radius: 10px 10px 0 0;
+              text-align: center;
+            }
+            .icon {
+              font-size: 48px;
+              margin-bottom: 10px;
+            }
+            .content {
+              background: #ffffff;
+              padding: 30px;
+              border: 2px solid #e0e0e0;
+              border-top: none;
+              border-radius: 0 0 10px 10px;
+            }
+            .reminder-box {
+              background: #f8f9fa;
+              padding: 20px;
+              border-left: 4px solid #667eea;
+              margin: 20px 0;
+              border-radius: 5px;
+            }
+            .time {
+              font-size: 24px;
+              font-weight: bold;
+              color: #667eea;
+              margin: 10px 0;
+            }
+            .info {
+              margin: 15px 0;
+              padding: 10px;
+              background: #e8f5e9;
+              border-radius: 5px;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              color: #666;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="icon">${categoryIcon}</div>
+            <h1>${categoryName}提醒</h1>
+            <p>親愛的 ${elderName}，該${categoryName}囉！</p>
+          </div>
+          <div class="content">
+            <div class="reminder-box">
+              <h2>${title}</h2>
+              ${description ? `<p>${description}</p>` : ''}
+              ${reminderNote ? `<p style="color: #667eea; font-weight: bold;">💡 ${reminderNote}</p>` : ''}
+            </div>
+
+            <div class="time">
+              ⏰ 提醒時間：${formattedTime}
+            </div>
+
+            ${additionalInfo ? `<div class="info">${additionalInfo}</div>` : ''}
+
+            <p style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+              📱 請記得在 App 中確認完成，讓家人放心！
+            </p>
+          </div>
+
+          <div class="footer">
+            <p>此郵件由長輩照護系統自動發送</p>
+            <p>如有問題，請聯繫您的家人或照護人員</p>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    const result = await sg.send(msg);
+
+    console.log(`✅ 生活提醒 Email 已發送: ${to} (${categoryName})`);
+    return {
+      success: true,
+      messageId: result[0].headers['x-message-id']
+    };
+  } catch (error) {
+    console.error('❌ 發送生活提醒 Email 失敗:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 export default {
   sendMedicationReminderEmail,
   sendMissedMedicationAlert,
   sendTestEmail,
-  sendAppInvitationEmail
+  sendAppInvitationEmail,
+  sendDailyReminderEmail
 };

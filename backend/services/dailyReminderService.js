@@ -93,15 +93,16 @@ export async function createDailyReminder(reminderData) {
       };
     }
 
-    // 驗證類別是否存在（使用 category_key 或 id）
+    // 驗證類別是否存在
     const sb = getSupabase();
     const { data: categoryExists, error: categoryError } = await sb
       .from('reminder_categories')
-      .select('id, category_key')
-      .or(`id.eq.${category},category_key.eq.${category}`)
+      .select('id')
+      .eq('id', category)
       .single();
 
     if (categoryError || !categoryExists) {
+      console.error('❌ 類別驗證失敗:', categoryError);
       return {
         success: false,
         error: `無效的提醒類別: ${category}`,

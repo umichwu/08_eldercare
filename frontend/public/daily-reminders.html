@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生活提醒 - ElderCare</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles-modern.css">
+    <link rel="stylesheet" href="mobile-modern.css">
+    <link rel="stylesheet" href="daily-reminders.css">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- 全域快捷鍵 -->
+    <script src="keyboard-shortcuts.js"></script>
+
+    <!-- 麵包屑導航 -->
+    <script src="breadcrumb-navigation.js"></script>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <nav class="top-nav">
+        <button class="nav-back" onclick="window.location.href='index.html'">
+            ← 返回
+        </button>
+        <h1 class="nav-title">🔔 生活提醒</h1>
+        <div style="display: flex; gap: 8px;">
+            <button class="nav-notification-test" onclick="testNotification()" title="測試推送通知">
+                🔔
+            </button>
+            <button class="nav-settings" onclick="showSettings()">
+                ⚙️
+            </button>
+        </div>
+    </nav>
+
+    <!-- 通知權限提示橫幅 -->
+    <div id="notificationBanner" class="notification-banner" style="display: none;">
+        <div class="banner-content">
+            <span class="banner-icon">🔔</span>
+            <div class="banner-text">
+                <strong>開啟通知權限</strong>
+                <p>請允許瀏覽器通知，以便在提醒時間收到通知</p>
+            </div>
+            <button class="banner-btn" onclick="requestNotificationPermission()">立即開啟</button>
+            <button class="banner-close" onclick="closeBanner()">✕</button>
+        </div>
+    </div>
+
+    <!-- 主要內容 -->
+    <div class="reminder-container">
+        <!-- 標籤切換 -->
+        <div class="tab-container">
+            <button class="tab-btn active" data-tab="today" onclick="switchTab('today')">
+                📅 今日提醒
+            </button>
+            <button class="tab-btn" data-tab="all" onclick="switchTab('all')">
+                📋 所有提醒
+            </button>
+            <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')">
+                📊 統計分析
+            </button>
+        </div>
+
+        <!-- 今日提醒標籤 -->
+        <div id="today-tab" class="tab-content active">
+            <!-- 日期選擇器 -->
+            <div class="date-selector">
+                <button class="date-nav-btn" onclick="changeDate(-1)">
+                    ◀
+                </button>
+                <div class="current-date">
+                    <span id="displayDate"></span>
+                    <span id="displayWeekday" class="weekday"></span>
+                </div>
+                <button class="date-nav-btn" onclick="changeDate(1)">
+                    ▶
+                </button>
+                <button class="today-btn" onclick="goToToday()">
+                    今天
+                </button>
+            </div>
+
+            <!-- 類別篩選器 -->
+            <div class="category-filter">
+                <button class="filter-btn active" data-category="all" onclick="filterByCategory('all')">
+                    全部
+                </button>
+                <button class="filter-btn" data-category="water" onclick="filterByCategory('water')">
+                    💧 喝水
+                </button>
+                <button class="filter-btn" data-category="meal" onclick="filterByCategory('meal')">
+                    🍽️ 飲食
+                </button>
+                <button class="filter-btn" data-category="exercise" onclick="filterByCategory('exercise')">
+                    🏃 運動
+                </button>
+                <button class="filter-btn" data-category="medication" onclick="filterByCategory('medication')">
+                    💊 用藥
+                </button>
+                <button class="filter-btn" data-category="appointment" onclick="filterByCategory('appointment')">
+                    🏥 回診
+                </button>
+                <button class="filter-btn" data-category="sleep" onclick="filterByCategory('sleep')">
+                    😴 睡眠
+                </button>
+            </div>
+
+            <!-- 今日完成度摘要 -->
+            <div class="today-summary">
+                <div class="summary-card">
+                    <div class="summary-number" id="todayTotal">0</div>
+                    <div class="summary-label">總提醒</div>
+                </div>
+                <div class="summary-card completed">
+                    <div class="summary-number" id="todayCompleted">0</div>
+                    <div class="summary-label">已完成</div>
+                </div>
+                <div class="summary-card pending">
+                    <div class="summary-number" id="todayPending">0</div>
+                    <div class="summary-label">待處理</div>
+                </div>
+                <div class="summary-card missed">
+                    <div class="summary-number" id="todayMissed">0</div>
+                    <div class="summary-label">已錯過</div>
+                </div>
+            </div>
+
+            <!-- 今日提醒列表 -->
+            <div class="reminder-list" id="todayReminderList">
+                <!-- 動態載入 -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>載入中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 所有提醒標籤 -->
+        <div id="all-tab" class="tab-content">
+            <!-- 快速新增區域 -->
+            <div class="quick-add-section">
+                <h3 class="section-title">🎯 快速建立常用提醒</h3>
+                <div class="quick-templates">
+                    <button class="template-btn" onclick="createQuickReminder('water-morning')">
+                        <span class="template-icon">💧</span>
+                        <span class="template-text">早上喝水<br><small>08:00</small></span>
+                    </button>
+                    <button class="template-btn" onclick="createQuickReminder('water-noon')">
+                        <span class="template-icon">💧</span>
+                        <span class="template-text">中午喝水<br><small>12:00</small></span>
+                    </button>
+                    <button class="template-btn" onclick="createQuickReminder('water-evening')">
+                        <span class="template-icon">💧</span>
+                        <span class="template-text">晚上喝水<br><small>18:00</small></span>
+                    </button>
+                    <button class="template-btn" onclick="createQuickReminder('exercise-afternoon')">
+                        <span class="template-icon">🏃</span>
+                        <span class="template-text">下午散步<br><small>15:00</small></span>
+                    </button>
+                    <button class="template-btn" onclick="createQuickReminder('sleep-night')">
+                        <span class="template-icon">😴</span>
+                        <span class="template-text">就寢提醒<br><small>22:00</small></span>
+                    </button>
+                    <button class="template-btn custom" onclick="showAddReminderForm()">
+                        <span class="template-icon">➕</span>
+                        <span class="template-text">自訂提醒</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 提醒列表 -->
+            <div class="all-reminders-section">
+                <h3 class="section-title">📋 我的提醒設定</h3>
+                <div class="reminder-settings-list" id="allRemindersList">
+                    <!-- 動態載入 -->
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>載入中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計標籤 -->
+        <div id="stats-tab" class="tab-content">
+            <!-- 時間範圍選擇器 -->
+            <div class="stats-controls">
+                <label for="statsRange">統計範圍：</label>
+                <select id="statsRange" onchange="loadStatistics()">
+                    <option value="7">最近 7 天</option>
+                    <option value="14">最近 14 天</option>
+                    <option value="30" selected>最近 30 天</option>
+                </select>
+            </div>
+
+            <!-- 總體統計 -->
+            <div class="stats-summary">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="statsTotal">0</div>
+                        <div class="stat-label">總提醒次數</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="statsCompleted">0</div>
+                        <div class="stat-label">已完成</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="statsMissed">0</div>
+                        <div class="stat-label">已錯過</div>
+                    </div>
+                </div>
+                <div class="stat-card highlight">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="statsRate">0%</div>
+                        <div class="stat-label">完成率</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 圖表區域 -->
+            <div class="chart-section">
+                <h3 class="section-title">📈 每日完成趨勢</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3 class="section-title">🎯 類別完成率</h3>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 類別詳細統計 -->
+            <div class="category-stats-section">
+                <h3 class="section-title">📊 各類別統計</h3>
+                <div id="categoryStatsList" class="category-stats-list">
+                    <!-- 動態載入 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 浮動新增按鈕 -->
+    <button class="fab" onclick="showAddReminderForm()" title="新增提醒">
+        ➕
+    </button>
+
+    <!-- 新增/編輯提醒對話框 -->
+    <div id="reminderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">新增提醒</h2>
+                <button class="modal-close" onclick="closeReminderModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="reminderForm">
+                    <input type="hidden" id="reminderId" name="reminderId">
+
+                    <!-- 類別選擇 -->
+                    <div class="form-group">
+                        <label for="category">提醒類別 *</label>
+                        <div class="category-select">
+                            <button type="button" class="category-option" data-category="water" onclick="selectCategory('water')">
+                                <span class="cat-icon">💧</span>
+                                <span class="cat-name">喝水</span>
+                            </button>
+                            <button type="button" class="category-option" data-category="meal" onclick="selectCategory('meal')">
+                                <span class="cat-icon">🍽️</span>
+                                <span class="cat-name">飲食</span>
+                            </button>
+                            <button type="button" class="category-option" data-category="exercise" onclick="selectCategory('exercise')">
+                                <span class="cat-icon">🏃</span>
+                                <span class="cat-name">運動</span>
+                            </button>
+                            <button type="button" class="category-option" data-category="medication" onclick="selectCategory('medication')">
+                                <span class="cat-icon">💊</span>
+                                <span class="cat-name">用藥</span>
+                            </button>
+                            <button type="button" class="category-option" data-category="appointment" onclick="selectCategory('appointment')">
+                                <span class="cat-icon">🏥</span>
+                                <span class="cat-name">回診</span>
+                            </button>
+                            <button type="button" class="category-option" data-category="sleep" onclick="selectCategory('sleep')">
+                                <span class="cat-icon">😴</span>
+                                <span class="cat-name">睡眠</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="category" name="category" required>
+                    </div>
+
+                    <!-- 標題 -->
+                    <div class="form-group">
+                        <label for="title">提醒標題 *</label>
+                        <input type="text" id="title" name="title" placeholder="例如：早上喝水" required>
+                    </div>
+
+                    <!-- 說明 -->
+                    <div class="form-group">
+                        <label for="description">詳細說明</label>
+                        <textarea id="description" name="description" rows="3" placeholder="補充說明（選填）"></textarea>
+                    </div>
+
+                    <!-- 溫馨提示 -->
+                    <div class="form-group">
+                        <label for="reminderNote">溫馨提示</label>
+                        <input type="text" id="reminderNote" name="reminderNote" placeholder="例如：記得補充水分喔！">
+                    </div>
+
+                    <!-- 時間設定 -->
+                    <div class="form-group">
+                        <label for="reminderTimes">提醒時間 *</label>
+                        <div id="timeInputs" class="time-inputs">
+                            <div class="time-input-row">
+                                <input type="time" class="time-input" value="08:00" required>
+                                <button type="button" class="remove-time-btn" onclick="removeTimeInput(this)" style="display: none;">✕</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-time-btn" onclick="addTimeInput()">+ 新增時間</button>
+                    </div>
+
+                    <!-- 類別特定設定 -->
+                    <div id="categorySpecificFields" class="category-specific-fields">
+                        <!-- 根據類別動態顯示 -->
+                    </div>
+
+                    <!-- 進階設定 -->
+                    <div class="form-group">
+                        <button type="button" class="toggle-advanced" onclick="toggleAdvancedSettings()">
+                            <span id="advancedToggleIcon">▶</span> 進階設定
+                        </button>
+                        <div id="advancedSettings" class="advanced-settings" style="display: none;">
+                            <!-- 通知方式 -->
+                            <div class="form-check-group">
+                                <label>通知方式：</label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="notificationMethods" value="push" checked>
+                                    推送通知
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="notificationMethods" value="email">
+                                    Email 通知
+                                </label>
+                            </div>
+
+                            <!-- 家屬通知 -->
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="notifyFamilyIfMissed" name="notifyFamilyIfMissed">
+                                錯過提醒時通知家屬
+                            </label>
+
+                            <!-- 有效期間 -->
+                            <div class="date-range">
+                                <label for="startDate">開始日期</label>
+                                <input type="date" id="startDate" name="startDate">
+
+                                <label for="endDate">結束日期</label>
+                                <input type="date" id="endDate" name="endDate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 按鈕 -->
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeReminderModal()">取消</button>
+                        <button type="submit" class="btn-primary">儲存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認完成對話框 -->
+    <div id="confirmModal" class="modal" style="display: none;">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2 id="confirmTitle">確認完成</h2>
+                <button class="modal-close" onclick="closeConfirmModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="confirmContent">
+                    <!-- 根據類別動態顯示輸入欄位 -->
+                </div>
+                <div class="form-group">
+                    <label for="confirmNotes">備註（選填）</label>
+                    <textarea id="confirmNotes" rows="2" placeholder="輸入備註..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeConfirmModal()">取消</button>
+                    <button type="button" class="btn-primary" onclick="submitConfirmation()">確認完成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="daily-reminders.js"></script>
+</body>
+</html>

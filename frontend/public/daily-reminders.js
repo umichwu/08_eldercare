@@ -22,9 +22,9 @@ let trendChart = null;
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // 初始化 Supabase
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // 替換為實際 URL
-    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'; // 替換為實際 Key
+    // 初始化 Supabase（使用與 index.html 相同的配置）
+    const SUPABASE_URL = 'https://oatdjdelzybcacwqafkk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hdGRqZGVsenliY2Fjd3FhZmtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDM5ODUsImV4cCI6MjA3Njc3OTk4NX0.Flk-9yHREG7gWr1etG-TEc2ufPjP-zvW2Ejd2gCqG4w';
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // 檢查使用者登入狀態
@@ -941,7 +941,8 @@ function renderTrendChart(dailyTrend) {
 
 // ==================== 工具函式 ====================
 function getApiBaseUrl() {
-  return 'https://your-backend-url.com'; // 替換為實際後端 URL
+  // 使用全域配置中的 API URL
+  return window.APP_CONFIG?.API_BASE_URL || 'https://eldercare-backend-8o4k.onrender.com';
 }
 
 function getAuthHeaders() {

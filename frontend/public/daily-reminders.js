@@ -67,23 +67,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ==================== 事件監聽器 ====================
 function initEventListeners() {
   // 表單提交
-  document.getElementById('reminderForm').addEventListener('submit', handleReminderSubmit);
+  const reminderForm = document.getElementById('reminderForm');
+  if (reminderForm) {
+    reminderForm.addEventListener('submit', handleReminderSubmit);
+  }
 
-  // 確認表單提交
-  document.getElementById('confirmForm').addEventListener('submit', handleConfirmSubmit);
-
-  // 模態視窗關閉
+  // 模態視窗關閉（點擊背景）
   document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         modal.style.display = 'none';
       }
     });
-  });
-
-  // 類別選擇變更
-  document.getElementById('reminderCategory').addEventListener('change', (e) => {
-    selectCategory(e.target.value);
   });
 }
 
@@ -99,16 +94,20 @@ async function loadReminderCategories() {
     const result = await response.json();
     reminderCategories = result.data || [];
 
-    // 更新類別選擇器（篩選按鈕已在 HTML 中定義）
+    // 更新類別選擇器（如果存在）
     const categorySelect = document.getElementById('reminderCategory');
-    categorySelect.innerHTML = '<option value="">選擇類別</option>';
+    if (categorySelect) {
+      categorySelect.innerHTML = '<option value="">選擇類別</option>';
 
-    reminderCategories.forEach(cat => {
-      const option = document.createElement('option');
-      option.value = cat.category_key;
-      option.textContent = `${cat.icon} ${cat.name_zh}`;
-      categorySelect.appendChild(option);
-    });
+      reminderCategories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.category_key;
+        option.textContent = `${cat.icon} ${cat.name_zh}`;
+        categorySelect.appendChild(option);
+      });
+    }
+
+    console.log('✅ 載入了', reminderCategories.length, '個提醒類別');
   } catch (error) {
     console.error('載入類別失敗:', error);
   }
@@ -169,9 +168,22 @@ function filterByCategory(category) {
 
 // ==================== 日期選擇 ====================
 function updateDateDisplay() {
-  const dateDisplay = document.getElementById('currentDate');
-  const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-  dateDisplay.textContent = selectedDate.toLocaleDateString('zh-TW', options);
+  const dateDisplay = document.getElementById('displayDate');
+  const weekdayDisplay = document.getElementById('displayWeekday');
+
+  if (!dateDisplay) {
+    console.error('❌ 找不到 displayDate 元素');
+    return;
+  }
+
+  const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+  const weekdayOptions = { weekday: 'long' };
+
+  dateDisplay.textContent = selectedDate.toLocaleDateString('zh-TW', dateOptions);
+
+  if (weekdayDisplay) {
+    weekdayDisplay.textContent = selectedDate.toLocaleDateString('zh-TW', weekdayOptions);
+  }
 }
 
 function changeDate(days) {
@@ -429,10 +441,22 @@ async function createQuickReminder(template) {
 // ==================== 提醒表單處理 ====================
 function showAddReminderForm() {
   editingReminderId = null;
-  document.getElementById('reminderModalTitle').textContent = '新增生活提醒';
-  document.getElementById('reminderForm').reset();
-  document.getElementById('categorySpecificFields').innerHTML = '';
-  document.getElementById('reminderModal').style.display = 'flex';
+  const modalTitle = document.getElementById('modalTitle');
+  if (modalTitle) modalTitle.textContent = '新增生活提醒';
+
+  const form = document.getElementById('reminderForm');
+  if (form) form.reset();
+
+  const categoryFields = document.getElementById('categorySpecificFields');
+  if (categoryFields) categoryFields.innerHTML = '';
+
+  // 清除類別選擇
+  document.querySelectorAll('.category-option').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+
+  const modal = document.getElementById('reminderModal');
+  if (modal) modal.style.display = 'flex';
 }
 
 function closeReminderModal() {
@@ -441,7 +465,20 @@ function closeReminderModal() {
 }
 
 function selectCategory(category) {
+  // 更新選中狀態
+  document.querySelectorAll('.category-option').forEach(btn => {
+    btn.classList.remove('selected');
+  });
+  const selectedBtn = document.querySelector(`[data-category="${category}"]`);
+  if (selectedBtn) selectedBtn.classList.add('selected');
+
+  // 設定隱藏欄位
+  const categoryInput = document.getElementById('category');
+  if (categoryInput) categoryInput.value = category;
+
   const container = document.getElementById('categorySpecificFields');
+  if (!container) return;
+
   container.innerHTML = '';
 
   switch(category) {
@@ -510,14 +547,30 @@ function selectCategory(category) {
 async function handleReminderSubmit(e) {
   e.preventDefault();
 
+  const category = document.getElementById('category')?.value;
+  if (!category) {
+    showError('請選擇提醒類別');
+    return;
+  }
+
+  // 收集所有時間輸入
+  const timeInputs = document.querySelectorAll('.time-input');
+  const reminderTime = timeInputs.length > 0 ? timeInputs[0].value : null;
+
+  if (!reminderTime) {
+    showError('請設定提醒時間');
+    return;
+  }
+
   const formData = {
     elder_id: currentElderId,
-    title: document.getElementById('reminderTitle').value,
-    description: document.getElementById('reminderDescription').value,
-    category: document.getElementById('reminderCategory').value,
-    reminder_time: document.getElementById('reminderTime').value,
-    recurrence_pattern: document.getElementById('recurrencePattern').value,
-    category_data: getCategorySpecificData(document.getElementById('reminderCategory').value)
+    title: document.getElementById('title')?.value || '',
+    description: document.getElementById('description')?.value || '',
+    category: category,
+    reminder_time: reminderTime,
+    recurrence_pattern: 'daily', // 預設每日
+    category_data: getCategorySpecificData(category),
+    reminder_note: document.getElementById('reminderNote')?.value || null
   };
 
   // 處理重複天數
@@ -603,24 +656,36 @@ async function editReminder(reminderId) {
     const reminder = result.data;
 
     editingReminderId = reminderId;
-    document.getElementById('reminderModalTitle').textContent = '編輯提醒';
+
+    const modalTitle = document.getElementById('modalTitle');
+    if (modalTitle) modalTitle.textContent = '編輯提醒';
 
     // 填充表單
-    document.getElementById('reminderTitle').value = reminder.title;
-    document.getElementById('reminderDescription').value = reminder.description || '';
-    document.getElementById('reminderCategory').value = reminder.category;
-    document.getElementById('reminderTime').value = reminder.reminder_time;
-    document.getElementById('recurrencePattern').value = reminder.recurrence_pattern;
+    const titleInput = document.getElementById('title');
+    if (titleInput) titleInput.value = reminder.title;
 
-    // 載入類別特定欄位
+    const descInput = document.getElementById('description');
+    if (descInput) descInput.value = reminder.description || '';
+
+    const noteInput = document.getElementById('reminderNote');
+    if (noteInput) noteInput.value = reminder.reminder_note || '';
+
+    // 設定類別（需要先選擇類別按鈕）
     selectCategory(reminder.category);
+
+    // 設定時間
+    const timeInputs = document.querySelectorAll('.time-input');
+    if (timeInputs.length > 0) {
+      timeInputs[0].value = reminder.reminder_time;
+    }
 
     // 填充類別特定資料
     if (reminder.category_data) {
       setTimeout(() => fillCategoryData(reminder.category, reminder.category_data), 100);
     }
 
-    document.getElementById('reminderModal').style.display = 'flex';
+    const modal = document.getElementById('reminderModal');
+    if (modal) modal.style.display = 'flex';
   } catch (error) {
     console.error('載入提醒失敗:', error);
     showError('載入提醒資料失敗');
@@ -701,7 +766,9 @@ async function deleteReminder(reminderId) {
 function openConfirmModal(logId, category) {
   confirmingLog = { id: logId, category };
 
-  const container = document.getElementById('confirmCategoryFields');
+  const container = document.getElementById('confirmContent');
+  if (!container) return;
+
   container.innerHTML = '';
 
   switch(category) {
@@ -723,16 +790,18 @@ function openConfirmModal(logId, category) {
       break;
   }
 
-  document.getElementById('confirmModal').style.display = 'flex';
+  const modal = document.getElementById('confirmModal');
+  if (modal) modal.style.display = 'flex';
 }
 
 function closeConfirmModal() {
-  document.getElementById('confirmModal').style.display = 'none';
+  const modal = document.getElementById('confirmModal');
+  if (modal) modal.style.display = 'none';
   confirmingLog = null;
 }
 
-async function handleConfirmSubmit(e) {
-  e.preventDefault();
+// HTML 中使用 onclick="submitConfirmation()"
+async function submitConfirmation() {
 
   if (!confirmingLog) return;
 
@@ -991,4 +1060,70 @@ function showSuccess(message) {
 
 function showError(message) {
   alert('❌ ' + message);
+}
+
+// ==================== HTML 中使用的額外函式 ====================
+function testNotification() {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('測試通知', {
+      body: '這是一個測試通知訊息',
+      icon: '/icons/icon-192x192.png'
+    });
+    showSuccess('測試通知已發送');
+  } else {
+    requestNotificationPermission();
+  }
+}
+
+function showSettings() {
+  alert('設定功能開發中...');
+}
+
+function requestNotificationPermission() {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(permission => {
+      if (permission === 'granted') {
+        showSuccess('通知權限已開啟');
+        const banner = document.getElementById('notificationBanner');
+        if (banner) banner.style.display = 'none';
+      }
+    });
+  }
+}
+
+function closeBanner() {
+  const banner = document.getElementById('notificationBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function addTimeInput() {
+  const container = document.getElementById('timeInputs');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.className = 'time-input-row';
+  row.innerHTML = `
+    <input type="time" class="time-input" value="12:00" required>
+    <button type="button" class="remove-time-btn" onclick="removeTimeInput(this)">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function removeTimeInput(btn) {
+  btn.closest('.time-input-row').remove();
+}
+
+function toggleAdvancedSettings() {
+  const settings = document.getElementById('advancedSettings');
+  const icon = document.getElementById('advancedToggleIcon');
+
+  if (!settings) return;
+
+  if (settings.style.display === 'none') {
+    settings.style.display = 'block';
+    if (icon) icon.textContent = '▼';
+  } else {
+    settings.style.display = 'none';
+    if (icon) icon.textContent = '▶';
+  }
 }

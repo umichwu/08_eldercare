@@ -150,13 +150,22 @@ function switchTab(tabName) {
 
 // ==================== 類別篩選 ====================
 function filterByCategory(category) {
+  // 特殊處理：用藥提醒導向專用頁面
+  if (category === 'medication') {
+    if (confirm('用藥提醒有專用管理頁面，是否前往？')) {
+      window.location.href = 'medications.html';
+    }
+    return;
+  }
+
   currentCategory = category;
 
   // 更新按鈕樣式
-  document.querySelectorAll('.category-filter-btn').forEach(btn => {
+  document.querySelectorAll('.category-filter-btn, .filter-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  document.querySelector(`[onclick="filterByCategory('${category}')"]`).classList.add('active');
+  const activeBtn = document.querySelector(`[onclick="filterByCategory('${category}')"]`);
+  if (activeBtn) activeBtn.classList.add('active');
 
   // 重新載入資料
   if (currentTab === 'today') {
@@ -465,6 +474,14 @@ function closeReminderModal() {
 }
 
 function selectCategory(category) {
+  // 特殊處理：用藥提醒導向專用頁面
+  if (category === 'medication') {
+    if (confirm('用藥提醒有專用管理頁面，是否前往？')) {
+      window.location.href = 'medications.html';
+    }
+    return;
+  }
+
   // 更新選中狀態
   document.querySelectorAll('.category-option').forEach(btn => {
     btn.classList.remove('selected');
@@ -873,24 +890,69 @@ async function loadStatistics() {
       { headers: getAuthHeaders() }
     );
 
-    if (!response.ok) throw new Error('載入失敗');
+    if (!response.ok) {
+      console.warn('⚠️ 統計 API 回應錯誤:', response.status);
+      // 使用模擬資料
+      useMockStatistics();
+      return;
+    }
 
     const result = await response.json();
-    const stats = result.data;
+    console.log('📊 統計資料:', result);
+
+    const stats = result.data || result; // 支援兩種資料格式
 
     // 更新統計卡片
-    updateStatsCards(stats.overall);
+    if (stats.overall) {
+      updateStatsCards(stats.overall);
+    } else if (stats.total !== undefined) {
+      // 直接是 overall 格式
+      updateStatsCards(stats);
+    } else {
+      updateStatsCards(null);
+    }
 
     // 渲染圖表
-    renderCategoryChart(stats.by_category);
-    renderTrendChart(stats.daily_trend);
+    if (stats.by_category) {
+      renderCategoryChart(stats.by_category);
+    }
+    if (stats.daily_trend) {
+      renderTrendChart(stats.daily_trend);
+    }
   } catch (error) {
     console.error('載入統計失敗:', error);
-    showError('載入統計資料失敗');
+    useMockStatistics();
   }
 }
 
+function useMockStatistics() {
+  console.log('📊 使用模擬統計資料');
+
+  // 使用模擬資料
+  updateStatsCards({
+    total: 0,
+    completed: 0,
+    missed: 0,
+    pending: 0,
+    completion_rate: 0
+  });
+
+  renderCategoryChart({});
+  renderTrendChart([]);
+}
+
 function updateStatsCards(overallStats) {
+  // 檢查資料是否存在
+  if (!overallStats) {
+    console.warn('⚠️ 統計資料為空，使用預設值');
+    overallStats = {
+      total: 0,
+      completed: 0,
+      missed: 0,
+      completion_rate: 0
+    };
+  }
+
   const statsTotal = document.getElementById('statsTotal');
   const statsCompleted = document.getElementById('statsCompleted');
   const statsMissed = document.getElementById('statsMissed');
@@ -912,8 +974,14 @@ function renderCategoryChart(categoryStats) {
     categoryChart.destroy();
   }
 
+  // 檢查資料
+  if (!categoryStats || Object.keys(categoryStats).length === 0) {
+    console.log('⚠️ 無類別統計資料');
+    return;
+  }
+
   const categories = Object.keys(categoryStats);
-  const data = categories.map(cat => categoryStats[cat].completion_rate);
+  const data = categories.map(cat => categoryStats[cat].completion_rate || 0);
 
   categoryChart = new Chart(ctx, {
     type: 'bar',
@@ -949,9 +1017,15 @@ function renderTrendChart(dailyTrend) {
     trendChart.destroy();
   }
 
+  // 檢查資料
+  if (!dailyTrend || dailyTrend.length === 0) {
+    console.log('⚠️ 無每日趨勢資料');
+    return;
+  }
+
   const dates = dailyTrend.map(d => d.date);
-  const completed = dailyTrend.map(d => d.completed);
-  const total = dailyTrend.map(d => d.total);
+  const completed = dailyTrend.map(d => d.completed || 0);
+  const total = dailyTrend.map(d => d.total || 0);
 
   trendChart = new Chart(ctx, {
     type: 'line',

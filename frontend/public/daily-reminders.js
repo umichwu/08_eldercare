@@ -388,36 +388,38 @@ function displayAllReminders(reminders) {
 
 // ==================== 快速建立提醒 ====================
 async function createQuickReminder(template) {
+  // HTML 中使用的範本名稱格式
   const templates = {
-    morning_water: {
+    'water-morning': {
       title: '早晨喝水',
       category: 'water',
       reminder_time: '08:00',
       recurrence_pattern: 'daily',
       category_data: { water_amount: 300 }
     },
-    lunch: {
-      title: '午餐提醒',
-      category: 'meal',
+    'water-noon': {
+      title: '中午喝水',
+      category: 'water',
       reminder_time: '12:00',
       recurrence_pattern: 'daily',
-      category_data: { meal_timing: 'before' }
+      category_data: { water_amount: 300 }
     },
-    afternoon_walk: {
+    'water-evening': {
+      title: '晚上喝水',
+      category: 'water',
+      reminder_time: '18:00',
+      recurrence_pattern: 'daily',
+      category_data: { water_amount: 300 }
+    },
+    'exercise-afternoon': {
       title: '下午散步',
       category: 'exercise',
       reminder_time: '15:00',
       recurrence_pattern: 'daily',
       category_data: { exercise_type: '散步', duration: 30 }
     },
-    evening_medication: {
-      title: '晚間服藥',
-      category: 'medication',
-      reminder_time: '20:00',
-      recurrence_pattern: 'daily'
-    },
-    bedtime: {
-      title: '就寢時間',
+    'sleep-night': {
+      title: '就寢提醒',
       category: 'sleep',
       reminder_time: '22:00',
       recurrence_pattern: 'daily'
@@ -425,10 +427,16 @@ async function createQuickReminder(template) {
   };
 
   const templateData = templates[template];
-  if (!templateData) return;
+  if (!templateData) {
+    console.error('找不到範本:', template);
+    showError('範本不存在');
+    return;
+  }
 
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/daily-reminders/quick-create`, {
+    console.log('建立快速提醒:', template, templateData);
+
+    const response = await fetch(`${getApiBaseUrl()}/api/daily-reminders`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -437,13 +445,25 @@ async function createQuickReminder(template) {
       })
     });
 
-    if (!response.ok) throw new Error('建立失敗');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || '建立失敗');
+    }
+
+    const result = await response.json();
+    console.log('快速提醒建立成功:', result);
 
     showSuccess('快速提醒建立成功！');
-    loadAllReminders();
+
+    // 重新載入列表
+    if (currentTab === 'all') {
+      loadAllReminders();
+    } else {
+      switchTab('all'); // 切換到所有提醒標籤
+    }
   } catch (error) {
     console.error('快速建立失敗:', error);
-    showError('建立提醒失敗');
+    showError('建立提醒失敗: ' + error.message);
   }
 }
 

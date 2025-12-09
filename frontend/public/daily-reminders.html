@@ -30,8 +30,11 @@
         </button>
         <h1 class="nav-title">🔔 生活提醒</h1>
         <div style="display: flex; gap: 8px;">
-            <button class="nav-voice-btn" onclick="openVoiceDialog()" title="語音助手">
+            <button class="nav-voice-create-btn" onclick="openCreateReminderDialog()" title="語音建立提醒">
                 🎤
+            </button>
+            <button class="nav-guide-btn" onclick="openVoiceDialog()" title="使用導引">
+                🤖
             </button>
             <button class="nav-notification-test" onclick="testNotification()" title="測試推送通知">
                 🔔
@@ -411,11 +414,11 @@
         </div>
     </div>
 
-    <!-- 語音對話框 Modal -->
+    <!-- 使用導引對話框 Modal -->
     <div id="voiceModal" class="modal">
         <div class="modal-content voice-modal">
             <div class="modal-header">
-                <h2>🎤 語音助手</h2>
+                <h2>🤖 使用導引助手</h2>
                 <button class="modal-close" onclick="closeVoiceDialog()">✕</button>
             </div>
             <div class="modal-body">
@@ -442,12 +445,56 @@
 
                 <!-- 提示訊息 -->
                 <div class="voice-hints">
-                    <p><strong>您可以說：</strong></p>
+                    <p><strong>您可以問我：</strong></p>
                     <ul>
                         <li>「今天有什麼提醒」查詢今日提醒</li>
-                        <li>「新增喝水提醒」快速建立提醒</li>
-                        <li>直接說「喝水」、「運動」、「吃藥」</li>
-                        <li>「幫助」查看更多指令</li>
+                        <li>「如何新增提醒」了解功能</li>
+                        <li>「怎麼標記完成」使用說明</li>
+                        <li>「幫助」查看更多說明</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 語音建立提醒對話框 Modal -->
+    <div id="createReminderModal" class="modal">
+        <div class="modal-content voice-modal">
+            <div class="modal-header">
+                <h2>🎤 語音建立提醒</h2>
+                <button class="modal-close" onclick="closeCreateReminderDialog()">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- 對話記錄 -->
+                <div id="createConversationBox" class="voice-conversation-box"></div>
+
+                <!-- 語音控制區 -->
+                <div class="voice-controls">
+                    <div class="voice-status">
+                        <div id="createListeningIndicator" class="voice-listening-indicator">
+                            <div class="voice-pulse"></div>
+                        </div>
+                        <span id="createStatusText" class="voice-status-text">點擊麥克風繼續</span>
+                    </div>
+                    <div class="voice-buttons">
+                        <button id="createMicBtn" class="voice-mic-btn" title="開始說話">
+                            <span class="mic-icon">🎤</span>
+                        </button>
+                        <button id="createStopBtn" class="voice-stop-btn" title="停止">
+                            <span class="stop-icon">⏹</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 提示訊息 -->
+                <div class="voice-hints">
+                    <p><strong>對話式建立提醒：</strong></p>
+                    <ul>
+                        <li>📋 步驟1：選擇提醒類別（喝水、用藥等）</li>
+                        <li>📝 步驟2：說明提醒內容</li>
+                        <li>⏰ 步驟3：設定提醒時間</li>
+                        <li>🔄 步驟4：選擇重複模式</li>
+                        <li>✅ 步驟5：確認並建立</li>
                     </ul>
                 </div>
             </div>
@@ -458,5 +505,6 @@
     <script src="config.js"></script>
     <script src="daily-reminders.js"></script>
     <script src="voice-reminders.js"></script>
+    <script src="voice-create-reminder.js"></script>
 </body>
 </html>

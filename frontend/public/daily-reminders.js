@@ -82,9 +82,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 初始化事件監聽器
     initEventListeners();
 
-    // 初始化語音功能
+    // 初始化使用導引語音功能
     if (typeof initVoiceReminders === 'function') {
       initVoiceReminders();
+    }
+
+    // 初始化語音建立提醒功能
+    if (typeof initVoiceCreateReminder === 'function') {
+      initVoiceCreateReminder();
     }
 
     console.log('✅ 生活提醒系統初始化完成');

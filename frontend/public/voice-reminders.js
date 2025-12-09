@@ -218,41 +218,37 @@ function speakVoice(text, callback) {
 async function processVoiceCommand(command) {
     const lowerCommand = command.toLowerCase().trim();
 
-    console.log('處理語音指令:', lowerCommand);
+    console.log('處理導引指令:', lowerCommand);
 
     // 查詢今日提醒
     if (lowerCommand.includes('今天') || lowerCommand.includes('今日') || lowerCommand.includes('查詢') || lowerCommand.includes('有什麼')) {
         await handleQueryTodayReminders();
     }
-    // 新增提醒
-    else if (lowerCommand.includes('新增') || lowerCommand.includes('增加') || lowerCommand.includes('建立') || lowerCommand.includes('設定')) {
-        handleCreateReminder(command);
+    // 如何新增提醒
+    else if (lowerCommand.includes('如何') || lowerCommand.includes('怎麼') && (lowerCommand.includes('新增') || lowerCommand.includes('建立'))) {
+        handleHowToCreate();
     }
-    // 標記完成
-    else if (lowerCommand.includes('完成') || lowerCommand.includes('做完') || lowerCommand.includes('已經')) {
-        handleMarkComplete(command);
+    // 如何標記完成
+    else if (lowerCommand.includes('如何') || lowerCommand.includes('怎麼') && lowerCommand.includes('完成')) {
+        handleHowToMarkComplete();
     }
-    // 喝水提醒
-    else if (lowerCommand.includes('喝水')) {
-        handleQuickReminder('water', '喝水');
+    // 如何刪除
+    else if (lowerCommand.includes('如何') || lowerCommand.includes('怎麼') && lowerCommand.includes('刪除')) {
+        handleHowToDelete();
     }
-    // 運動提醒
-    else if (lowerCommand.includes('運動')) {
-        handleQuickReminder('exercise', '運動');
-    }
-    // 用藥提醒
-    else if (lowerCommand.includes('吃藥') || lowerCommand.includes('用藥')) {
-        handleQuickReminder('medication', '用藥');
+    // 功能說明
+    else if (lowerCommand.includes('功能') || lowerCommand.includes('可以做')) {
+        handleFeatures();
     }
     // 幫助
-    else if (lowerCommand.includes('幫助') || lowerCommand.includes('怎麼') || lowerCommand.includes('可以')) {
+    else if (lowerCommand.includes('幫助') || lowerCommand.includes('說明')) {
         handleHelp();
     }
     // 其他
     else {
-        const response = '抱歉，我不太理解您的指令。您可以說：\n• 今天有什麼提醒\n• 新增喝水提醒\n• 標記完成\n• 幫助';
-        addVoiceMessage('assistant', response);
-        speakVoice(response);
+        const response = '我是使用導引助手，可以幫您了解如何使用生活提醒功能。<br><br>您可以問我：<br>• 今天有什麼提醒<br>• 如何新增提醒<br>• 怎麼標記完成<br>• 有什麼功能';
+        addVoiceMessage('assistant', response.replace(/<br>/g, '\n'));
+        speakVoice(response.replace(/<br>/g, '。').replace(/<[^>]*>/g, ''));
     }
 }
 
@@ -313,45 +309,74 @@ async function handleQueryTodayReminders() {
     }
 }
 
-// 快速建立提醒
-function handleQuickReminder(category, categoryName) {
-    const msg = `好的，我會為您設定${categoryName}提醒。請直接在頁面上點擊「新增提醒」按鈕來完成設定。`;
+// 如何新增提醒
+function handleHowToCreate() {
+    const msg = `<strong>📝 新增提醒的方法：</strong><br><br>
+    <strong>方法一：點擊按鈕</strong><br>
+    1. 點擊頁面中的「➕ 新增提醒」按鈕<br>
+    2. 填寫表單內容<br>
+    3. 點擊「儲存」<br><br>
+    <strong>方法二：使用語音（推薦）</strong><br>
+    1. 點擊導航欄上的 🎤 語音建立提醒按鈕<br>
+    2. 跟著語音助手的引導回答問題<br>
+    3. 確認後自動建立提醒`;
+
     addVoiceMessage('assistant', msg);
-    speakVoice(msg, () => {
-        // 語音播報完成後，自動開啟新增提醒對話框
-        if (typeof openCreateReminderModal === 'function') {
-            openCreateReminderModal(category);
-        }
-    });
+    speakVoice('新增提醒有兩種方法。方法一，點擊頁面中的新增提醒按鈕，填寫表單後儲存。方法二，使用語音建立提醒功能，這個比較簡單，點擊導航欄上的語音建立提醒按鈕，跟著語音助手的引導回答問題即可。');
 }
 
-// 建立提醒
-function handleCreateReminder(command) {
-    const msg = '好的，請直接在頁面上點擊「➕ 新增提醒」按鈕來建立新的提醒。';
+// 如何標記完成
+function handleHowToMarkComplete() {
+    const msg = `<strong>✅ 標記完成的方法：</strong><br><br>
+    1. 在提醒列表中找到要完成的項目<br>
+    2. 點擊該提醒項目<br>
+    3. 在彈出視窗中確認完成<br>
+    4. 可以選擇性填寫備註（例如：實際喝水量、運動時長等）<br>
+    5. 點擊「確認完成」按鈕`;
+
     addVoiceMessage('assistant', msg);
-    speakVoice(msg, () => {
-        if (typeof showReminderModal === 'function') {
-            showReminderModal();
-        }
-    });
+    speakVoice('要標記提醒完成，只需要在列表中點擊該提醒項目，然後在彈出視窗中確認完成即可。您也可以填寫備註說明。');
 }
 
-// 標記完成
-function handleMarkComplete(command) {
-    const msg = '請直接點擊提醒項目來標記為完成。';
+// 如何刪除提醒
+function handleHowToDelete() {
+    const msg = `<strong>🗑️ 刪除提醒的方法：</strong><br><br>
+    1. 切換到「所有提醒」標籤<br>
+    2. 找到要刪除的提醒<br>
+    3. 點擊該提醒旁的「刪除」或「編輯」按鈕<br>
+    4. 確認刪除操作`;
+
     addVoiceMessage('assistant', msg);
-    speakVoice(msg);
+    speakVoice('要刪除提醒，請切換到所有提醒標籤，找到要刪除的項目，點擊刪除或編輯按鈕，然後確認刪除。');
+}
+
+// 功能說明
+function handleFeatures() {
+    const msg = `<strong>🎯 生活提醒功能介紹：</strong><br><br>
+    ✅ <strong>提醒管理</strong>：新增、查看、編輯、刪除提醒<br>
+    ⏰ <strong>多種類別</strong>：喝水、用藥、運動、飲食、睡眠等<br>
+    🔄 <strong>重複模式</strong>：每天、每週、或僅一次<br>
+    📊 <strong>統計分析</strong>：查看完成率和趨勢圖表<br>
+    🎤 <strong>語音功能</strong>：使用語音快速建立提醒<br>
+    🔔 <strong>推播通知</strong>：時間到了自動提醒您`;
+
+    addVoiceMessage('assistant', msg);
+    speakVoice('生活提醒功能包括：提醒管理、多種類別、重複模式設定、統計分析、語音功能，以及推播通知。');
 }
 
 // 幫助
 function handleHelp() {
-    const msg = `我可以幫您：
-    1. 查詢今日提醒：說「今天有什麼提醒」
-    2. 新增提醒：說「新增喝水提醒」或「新增運動提醒」
-    3. 快速建立：直接說「喝水」、「運動」、「吃藥」等`;
+    const msg = `<strong>💡 使用導引助手說明：</strong><br><br>
+    <strong>您可以問我：</strong><br>
+    • 「今天有什麼提醒」 - 查詢今日提醒狀態<br>
+    • 「如何新增提醒」 - 了解新增提醒的方法<br>
+    • 「怎麼標記完成」 - 了解標記完成的步驟<br>
+    • 「有什麼功能」 - 查看所有功能介紹<br><br>
+    <strong>💡 提示：</strong><br>
+    想要快速建立提醒，請使用導航欄上的 🎤 <strong>語音建立提醒</strong> 功能！`;
 
-    addVoiceMessage('assistant', msg.replace(/\n/g, '<br>'));
-    speakVoice(msg.replace(/\n/g, '。'));
+    addVoiceMessage('assistant', msg);
+    speakVoice('我是使用導引助手。您可以問我：今天有什麼提醒、如何新增提醒、怎麼標記完成、有什麼功能等問題。想要快速建立提醒，請使用語音建立提醒功能。');
 }
 
 // 取得類別名稱
@@ -381,9 +406,9 @@ function openVoiceDialog() {
         }
 
         // 歡迎訊息
-        const welcomeMsg = '您好！我是生活提醒語音助手。您可以說「今天有什麼提醒」或「新增提醒」。需要幫助請說「幫助」。';
+        const welcomeMsg = '您好！我是使用導引助手，可以幫您了解如何使用生活提醒功能。<br><br>您可以問我：<br>• 今天有什麼提醒<br>• 如何新增提醒<br>• 怎麼標記完成<br>• 有什麼功能';
         addVoiceMessage('assistant', welcomeMsg);
-        speakVoice(welcomeMsg);
+        speakVoice('您好！我是使用導引助手，可以幫您了解如何使用生活提醒功能。您可以問我：今天有什麼提醒、如何新增提醒、怎麼標記完成、有什麼功能。');
     }
 }
 

@@ -1237,8 +1237,8 @@
 
 /* ==================== 語音功能樣式 ==================== */
 
-/* 語音按鈕（導航欄） */
-.nav-voice-btn {
+/* 語音建立提醒按鈕（導航欄） */
+.nav-voice-create-btn {
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
     color: white;
     border: none;
@@ -1250,9 +1250,27 @@
     box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
 }
 
-.nav-voice-btn:hover {
+.nav-voice-create-btn:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+}
+
+/* 使用導引按鈕（導航欄） */
+.nav-guide-btn {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.nav-guide-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.5);
 }
 
 /* 語音 Modal */
@@ -1421,6 +1439,34 @@
 .voice-stop-btn:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 16px rgba(244, 67, 54, 0.4);
+}
+
+/* 建議按鈕 */
+.voice-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 16px 0;
+    padding: 0 12px;
+}
+
+.voice-suggestion-btn {
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.voice-suggestion-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
 /* 提示訊息 */

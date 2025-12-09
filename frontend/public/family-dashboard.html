@@ -412,6 +412,85 @@
                     </button>
                 </div>
 
+                <!-- 家屬設定 -->
+                <div class="settings-section">
+                    <h3>⚙️ 個人化設定</h3>
+
+                    <!-- 通知偏好 -->
+                    <div class="setting-group">
+                        <h4>🔔 通知偏好</h4>
+                        <div class="setting-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="setting-email" onchange="updateSetting()">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">Email 通知</span>
+                            </label>
+                            <p class="setting-help">當有新警示或重要事件時發送 Email</p>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="setting-sms" onchange="updateSetting()">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">SMS 簡訊通知</span>
+                            </label>
+                            <p class="setting-help">緊急警示時發送簡訊 (需要額外設定手機號碼)</p>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="setting-push" onchange="updateSetting()">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">推播通知</span>
+                            </label>
+                            <p class="setting-help">即時接收推播通知</p>
+                        </div>
+                    </div>
+
+                    <!-- 警示閾值設定 -->
+                    <div class="setting-group">
+                        <h4>⚠️ 警示閾值設定</h4>
+                        <div class="setting-item">
+                            <label for="setting-compliance">
+                                用藥遵從率警示閾值 (<span id="compliance-value">70</span>%)
+                            </label>
+                            <input type="range" id="setting-compliance" min="0" max="100" value="70" step="5"
+                                   oninput="document.getElementById('compliance-value').textContent = this.value"
+                                   onchange="updateSetting()">
+                            <p class="setting-help">當用藥遵從率低於此值時發出警示</p>
+                        </div>
+                        <div class="setting-item">
+                            <label for="setting-missed">
+                                錯過用藥次數警示閾值
+                            </label>
+                            <input type="number" id="setting-missed" min="1" max="10" value="2" onchange="updateSetting()">
+                            <p class="setting-help">連續錯過幾次用藥後發出警示</p>
+                        </div>
+                        <div class="setting-item">
+                            <label class="switch-label">
+                                <input type="checkbox" id="setting-safezone" onchange="updateSetting()">
+                                <span class="switch-slider"></span>
+                                <span class="switch-text">離開安全區域警示</span>
+                            </label>
+                            <p class="setting-help">當長輩離開設定的安全區域時發出警示</p>
+                        </div>
+                    </div>
+
+                    <!-- 語言偏好 -->
+                    <div class="setting-group">
+                        <h4>🌐 語言偏好</h4>
+                        <div class="setting-item">
+                            <select id="setting-language" onchange="updateSetting()">
+                                <option value="zh-TW">繁體中文 (台灣)</option>
+                                <option value="zh-CN">简体中文</option>
+                                <option value="en-US">English (US)</option>
+                            </select>
+                            <p class="setting-help">選擇介面顯示語言</p>
+                        </div>
+                    </div>
+
+                    <!-- 儲存狀態提示 -->
+                    <div id="settings-save-status" class="save-status" style="display: none;"></div>
+                </div>
+
                 <!-- 監控 SOP 指南 -->
                 <div class="settings-section">
                     <h3>📋 監控 SOP 指南</h3>

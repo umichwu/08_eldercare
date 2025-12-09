@@ -14,6 +14,7 @@ import uploadRouter from './routes/uploadApi.js';
 import groupChatRouter from './routes/groupChatApi.js';
 import profileRouter from './routes/profileApi.js';
 import dailyReminderRouter from './routes/dailyReminderApi.js';
+import settingsRouter from './routes/settingsApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 import { startDailyReminderScheduler } from './services/dailyReminderScheduler.js';
@@ -68,12 +69,19 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'X-User-Id']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'X-User-Id', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 // 中間件
 app.use(cors(corsOptions));
+
+// 明確處理 OPTIONS 請求（preflight）
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -95,6 +103,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api', groupChatRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api', dailyReminderRouter);
+app.use('/api/settings', settingsRouter);
 
 // 根路由
 app.get('/', (req, res) => {

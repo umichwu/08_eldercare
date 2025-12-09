@@ -955,10 +955,159 @@ function downloadAndroidApp() {
 async function showSettings() {
     document.getElementById('settingsModal').classList.add('show');
     await loadLinkedElders();
+    await loadFamilySettings();
 }
 
 function closeSettingsModal() {
     document.getElementById('settingsModal').classList.remove('show');
+}
+
+// 載入家屬設定
+async function loadFamilySettings() {
+    if (!currentFamilyMemberId) {
+        console.warn('⚠️ 尚未建立家屬資料，無法載入設定');
+        return;
+    }
+
+    try {
+        const token = await supabaseClient.auth.getSession().then(({ data }) => data.session?.access_token);
+        if (!token) {
+            console.error('❌ 未登入');
+            return;
+        }
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/settings/family/${currentFamilyMemberId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('載入設定失敗');
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            const settings = result.data;
+
+            // 載入通知偏好
+            if (settings.notification_preferences) {
+                document.getElementById('setting-email').checked = settings.notification_preferences.email || false;
+                document.getElementById('setting-sms').checked = settings.notification_preferences.sms || false;
+                document.getElementById('setting-push').checked = settings.notification_preferences.push || false;
+            }
+
+            // 載入警示閾值
+            if (settings.alert_thresholds) {
+                const complianceValue = settings.alert_thresholds.medication_compliance || 70;
+                document.getElementById('setting-compliance').value = complianceValue;
+                document.getElementById('compliance-value').textContent = complianceValue;
+
+                document.getElementById('setting-missed').value = settings.alert_thresholds.missed_medication || 2;
+                document.getElementById('setting-safezone').checked = settings.alert_thresholds.safe_zone_alert !== false;
+            }
+
+            // 載入語言偏好
+            if (settings.language_preference) {
+                document.getElementById('setting-language').value = settings.language_preference;
+            }
+
+            console.log('✅ 設定載入成功');
+        }
+    } catch (error) {
+        console.error('載入設定失敗:', error);
+        showToast('載入設定失敗', 'error');
+    }
+}
+
+// 更新設定
+let updateSettingTimeout = null;
+async function updateSetting() {
+    if (!currentFamilyMemberId) {
+        showToast('請先建立家屬資料', 'warning');
+        return;
+    }
+
+    // 防抖：延遲 1 秒後才儲存（避免頻繁儲存）
+    clearTimeout(updateSettingTimeout);
+
+    // 顯示儲存中狀態
+    const statusDiv = document.getElementById('settings-save-status');
+    statusDiv.className = 'save-status saving';
+    statusDiv.textContent = '💾 儲存中...';
+    statusDiv.style.display = 'block';
+
+    updateSettingTimeout = setTimeout(async () => {
+        try {
+            const token = await supabaseClient.auth.getSession().then(({ data }) => data.session?.access_token);
+            if (!token) {
+                throw new Error('未登入');
+            }
+
+            // 收集所有設定
+            const settings = {
+                notification_preferences: {
+                    email: document.getElementById('setting-email').checked,
+                    sms: document.getElementById('setting-sms').checked,
+                    push: document.getElementById('setting-push').checked
+                },
+                alert_thresholds: {
+                    medication_compliance: parseInt(document.getElementById('setting-compliance').value),
+                    missed_medication: parseInt(document.getElementById('setting-missed').value),
+                    safe_zone_alert: document.getElementById('setting-safezone').checked
+                },
+                language_preference: document.getElementById('setting-language').value
+            };
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/settings/family/${currentFamilyMemberId}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(settings)
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('更新設定失敗');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                // 顯示成功狀態
+                statusDiv.className = 'save-status success';
+                statusDiv.textContent = '✅ 設定已儲存';
+
+                // 3 秒後隱藏提示
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+
+                console.log('✅ 設定更新成功');
+            } else {
+                throw new Error(result.error || '更新設定失敗');
+            }
+        } catch (error) {
+            console.error('更新設定失敗:', error);
+
+            // 顯示錯誤狀態
+            statusDiv.className = 'save-status error';
+            statusDiv.textContent = '❌ 儲存失敗：' + error.message;
+
+            // 5 秒後隱藏提示
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+    }, 1000);
 }
 
 async function loadLinkedElders() {

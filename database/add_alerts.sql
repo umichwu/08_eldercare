@@ -90,7 +90,7 @@ CREATE POLICY "Family members can view alerts for their elders"
   USING (
     elder_id IN (
       SELECT elder_id
-      FROM elder_family_relationships
+      FROM elder_family_relations
       WHERE family_member_id IN (
         SELECT id FROM user_profiles WHERE auth_user_id = auth.uid()
       )
@@ -110,7 +110,7 @@ CREATE POLICY "Family members can update alerts for their elders"
   USING (
     elder_id IN (
       SELECT elder_id
-      FROM elder_family_relationships
+      FROM elder_family_relations
       WHERE family_member_id IN (
         SELECT id FROM user_profiles WHERE auth_user_id = auth.uid()
       )
@@ -124,7 +124,7 @@ CREATE POLICY "Family members can delete alerts for their elders"
   USING (
     elder_id IN (
       SELECT elder_id
-      FROM elder_family_relationships
+      FROM elder_family_relations
       WHERE family_member_id IN (
         SELECT id FROM user_profiles WHERE auth_user_id = auth.uid()
       )

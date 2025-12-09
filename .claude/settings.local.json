@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git push)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(git push origin08e main)",
+      "Bash(git add frontend/public/index.html frontend/public/daily-reminders.js)",
+      "Bash(git commit -m \"修復每日提醒頁面自動重定向問題\n\n問題：\n- 訪問 daily-reminders.html 時會立即重定向回 index.html\n- 原因是無法獲取 currentElderId\n\n修復：\n1. index.html: 在載入 user profile 後，自動將 elder_id 存入 localStorage\n2. daily-reminders.js: 增加從 Supabase 查詢 elder_id 的邏輯\n   - 優先順序：localStorage > URL 參數 > Supabase 查詢\n   - 查詢成功後會自動存入 localStorage\n\n這樣即使 localStorage 沒有資料，也能從資料庫載入 elder_id\")"
     ],
     "deny": [],
     "ask": []

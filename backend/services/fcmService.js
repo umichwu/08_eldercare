@@ -350,26 +350,47 @@ export async function notifyFamilyMissedMedication(elderId, medicationInfo) {
 export async function registerFCMToken(userId, userType, fcmToken, deviceInfo = {}) {
   try {
     const supabase = getSupabase();
-    const tableName = userType === 'elder' ? 'elders' : 'family_members';
 
-    const { data, error } = await supabase
-      .from(tableName)
+    // 嘗試更新 user_profiles 表（新架構）
+    const { data: profileData, error: profileError } = await supabase
+      .from('user_profiles')
       .update({
         fcm_token: fcmToken,
         fcm_token_updated_at: new Date().toISOString(),
         device_info: deviceInfo,
       })
-      .eq('id', userId)
+      .eq('auth_user_id', userId)
       .select()
       .single();
 
-    if (error) {
-      console.error(`❌ 更新 FCM Token 失敗 (${tableName}):`, error.message);
-      return { success: false, error: error.message };
+    if (profileError) {
+      console.warn(`⚠️ 更新 user_profiles FCM Token 失敗:`, profileError.message);
+
+      // 如果 user_profiles 更新失敗，嘗試舊架構（elders/family_members 表）
+      const tableName = userType === 'elder' ? 'elders' : 'family_members';
+
+      const { data, error } = await supabase
+        .from(tableName)
+        .update({
+          fcm_token: fcmToken,
+          fcm_token_updated_at: new Date().toISOString(),
+          device_info: deviceInfo,
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`❌ 更新 FCM Token 失敗 (${tableName}):`, error.message);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`✅ FCM Token 註冊成功 (${tableName}):`, userId);
+      return { success: true, data };
     }
 
-    console.log(`✅ FCM Token 註冊成功 (${tableName}):`, userId);
-    return { success: true, data };
+    console.log(`✅ FCM Token 註冊成功 (user_profiles):`, userId);
+    return { success: true, data: profileData };
   } catch (error) {
     console.error('❌ 註冊 FCM Token 失敗:', error.message);
     return { success: false, error: error.message };
@@ -386,22 +407,40 @@ export async function registerFCMToken(userId, userType, fcmToken, deviceInfo = 
 export async function removeFCMToken(userId, userType) {
   try {
     const supabase = getSupabase();
-    const tableName = userType === 'elder' ? 'elders' : 'family_members';
 
-    const { error } = await supabase
-      .from(tableName)
+    // 嘗試更新 user_profiles 表（新架構）
+    const { error: profileError } = await supabase
+      .from('user_profiles')
       .update({
         fcm_token: null,
         fcm_token_updated_at: new Date().toISOString(),
       })
-      .eq('id', userId);
+      .eq('auth_user_id', userId);
 
-    if (error) {
-      console.error(`❌ 移除 FCM Token 失敗 (${tableName}):`, error.message);
-      return { success: false, error: error.message };
+    if (profileError) {
+      console.warn(`⚠️ 更新 user_profiles FCM Token 失敗:`, profileError.message);
+
+      // 如果 user_profiles 更新失敗，嘗試舊架構（elders/family_members 表）
+      const tableName = userType === 'elder' ? 'elders' : 'family_members';
+
+      const { error } = await supabase
+        .from(tableName)
+        .update({
+          fcm_token: null,
+          fcm_token_updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error(`❌ 移除 FCM Token 失敗 (${tableName}):`, error.message);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`✅ FCM Token 移除成功 (${tableName}):`, userId);
+      return { success: true };
     }
 
-    console.log(`✅ FCM Token 移除成功 (${tableName}):`, userId);
+    console.log(`✅ FCM Token 移除成功 (user_profiles):`, userId);
     return { success: true };
   } catch (error) {
     console.error('❌ 移除 FCM Token 失敗:', error.message);

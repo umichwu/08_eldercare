@@ -317,6 +317,28 @@ export async function createMedicationReminder(reminderData) {
       insertData.start_date = reminderData.startDate;
     }
 
+    // ✅ 短期用藥 metadata（用於前端還原編輯）
+    if (reminderData.isShortTerm) {
+      const metadata = {
+        is_short_term: true,
+        total_times: reminderData.totalDoses,
+        total_days: reminderData.treatmentDays || Math.ceil(reminderData.totalDoses / (reminderData.dosesPerDay || 3)),
+        dosage_per_time: reminderData.dosagePerTime || '1',
+        doses_per_day: reminderData.dosesPerDay,
+        timing_plan: reminderData.timingPlan,
+        custom_times: reminderData.customTimes,
+        is_antibiotic: reminderData.isAntibiotic || false,
+        first_dose_date_time: reminderData.firstDoseDateTime,
+        start_date: reminderData.startDate,
+        completed_times: 0,
+        remaining_times: reminderData.totalDoses,
+        notes: reminderData.notes || '',
+        duration_type: 'shortterm',
+        use_smart_schedule: reminderData.useSmartSchedule || false
+      };
+      insertData.metadata = metadata;
+    }
+
     const { data, error } = await sb
       .from('medication_reminders')
       .insert([insertData])
@@ -387,7 +409,9 @@ export async function updateMedicationReminder(reminderId, updates) {
       autoMarkMissedAfterMinutes: 'auto_mark_missed_after_minutes',
       notifyFamilyIfMissed: 'notify_family_if_missed',
       startDate: 'start_date',
-      endDate: 'end_date'
+      endDate: 'end_date',
+      isShortTerm: 'is_short_term',
+      totalDoses: 'total_doses'
     };
 
     // 轉換欄位名稱
@@ -395,6 +419,28 @@ export async function updateMedicationReminder(reminderId, updates) {
       const dbKey = fieldMapping[key] || key; // 如果沒有映射，就用原始 key
       dbUpdates[dbKey] = updates[key];
     });
+
+    // ✅ 短期用藥 metadata（用於前端還原編輯）
+    if (updates.isShortTerm || updates.totalDoses || updates.treatmentDays) {
+      const metadata = {
+        is_short_term: updates.isShortTerm || true,
+        total_times: updates.totalDoses,
+        total_days: updates.treatmentDays || Math.ceil(updates.totalDoses / (updates.dosesPerDay || 3)),
+        dosage_per_time: updates.dosagePerTime || '1',
+        doses_per_day: updates.dosesPerDay,
+        timing_plan: updates.timingPlan,
+        custom_times: updates.customTimes,
+        is_antibiotic: updates.isAntibiotic || false,
+        first_dose_date_time: updates.firstDoseDateTime,
+        start_date: updates.startDate,
+        completed_times: 0,
+        remaining_times: updates.totalDoses,
+        notes: updates.notes || '',
+        duration_type: 'shortterm',
+        use_smart_schedule: updates.useSmartSchedule || false
+      };
+      dbUpdates.metadata = metadata;
+    }
 
     console.log('🔄 欄位轉換:', { 原始: Object.keys(updates), 轉換後: Object.keys(dbUpdates) });
 

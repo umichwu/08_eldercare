@@ -167,31 +167,6 @@
                         <button id="quickFunctionsBtn" class="quick-functions-btn mobile-only">
                             ⚡ 快速功能
                         </button>
-
-                        <!-- 桌面版：顯示所有按鈕 -->
-                        <div class="quick-actions desktop-only">
-                            <button class="quick-btn" data-message="今天天氣如何？" data-i18n="quickAction.weather">
-                                ☀️ 天氣查詢
-                            </button>
-                            <button class="quick-btn" onclick="window.location.href='medications.html'" data-i18n="quickAction.medication">
-                                💊 用藥管理
-                            </button>
-                            <button class="quick-btn" onclick="window.location.href='daily-reminders.html'" data-i18n="quickAction.dailyReminders">
-                                📅 生活提醒
-                            </button>
-                            <button class="quick-btn" onclick="window.location.href='family-dashboard.html'" data-i18n="quickAction.familyDashboard">
-                                👨‍👩‍👧‍👦 家屬監控
-                            </button>
-                            <button class="quick-btn" onclick="window.location.href='social.html'" data-i18n="quickAction.social">
-                                💬 好友聊天
-                            </button>
-                            <button class="quick-btn" onclick="window.location.href='group-chat.html'" data-i18n="quickAction.groupChat">
-                                👥 群組聊天
-                            </button>
-                            <button class="quick-btn" data-message="我覺得有點不舒服" data-i18n="quickAction.health">
-                                🏥 健康諮詢
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -251,6 +226,34 @@
 
             <!-- 右側：總結和資訊 -->
             <aside class="info-panel">
+                <!-- 快速功能按鈕區 -->
+                <div class="panel-section quick-functions-panel">
+                    <h3>⚡ 快速功能</h3>
+                    <div class="quick-actions-sidebar">
+                        <button class="quick-btn-sidebar" data-message="今天天氣如何？" data-i18n="quickAction.weather">
+                            ☀️ 天氣查詢
+                        </button>
+                        <button class="quick-btn-sidebar" onclick="window.location.href='medications.html'" data-i18n="quickAction.medication">
+                            💊 用藥管理
+                        </button>
+                        <button class="quick-btn-sidebar" onclick="window.location.href='daily-reminders.html'" data-i18n="quickAction.dailyReminders">
+                            📅 生活提醒
+                        </button>
+                        <button class="quick-btn-sidebar" onclick="window.location.href='family-dashboard.html'" data-i18n="quickAction.familyDashboard">
+                            👨‍👩‍👧‍👦 家屬監控
+                        </button>
+                        <button class="quick-btn-sidebar" onclick="window.location.href='social.html'" data-i18n="quickAction.social">
+                            💬 好友聊天
+                        </button>
+                        <button class="quick-btn-sidebar" onclick="window.location.href='group-chat.html'" data-i18n="quickAction.groupChat">
+                            👥 群組聊天
+                        </button>
+                        <button class="quick-btn-sidebar" data-message="我覺得有點不舒服" data-i18n="quickAction.health">
+                            🏥 健康諮詢
+                        </button>
+                    </div>
+                </div>
+
                 <div class="panel-section">
                     <h3 data-i18n="panel.summary">💡 對話摘要</h3>
                     <div id="summaryContent" class="summary-content">

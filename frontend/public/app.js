@@ -267,6 +267,19 @@ function setupEventListeners() {
     });
   });
 
+  // 快捷操作按鈕（右側面板）
+  document.querySelectorAll('.quick-btn-sidebar').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const message = btn.dataset.message;
+      // ✅ 只有有 data-message 的按鈕才觸發 sendMessage
+      // 沒有 data-message 的按鈕（如用藥管理）會使用 onclick 導航
+      if (message) {
+        document.getElementById('messageInput').value = message;
+        sendMessage();
+      }
+    });
+  });
+
   // 快捷按鈕（輸入框上方 - 持續顯示）
   document.querySelectorAll('.shortcut-btn').forEach(btn => {
     btn.addEventListener('click', () => {

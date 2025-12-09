@@ -909,6 +909,47 @@ body {
   background-clip: text;
 }
 
+/* 快速功能面板（側邊欄） */
+.quick-functions-panel {
+  margin-bottom: var(--spacing-lg);
+}
+
+.quick-actions-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.quick-btn-sidebar {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  background: rgba(30, 30, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  text-align: left;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.quick-btn-sidebar:hover {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25);
+}
+
+.quick-btn-sidebar:active {
+  transform: translateX(2px);
+}
+
 .stats {
   display: flex;
   flex-direction: column;
@@ -1501,6 +1542,20 @@ body.theme-light .quick-btn:hover {
   background: rgba(0, 97, 255, 0.04);
   border-color: var(--color-accent-primary);
   box-shadow: 0 2px 12px rgba(0, 97, 255, 0.12);
+}
+
+/* 側邊欄快速按鈕（淺色主題） */
+body.theme-light .quick-btn-sidebar {
+  background: #FFFFFF;
+  border: 1px solid #DFE1E6;
+  color: var(--color-text-primary);
+}
+
+body.theme-light .quick-btn-sidebar:hover {
+  background: rgba(0, 97, 255, 0.06);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  box-shadow: 0 2px 8px rgba(0, 97, 255, 0.15);
 }
 
 /* 資訊面板 */

@@ -409,7 +409,7 @@ function updatePageContent() {
   });
 
   // 更新快速訊息按鈕
-  document.querySelectorAll('.quick-btn[data-message]').forEach((btn) => {
+  document.querySelectorAll('.quick-btn[data-message], .quick-btn-sidebar[data-message]').forEach((btn) => {
     const dataMessage = btn.getAttribute('data-message');
     // 只更新帶有 quickMessage 開頭的按鈕
     if (dataMessage && dataMessage.startsWith('quickMessage.')) {

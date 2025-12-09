@@ -35,15 +35,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     currentUser = user;
 
-    // 取得當前長輩 ID（從 localStorage 或 URL 參數）
+    // 取得當前長輩 ID（優先順序：localStorage > URL 參數 > Supabase 查詢）
     currentElderId = localStorage.getItem('currentElderId') ||
                      new URLSearchParams(window.location.search).get('elderId');
 
+    // 如果 localStorage 和 URL 參數都沒有，嘗試從 Supabase 查詢
     if (!currentElderId) {
-      alert('請先選擇要管理的長輩');
+      console.log('🔍 從 Supabase 查詢 elder_id...');
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('role, elder_id, id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('❌ 查詢 user profile 失敗:', error);
+      } else if (profile) {
+        if (profile.role === 'elder') {
+          // 如果是長輩角色，使用 elder_id 或 profile id
+          currentElderId = profile.elder_id || profile.id;
+          if (currentElderId) {
+            localStorage.setItem('currentElderId', currentElderId);
+            console.log('✅ Elder ID 已從 Supabase 載入並存入 localStorage:', currentElderId);
+          }
+        }
+      }
+    }
+
+    if (!currentElderId) {
+      alert('請先完成個人資料設定\n\n提示：請確認您已在主頁面完成 onboarding 流程');
       window.location.href = '/index.html';
       return;
     }
+
+    console.log('✅ Current Elder ID:', currentElderId);
 
     // 載入提醒類別
     await loadReminderCategories();

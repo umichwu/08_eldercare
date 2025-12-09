@@ -584,6 +584,16 @@
                 console.log('   Name:', userProfile.display_name);
                 console.log('   Onboarding completed:', userProfile.onboarding_completed);
 
+                // 儲存 elder_id 到 localStorage（如果用戶是長輩角色）
+                if (userProfile.role === 'elder' && userProfile.elder_id) {
+                    localStorage.setItem('currentElderId', userProfile.elder_id);
+                    console.log('✅ Elder ID saved to localStorage:', userProfile.elder_id);
+                } else if (userProfile.role === 'elder' && userProfile.id) {
+                    // 如果沒有 elder_id，使用 profile id
+                    localStorage.setItem('currentElderId', userProfile.id);
+                    console.log('✅ Profile ID saved as Elder ID to localStorage:', userProfile.id);
+                }
+
                 // Check if onboarding completed
                 if (!userProfile.onboarding_completed) {
                     console.log('⚠️ Onboarding not completed, redirecting...');

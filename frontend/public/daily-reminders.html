@@ -30,6 +30,9 @@
         </button>
         <h1 class="nav-title">🔔 生活提醒</h1>
         <div style="display: flex; gap: 8px;">
+            <button class="nav-voice-btn" onclick="openVoiceDialog()" title="語音助手">
+                🎤
+            </button>
             <button class="nav-notification-test" onclick="testNotification()" title="測試推送通知">
                 🔔
             </button>
@@ -408,8 +411,52 @@
         </div>
     </div>
 
+    <!-- 語音對話框 Modal -->
+    <div id="voiceModal" class="modal">
+        <div class="modal-content voice-modal">
+            <div class="modal-header">
+                <h2>🎤 語音助手</h2>
+                <button class="modal-close" onclick="closeVoiceDialog()">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- 對話記錄 -->
+                <div id="voiceConversationBox" class="voice-conversation-box"></div>
+
+                <!-- 語音控制區 -->
+                <div class="voice-controls">
+                    <div class="voice-status">
+                        <div id="voiceListeningIndicator" class="voice-listening-indicator">
+                            <div class="voice-pulse"></div>
+                        </div>
+                        <span id="voiceStatusText" class="voice-status-text">點擊麥克風說話</span>
+                    </div>
+                    <div class="voice-buttons">
+                        <button id="voiceMicBtn" class="voice-mic-btn" title="開始說話">
+                            <span class="mic-icon">🎤</span>
+                        </button>
+                        <button id="voiceStopBtn" class="voice-stop-btn" title="停止">
+                            <span class="stop-icon">⏹</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 提示訊息 -->
+                <div class="voice-hints">
+                    <p><strong>您可以說：</strong></p>
+                    <ul>
+                        <li>「今天有什麼提醒」查詢今日提醒</li>
+                        <li>「新增喝水提醒」快速建立提醒</li>
+                        <li>直接說「喝水」、「運動」、「吃藥」</li>
+                        <li>「幫助」查看更多指令</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="config.js"></script>
     <script src="daily-reminders.js"></script>
+    <script src="voice-reminders.js"></script>
 </body>
 </html>

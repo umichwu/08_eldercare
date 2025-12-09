@@ -82,6 +82,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 初始化事件監聽器
     initEventListeners();
 
+    // 初始化語音功能
+    if (typeof initVoiceReminders === 'function') {
+      initVoiceReminders();
+    }
+
     console.log('✅ 生活提醒系統初始化完成');
   } catch (error) {
     console.error('❌ 初始化失敗:', error);

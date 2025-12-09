@@ -1162,7 +1162,7 @@ router.get('/messages/:friendUserId', async (req, res) => {
       return res.status(404).json({ error: '找不到好友資料' });
     }
 
-    // 建立查詢
+    // 建立查詢（包含發送者資訊）
     let query = supabase
       .from('chat_messages')
       .select(`
@@ -1177,7 +1177,13 @@ router.get('/messages/:friendUserId', async (req, res) => {
         file_size,
         is_read,
         read_at,
-        created_at
+        created_at,
+        sender:user_profiles!chat_messages_sender_id_fkey (
+          id,
+          auth_user_id,
+          display_name,
+          avatar_url
+        )
       `)
       .or(`and(sender_id.eq.${userProfile.id},receiver_id.eq.${friendProfile.id}),and(sender_id.eq.${friendProfile.id},receiver_id.eq.${userProfile.id})`)
       .eq('is_deleted_by_sender', false)
@@ -1197,8 +1203,15 @@ router.get('/messages/:friendUserId', async (req, res) => {
       return res.status(500).json({ error: '取得聊天記錄失敗' });
     }
 
+    // 轉換欄位名稱以符合前端期待
+    const formattedMessages = (messages || []).map(msg => ({
+      ...msg,
+      message_text: msg.content,  // 前端期待 message_text
+      content: msg.content        // 保留 content 以保持相容性
+    }));
+
     // 反轉順序（最舊的在前）
-    const sortedMessages = (messages || []).reverse();
+    const sortedMessages = formattedMessages.reverse();
 
     res.json({
       success: true,
@@ -1275,7 +1288,13 @@ router.post('/messages', async (req, res) => {
         media_url,
         is_read,
         read_at,
-        created_at
+        created_at,
+        sender:user_profiles!chat_messages_sender_id_fkey (
+          id,
+          auth_user_id,
+          display_name,
+          avatar_url
+        )
       `)
       .single();
 
@@ -1286,9 +1305,16 @@ router.post('/messages', async (req, res) => {
 
     console.log('✅ 訊息已發送:', message.id);
 
+    // 轉換欄位名稱以符合前端期待
+    const formattedMessage = {
+      ...message,
+      message_text: message.content,  // 前端期待 message_text
+      content: message.content        // 保留 content 以保持相容性
+    };
+
     res.status(201).json({
       success: true,
-      message: message
+      message: formattedMessage
     });
 
   } catch (error) {

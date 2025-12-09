@@ -2339,8 +2339,8 @@ async function sendMessage() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                userId: userProfile.id,
-                receiverUserId: window.currentChatFriend.id,
+                userId: user.id,  // 使用 auth_user_id
+                receiverUserId: window.currentChatFriend.userId,  // 使用 auth_user_id
                 messageText: message || '',
                 messageType: messageType,
                 mediaUrl: mediaUrl

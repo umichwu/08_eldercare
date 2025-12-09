@@ -875,23 +875,234 @@ function applyConversationFilters() {
 // ==================== 警示系統 ====================
 
 async function loadAlerts() {
-    // TODO: 實作警示系統
     const container = document.getElementById('alertsList');
-    container.innerHTML = '<p class="empty-state">功能開發中...</p>';
+
+    try {
+        if (!currentElderId) {
+            container.innerHTML = '<p class="empty-state">請先選擇長輩</p>';
+            return;
+        }
+
+        console.log('📥 載入警示列表...');
+        container.innerHTML = '<div class="loading-spinner"></div><p>載入中...</p>';
+
+        // 取得目前篩選條件
+        const activeFilter = document.querySelector('.filter-btn.active');
+        const filterType = activeFilter ? activeFilter.dataset.type : 'all';
+        const statusFilter = document.querySelector('.status-filter');
+        const status = statusFilter ? statusFilter.value : '';
+
+        // 建立 API URL
+        let url = `${API_BASE_URL}/api/alerts/elder/${currentElderId}?userId=${currentUser.id}`;
+
+        if (status) {
+            url += `&status=${status}`;
+        }
+
+        if (filterType !== 'all') {
+            url += `&type=${filterType}`;
+        }
+
+        const response = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentSession.access_token}`,
+                'x-user-id': currentUser.id
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('載入警示失敗');
+        }
+
+        const result = await response.json();
+        const alerts = result.alerts || [];
+
+        console.log(`✅ 載入了 ${alerts.length} 則警示`);
+
+        // 渲染警示列表
+        if (alerts.length === 0) {
+            container.innerHTML = '<p class="empty-state">目前沒有警示</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        alerts.forEach(alert => {
+            const alertElement = createAlertElement(alert);
+            container.appendChild(alertElement);
+        });
+
+    } catch (error) {
+        console.error('載入警示失敗:', error);
+        container.innerHTML = '<p class="empty-state">載入失敗，請重試</p>';
+        showToast('載入警示失敗', 'error');
+    }
+}
+
+function createAlertElement(alert) {
+    const div = document.createElement('div');
+    div.className = `alert-item ${alert.status} ${alert.severity}`;
+    div.dataset.alertId = alert.id;
+
+    // 警示類型圖示和文字
+    const typeIcons = {
+        medication: '💊',
+        health: '🏥',
+        activity: '🏃',
+        emergency: '🚨'
+    };
+
+    const typeNames = {
+        medication: '用藥警示',
+        health: '健康警示',
+        activity: '活動警示',
+        emergency: '緊急警示'
+    };
+
+    const severityLabels = {
+        low: '低',
+        medium: '中',
+        high: '高',
+        critical: '緊急'
+    };
+
+    const statusLabels = {
+        pending: '待處理',
+        resolved: '已處理',
+        dismissed: '已忽略'
+    };
+
+    const icon = typeIcons[alert.alert_type] || '⚠️';
+    const typeName = typeNames[alert.alert_type] || alert.alert_type;
+    const severityLabel = severityLabels[alert.severity] || alert.severity;
+    const statusLabel = statusLabels[alert.status] || alert.status;
+    const timeAgo = formatTimeAgo(new Date(alert.created_at));
+
+    div.innerHTML = `
+        <div class="alert-header">
+            <span class="alert-icon">${icon}</span>
+            <div class="alert-info">
+                <div class="alert-title">${alert.title}</div>
+                <div class="alert-meta">
+                    <span class="alert-type">${typeName}</span>
+                    <span class="alert-severity severity-${alert.severity}">${severityLabel}</span>
+                    <span class="alert-time">${timeAgo}</span>
+                </div>
+            </div>
+            <div class="alert-status status-${alert.status}">${statusLabel}</div>
+        </div>
+        ${alert.description ? `<div class="alert-description">${alert.description}</div>` : ''}
+        ${alert.status === 'pending' ? `
+            <div class="alert-actions">
+                <button class="btn btn-sm btn-primary" onclick="markAlertAsResolved('${alert.id}')">
+                    ✓ 標記已處理
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="dismissAlert('${alert.id}')">
+                    🙈 忽略
+                </button>
+            </div>
+        ` : ''}
+        ${alert.status === 'resolved' && alert.resolution_note ? `
+            <div class="alert-resolution">
+                <strong>處理記錄：</strong>${alert.resolution_note}
+            </div>
+        ` : ''}
+    `;
+
+    return div;
 }
 
 function filterAlerts(type) {
-    // TODO: 實作警示篩選
     console.log('Filter alerts by type:', type);
+
+    // 更新按鈕狀態
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    // 重新載入警示
+    loadAlerts();
 }
 
 function closeAlertModal() {
     document.getElementById('alertModal').classList.remove('show');
 }
 
-function markAlertAsResolved() {
-    // TODO: 實作標記警示為已處理
-    showToast('功能開發中', 'info');
+async function markAlertAsResolved(alertId) {
+    try {
+        // 顯示輸入框詢問處理記錄
+        const resolutionNote = prompt('請輸入處理記錄（可選）:');
+
+        console.log(`✓ 標記警示為已處理: ${alertId}`);
+        showToast('處理中...', 'info');
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/alerts/${alertId}/resolve?userId=${currentUser.id}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentSession.access_token}`,
+                    'x-user-id': currentUser.id
+                },
+                body: JSON.stringify({
+                    resolutionNote: resolutionNote || undefined
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('標記警示失敗');
+        }
+
+        showToast('警示已標記為已處理', 'success');
+
+        // 重新載入警示列表和統計
+        await loadAlerts();
+        await loadAlertStatistics();
+
+    } catch (error) {
+        console.error('標記警示為已處理失敗:', error);
+        showToast('標記失敗，請重試', 'error');
+    }
+}
+
+async function dismissAlert(alertId) {
+    if (!confirm('確定要忽略這則警示嗎？')) {
+        return;
+    }
+
+    try {
+        console.log(`🙈 忽略警示: ${alertId}`);
+        showToast('處理中...', 'info');
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/alerts/${alertId}/dismiss?userId=${currentUser.id}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentSession.access_token}`,
+                    'x-user-id': currentUser.id
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('忽略警示失敗');
+        }
+
+        showToast('警示已忽略', 'success');
+
+        // 重新載入警示列表和統計
+        await loadAlerts();
+        await loadAlertStatistics();
+
+    } catch (error) {
+        console.error('忽略警示失敗:', error);
+        showToast('忽略失敗，請重試', 'error');
+    }
 }
 
 // ==================== 工具函數 ====================

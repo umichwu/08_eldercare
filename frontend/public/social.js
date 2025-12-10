@@ -533,6 +533,7 @@ function closePostModal() {
     document.getElementById('postMood').value = '';
     document.getElementById('postVisibility').value = 'friends';
     document.getElementById('imagePreview').innerHTML = '';
+    selectedPostImages = [];
 }
 
 async function submitPost() {
@@ -564,15 +565,36 @@ async function submitPost() {
             return;
         }
 
-        // 處理圖片（如果有）
-        const imagePreview = document.getElementById('imagePreview');
+        // 取得使用者 profile
+        const userProfile = await getUserProfile();
+        if (!userProfile) {
+            hideLoading();
+            showError('無法取得使用者資料');
+            return;
+        }
+
+        // 上傳圖片（如果有選擇）
         const mediaUrls = [];
-        const images = imagePreview.querySelectorAll('img');
-        images.forEach(img => {
-            if (img.src) {
-                mediaUrls.push(img.src);
+        if (selectedPostImages.length > 0) {
+            console.log(`📤 上傳 ${selectedPostImages.length} 張圖片...`);
+            try {
+                for (const file of selectedPostImages) {
+                    const url = await window.UploadUtils.uploadImage(
+                        file,
+                        userProfile.id,
+                        'posts',
+                        true
+                    );
+                    mediaUrls.push(url);
+                    console.log('✅ 圖片上傳成功:', url);
+                }
+            } catch (uploadError) {
+                console.error('❌ 圖片上傳失敗:', uploadError);
+                hideLoading();
+                showError('圖片上傳失敗：' + uploadError.message);
+                return;
             }
-        });
+        }
 
         // 發送到後端
         const response = await fetch(`${API_BASE_URL}/api/social/posts`, {
@@ -1333,6 +1355,9 @@ function showError(message) {
 // ===================================
 // 圖片預覽
 // ===================================
+// 儲存選擇的圖片檔案
+let selectedPostImages = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     const postImageInput = document.getElementById('postImage');
     if (postImageInput) {
@@ -1340,9 +1365,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const files = event.target.files;
             const preview = document.getElementById('imagePreview');
             preview.innerHTML = '';
+            selectedPostImages = [];
 
             Array.from(files).forEach(file => {
                 if (file.type.startsWith('image/')) {
+                    selectedPostImages.push(file);
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const img = document.createElement('img');

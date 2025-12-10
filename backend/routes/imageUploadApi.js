@@ -3,16 +3,20 @@
  * 功能：藥物外觀拍照、心情日記配圖
  */
 
-const express = require('express');
+import express from 'express';
+import { createClient } from '@supabase/supabase-js';
+import multer from 'multer';
+import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
-const multer = require('multer');
-const sharp = require('sharp');
-const { v4: uuidv4 } = require('uuid');
 
 // Supabase 設定
-const supabaseUrl = process.env.SUPABASE_URL || 'https://rxquczgjsgkeqemhngnb.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Multer 設定（記憶體儲存）
@@ -616,4 +620,4 @@ router.get('/storage-usage/:userId', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1582,6 +1582,924 @@ router.delete('/messages/:messageId', async (req, res) => {
 });
 
 // ============================================================================
+// 群組聊天相關 API
+// ============================================================================
+
+/**
+ * POST /api/social/groups
+ * 建立群組
+ */
+router.post('/groups', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { name, description, avatarUrl, maxMembers = 50, isPrivate = false } = req.body;
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ error: '群組名稱不能為空' });
+    }
+
+    const profileId = await getUserProfileId(authUserId);
+
+    // 建立群組
+    const { data: group, error: groupError } = await supabase
+      .from('chat_groups')
+      .insert({
+        name: name.trim(),
+        description: description || null,
+        avatar_url: avatarUrl || null,
+        max_members: maxMembers,
+        is_private: isPrivate,
+        created_by: profileId
+      })
+      .select()
+      .single();
+
+    if (groupError) {
+      console.error('建立群組錯誤:', groupError);
+      return res.status(500).json({ error: '建立群組失敗' });
+    }
+
+    // 自動加入創建者為管理員
+    const { error: memberError } = await supabase
+      .from('chat_group_members')
+      .insert({
+        group_id: group.id,
+        user_id: profileId,
+        role: 'admin',
+        can_invite_members: true
+      });
+
+    if (memberError) {
+      console.error('加入創建者錯誤:', memberError);
+      // 刪除已建立的群組
+      await supabase.from('chat_groups').delete().eq('id', group.id);
+      return res.status(500).json({ error: '建立群組失敗' });
+    }
+
+    res.json({
+      success: true,
+      group,
+      message: '群組建立成功'
+    });
+  } catch (error) {
+    console.error('建立群組失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/social/groups
+ * 取得使用者加入的群組列表
+ */
+router.get('/groups', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const profileId = await getUserProfileId(authUserId);
+
+    // 取得使用者加入的群組
+    const { data: groups, error } = await supabase
+      .from('chat_group_members')
+      .select(`
+        group_id,
+        role,
+        is_muted,
+        is_pinned,
+        joined_at,
+        chat_groups:group_id (
+          id,
+          name,
+          description,
+          avatar_url,
+          max_members,
+          is_private,
+          created_by,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('user_id', profileId)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: false });
+
+    if (error) {
+      console.error('取得群組列表錯誤:', error);
+      return res.status(500).json({ error: '取得群組列表失敗' });
+    }
+
+    // 格式化回應
+    const formattedGroups = (groups || []).map(item => ({
+      ...item.chat_groups,
+      myRole: item.role,
+      isMuted: item.is_muted,
+      isPinned: item.is_pinned,
+      joinedAt: item.joined_at
+    }));
+
+    res.json({
+      success: true,
+      groups: formattedGroups,
+      count: formattedGroups.length
+    });
+  } catch (error) {
+    console.error('取得群組列表失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/social/groups/:groupId
+ * 取得群組詳細資訊
+ */
+router.get('/groups/:groupId', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId } = req.params;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 檢查是否為群組成員
+    const { data: membership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('role, is_active')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .single();
+
+    if (memberError || !membership || !membership.is_active) {
+      return res.status(403).json({ error: '無權限查看此群組' });
+    }
+
+    // 取得群組資訊
+    const { data: group, error: groupError } = await supabase
+      .from('chat_groups')
+      .select('*')
+      .eq('id', groupId)
+      .single();
+
+    if (groupError || !group) {
+      return res.status(404).json({ error: '找不到群組' });
+    }
+
+    // 取得群組成員
+    const { data: members, error: membersError } = await supabase
+      .from('chat_group_members')
+      .select(`
+        id,
+        user_id,
+        role,
+        nickname,
+        is_muted,
+        can_send_messages,
+        can_invite_members,
+        joined_at,
+        user_profiles:user_id (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('group_id', groupId)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: true });
+
+    if (membersError) {
+      console.error('取得群組成員錯誤:', membersError);
+    }
+
+    res.json({
+      success: true,
+      group: {
+        ...group,
+        myRole: membership.role,
+        members: members || []
+      }
+    });
+  } catch (error) {
+    console.error('取得群組詳情失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/social/groups/:groupId
+ * 更新群組資訊（僅管理員/版主）
+ */
+router.put('/groups/:groupId', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId } = req.params;
+    const { name, description, avatarUrl, maxMembers } = req.body;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 檢查是否為管理員或版主
+    const { data: membership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .eq('is_active', true)
+      .single();
+
+    if (memberError || !membership || !['admin', 'moderator'].includes(membership.role)) {
+      return res.status(403).json({ error: '無權限更新群組' });
+    }
+
+    // 更新群組
+    const updateData = {};
+    if (name) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description;
+    if (avatarUrl !== undefined) updateData.avatar_url = avatarUrl;
+    if (maxMembers) updateData.max_members = maxMembers;
+    updateData.updated_at = new Date().toISOString();
+
+    const { data: group, error } = await supabase
+      .from('chat_groups')
+      .update(updateData)
+      .eq('id', groupId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('更新群組錯誤:', error);
+      return res.status(500).json({ error: '更新群組失敗' });
+    }
+
+    res.json({
+      success: true,
+      group,
+      message: '群組已更新'
+    });
+  } catch (error) {
+    console.error('更新群組失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/social/groups/:groupId
+ * 刪除群組（僅創建者）
+ */
+router.delete('/groups/:groupId', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId } = req.params;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 檢查是否為創建者
+    const { data: group, error: groupError } = await supabase
+      .from('chat_groups')
+      .select('created_by')
+      .eq('id', groupId)
+      .single();
+
+    if (groupError || !group || group.created_by !== profileId) {
+      return res.status(403).json({ error: '只有創建者可以刪除群組' });
+    }
+
+    // 軟刪除群組
+    const { error } = await supabase
+      .from('chat_groups')
+      .update({
+        is_active: false,
+        is_deleted: true,
+        deleted_at: new Date().toISOString()
+      })
+      .eq('id', groupId);
+
+    if (error) {
+      console.error('刪除群組錯誤:', error);
+      return res.status(500).json({ error: '刪除群組失敗' });
+    }
+
+    res.json({
+      success: true,
+      message: '群組已刪除'
+    });
+  } catch (error) {
+    console.error('刪除群組失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/social/groups/:groupId/members
+ * 邀請成員加入群組
+ */
+router.post('/groups/:groupId/members', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId } = req.params;
+    const { inviteeIds, message } = req.body;
+    const profileId = await getUserProfileId(authUserId);
+
+    if (!inviteeIds || inviteeIds.length === 0) {
+      return res.status(400).json({ error: '請選擇要邀請的成員' });
+    }
+
+    // 檢查邀請權限
+    const { data: membership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('role, can_invite_members')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .eq('is_active', true)
+      .single();
+
+    if (memberError || !membership) {
+      return res.status(403).json({ error: '您不是群組成員' });
+    }
+
+    if (!['admin', 'moderator'].includes(membership.role) && !membership.can_invite_members) {
+      return res.status(403).json({ error: '無權限邀請成員' });
+    }
+
+    // 批次建立邀請
+    const invites = inviteeIds.map(inviteeId => ({
+      group_id: groupId,
+      inviter_id: profileId,
+      invitee_id: inviteeId,
+      message: message || null
+    }));
+
+    const { data, error } = await supabase
+      .from('chat_group_invites')
+      .insert(invites)
+      .select();
+
+    if (error) {
+      console.error('建立邀請錯誤:', error);
+      return res.status(500).json({ error: '發送邀請失敗' });
+    }
+
+    res.json({
+      success: true,
+      invites: data,
+      count: data?.length || 0,
+      message: '邀請已發送'
+    });
+  } catch (error) {
+    console.error('邀請成員失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/social/groups/:groupId/members
+ * 取得群組成員列表
+ */
+router.get('/groups/:groupId/members', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId } = req.params;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 檢查是否為群組成員
+    const { data: membership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('is_active')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .single();
+
+    if (memberError || !membership || !membership.is_active) {
+      return res.status(403).json({ error: '無權限查看群組成員' });
+    }
+
+    // 取得成員列表
+    const { data: members, error } = await supabase
+      .from('chat_group_members')
+      .select(`
+        id,
+        user_id,
+        role,
+        nickname,
+        is_muted,
+        can_send_messages,
+        can_invite_members,
+        joined_at,
+        user_profiles:user_id (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('group_id', groupId)
+      .eq('is_active', true)
+      .order('role', { ascending: true })
+      .order('joined_at', { ascending: true });
+
+    if (error) {
+      console.error('取得成員列表錯誤:', error);
+      return res.status(500).json({ error: '取得成員列表失敗' });
+    }
+
+    res.json({
+      success: true,
+      members: members || [],
+      count: members?.length || 0
+    });
+  } catch (error) {
+    console.error('取得成員列表失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/social/groups/:groupId/members/:memberId
+ * 更新成員權限（僅管理員）
+ */
+router.put('/groups/:groupId/members/:memberId', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId, memberId } = req.params;
+    const { role, canSendMessages, canInviteMembers, isMuted } = req.body;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 檢查是否為管理員
+    const { data: membership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .eq('is_active', true)
+      .single();
+
+    if (memberError || !membership || membership.role !== 'admin') {
+      return res.status(403).json({ error: '只有管理員可以更新成員權限' });
+    }
+
+    // 更新成員
+    const updateData = { updated_at: new Date().toISOString() };
+    if (role) updateData.role = role;
+    if (canSendMessages !== undefined) updateData.can_send_messages = canSendMessages;
+    if (canInviteMembers !== undefined) updateData.can_invite_members = canInviteMembers;
+    if (isMuted !== undefined) updateData.is_muted = isMuted;
+
+    const { data, error } = await supabase
+      .from('chat_group_members')
+      .update(updateData)
+      .eq('id', memberId)
+      .eq('group_id', groupId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('更新成員權限錯誤:', error);
+      return res.status(500).json({ error: '更新成員權限失敗' });
+    }
+
+    res.json({
+      success: true,
+      member: data,
+      message: '成員權限已更新'
+    });
+  } catch (error) {
+    console.error('更新成員權限失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/social/groups/:groupId/members/:memberId
+ * 移除成員或退出群組
+ */
+router.delete('/groups/:groupId/members/:memberId', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId, memberId } = req.params;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 取得要移除的成員資訊
+    const { data: targetMember, error: targetError } = await supabase
+      .from('chat_group_members')
+      .select('user_id, role')
+      .eq('id', memberId)
+      .eq('group_id', groupId)
+      .single();
+
+    if (targetError || !targetMember) {
+      return res.status(404).json({ error: '找不到成員' });
+    }
+
+    // 取得自己的成員資訊
+    const { data: myMembership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('role')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .eq('is_active', true)
+      .single();
+
+    if (memberError || !myMembership) {
+      return res.status(403).json({ error: '您不是群組成員' });
+    }
+
+    // 檢查權限：自己退出或管理員移除他人
+    const isSelfLeave = targetMember.user_id === profileId;
+    const isAdminRemove = myMembership.role === 'admin' && !isSelfLeave;
+
+    if (!isSelfLeave && !isAdminRemove) {
+      return res.status(403).json({ error: '無權限移除此成員' });
+    }
+
+    // 更新成員狀態為離開
+    const { error } = await supabase
+      .from('chat_group_members')
+      .update({
+        is_active: false,
+        left_at: new Date().toISOString()
+      })
+      .eq('id', memberId)
+      .eq('group_id', groupId);
+
+    if (error) {
+      console.error('移除成員錯誤:', error);
+      return res.status(500).json({ error: '移除成員失敗' });
+    }
+
+    res.json({
+      success: true,
+      message: isSelfLeave ? '已退出群組' : '成員已移除'
+    });
+  } catch (error) {
+    console.error('移除成員失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/social/groups/:groupId/messages
+ * 取得群組訊息
+ */
+router.get('/groups/:groupId/messages', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId } = req.params;
+    const { limit = 50, before } = req.query;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 檢查是否為群組成員
+    const { data: membership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('is_active')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .single();
+
+    if (memberError || !membership || !membership.is_active) {
+      return res.status(403).json({ error: '無權限查看群組訊息' });
+    }
+
+    // 取得群組訊息
+    let query = supabase
+      .from('chat_messages')
+      .select(`
+        id,
+        sender_id,
+        group_id,
+        content,
+        message_type,
+        media_url,
+        created_at,
+        sender:user_profiles!chat_messages_sender_id_fkey (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit));
+
+    if (before) {
+      query = query.lt('created_at', before);
+    }
+
+    const { data: messages, error } = await query;
+
+    if (error) {
+      console.error('取得群組訊息錯誤:', error);
+      return res.status(500).json({ error: '取得群組訊息失敗' });
+    }
+
+    // 反轉順序（最舊的在前）
+    const sortedMessages = (messages || []).reverse();
+
+    res.json({
+      success: true,
+      messages: sortedMessages,
+      count: sortedMessages.length,
+      hasMore: sortedMessages.length === parseInt(limit)
+    });
+  } catch (error) {
+    console.error('取得群組訊息失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/social/groups/:groupId/messages
+ * 發送群組訊息
+ */
+router.post('/groups/:groupId/messages', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { groupId } = req.params;
+    const { content, messageType = 'text', mediaUrl } = req.body;
+    const profileId = await getUserProfileId(authUserId);
+
+    if (messageType === 'text' && (!content || content.trim().length === 0)) {
+      return res.status(400).json({ error: '訊息內容不能為空' });
+    }
+
+    // 檢查是否有發送權限
+    const { data: membership, error: memberError } = await supabase
+      .from('chat_group_members')
+      .select('is_active, can_send_messages')
+      .eq('group_id', groupId)
+      .eq('user_id', profileId)
+      .single();
+
+    if (memberError || !membership || !membership.is_active) {
+      return res.status(403).json({ error: '您不是群組成員' });
+    }
+
+    if (!membership.can_send_messages) {
+      return res.status(403).json({ error: '您已被禁止發送訊息' });
+    }
+
+    // 插入訊息
+    const { data: message, error } = await supabase
+      .from('chat_messages')
+      .insert({
+        sender_id: profileId,
+        group_id: groupId,
+        content: content?.trim() || null,
+        message_type: messageType,
+        media_url: mediaUrl || null
+      })
+      .select(`
+        id,
+        sender_id,
+        group_id,
+        content,
+        message_type,
+        media_url,
+        created_at,
+        sender:user_profiles!chat_messages_sender_id_fkey (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('發送群組訊息錯誤:', error);
+      return res.status(500).json({ error: '發送訊息失敗' });
+    }
+
+    res.status(201).json({
+      success: true,
+      message
+    });
+  } catch (error) {
+    console.error('發送群組訊息失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/social/group-invites
+ * 取得自己收到的群組邀請
+ */
+router.get('/group-invites', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const profileId = await getUserProfileId(authUserId);
+
+    const { data: invites, error } = await supabase
+      .from('chat_group_invites')
+      .select(`
+        id,
+        group_id,
+        inviter_id,
+        status,
+        message,
+        created_at,
+        expires_at,
+        chat_groups:group_id (
+          id,
+          name,
+          description,
+          avatar_url
+        ),
+        inviter:user_profiles!chat_group_invites_inviter_id_fkey (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('invitee_id', profileId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('取得群組邀請錯誤:', error);
+      return res.status(500).json({ error: '取得群組邀請失敗' });
+    }
+
+    res.json({
+      success: true,
+      invites: invites || [],
+      count: invites?.length || 0
+    });
+  } catch (error) {
+    console.error('取得群組邀請失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/social/group-invites/:inviteId/accept
+ * 接受群組邀請
+ */
+router.put('/group-invites/:inviteId/accept', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { inviteId } = req.params;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 取得邀請資訊
+    const { data: invite, error: inviteError } = await supabase
+      .from('chat_group_invites')
+      .select('group_id, invitee_id, status, expires_at')
+      .eq('id', inviteId)
+      .single();
+
+    if (inviteError || !invite) {
+      return res.status(404).json({ error: '找不到邀請' });
+    }
+
+    if (invite.invitee_id !== profileId) {
+      return res.status(403).json({ error: '無權限接受此邀請' });
+    }
+
+    if (invite.status !== 'pending') {
+      return res.status(400).json({ error: '邀請已處理' });
+    }
+
+    if (new Date(invite.expires_at) < new Date()) {
+      return res.status(400).json({ error: '邀請已過期' });
+    }
+
+    // 更新邀請狀態
+    const { error: updateError } = await supabase
+      .from('chat_group_invites')
+      .update({
+        status: 'accepted',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', inviteId);
+
+    if (updateError) {
+      console.error('更新邀請狀態錯誤:', updateError);
+      return res.status(500).json({ error: '接受邀請失敗' });
+    }
+
+    // 加入群組
+    const { error: memberError } = await supabase
+      .from('chat_group_members')
+      .insert({
+        group_id: invite.group_id,
+        user_id: profileId,
+        role: 'member'
+      });
+
+    if (memberError) {
+      console.error('加入群組錯誤:', memberError);
+      return res.status(500).json({ error: '加入群組失敗' });
+    }
+
+    res.json({
+      success: true,
+      message: '已加入群組'
+    });
+  } catch (error) {
+    console.error('接受群組邀請失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/social/group-invites/:inviteId/decline
+ * 拒絕群組邀請
+ */
+router.put('/group-invites/:inviteId/decline', async (req, res) => {
+  try {
+    const authUserId = await getAuthUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: '未授權' });
+    }
+
+    const { inviteId } = req.params;
+    const profileId = await getUserProfileId(authUserId);
+
+    // 取得邀請資訊
+    const { data: invite, error: inviteError } = await supabase
+      .from('chat_group_invites')
+      .select('invitee_id, status')
+      .eq('id', inviteId)
+      .single();
+
+    if (inviteError || !invite) {
+      return res.status(404).json({ error: '找不到邀請' });
+    }
+
+    if (invite.invitee_id !== profileId) {
+      return res.status(403).json({ error: '無權限拒絕此邀請' });
+    }
+
+    if (invite.status !== 'pending') {
+      return res.status(400).json({ error: '邀請已處理' });
+    }
+
+    // 更新邀請狀態
+    const { error } = await supabase
+      .from('chat_group_invites')
+      .update({
+        status: 'declined',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', inviteId);
+
+    if (error) {
+      console.error('更新邀請狀態錯誤:', error);
+      return res.status(500).json({ error: '拒絕邀請失敗' });
+    }
+
+    res.json({
+      success: true,
+      message: '已拒絕邀請'
+    });
+  } catch (error) {
+    console.error('拒絕群組邀請失敗:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================================================
 // 健康檢查
 // ============================================================================
 

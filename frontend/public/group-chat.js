@@ -110,7 +110,15 @@ async function loadGroups() {
         `;
         noGroupsPlaceholder.style.display = 'none';
 
-        const response = await fetch(`${API_BASE_URL}/api/groups?userId=${userProfile.id}`);
+        // 使用 JWT token 從 Supabase session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/groups`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
 
         if (!response.ok) {
             const data = await response.json();
@@ -240,7 +248,14 @@ async function loadGroupMessages(groupId) {
     try {
         console.log(`💬 載入群組訊息: ${groupId}`);
 
-        const response = await fetch(`${API_BASE_URL}/api/groups/${groupId}/messages?limit=50`);
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/groups/${groupId}/messages?limit=50`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
         const data = await response.json();
 
         if (!response.ok) {
@@ -366,15 +381,18 @@ async function sendGroupMessage() {
     try {
         console.log('📤 發送訊息...');
 
-        const response = await fetch(`${API_BASE_URL}/api/groups/${currentGroup.id}/messages`, {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/groups/${currentGroup.id}/messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                userId: userProfile.id,
                 content,
-                message_type: 'text'
+                messageType: 'text'
             })
         });
 
@@ -471,18 +489,21 @@ async function createGroup(event) {
     try {
         console.log('➕ 建立新群組...');
 
-        const response = await fetch(`${API_BASE_URL}/api/groups`, {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/groups`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                userId: userProfile.id,
                 name,
                 description: description || null,
-                avatar_url: avatarUrl || null,
-                max_members: maxMembers,
-                is_private: isPrivate
+                avatarUrl: avatarUrl || null,
+                maxMembers: maxMembers,
+                isPrivate: isPrivate
             })
         });
 
@@ -532,7 +553,14 @@ async function loadGroupMembers() {
     try {
         console.log('👥 載入群組成員...');
 
-        const response = await fetch(`${API_BASE_URL}/api/groups/${currentGroup.id}/members`);
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/groups/${currentGroup.id}/members`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
         const data = await response.json();
 
         if (!response.ok) {
@@ -614,16 +642,19 @@ async function updateGroupSettings(event) {
     try {
         console.log('💾 更新群組設定...');
 
-        const response = await fetch(`${API_BASE_URL}/api/groups/${currentGroup.id}`, {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/groups/${currentGroup.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                userId: userProfile.id,
                 name,
                 description,
-                avatar_url: avatarUrl
+                avatarUrl: avatarUrl
             })
         });
 
@@ -662,8 +693,15 @@ async function leaveGroup() {
     try {
         console.log('👋 離開群組...');
 
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
         // 需要先取得當前使用者的 membership id
-        const membersResponse = await fetch(`${API_BASE_URL}/api/groups/${currentGroup.id}/members`);
+        const membersResponse = await fetch(`${API_BASE_URL}/api/social/groups/${currentGroup.id}/members`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
         const membersData = await membersResponse.json();
         const myMembership = membersData.members.find(m => m.user_id === userProfile.id);
 
@@ -671,14 +709,11 @@ async function leaveGroup() {
             throw new Error('找不到成員資訊');
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/groups/${currentGroup.id}/members/${myMembership.id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/social/groups/${currentGroup.id}/members/${myMembership.id}`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                userId: userProfile.id
-            })
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         const data = await response.json();
@@ -777,15 +812,17 @@ async function addMemberToGroup(userId, userName) {
     try {
         console.log(`➕ 新增成員: ${userName}`);
 
-        const response = await fetch(`${API_BASE_URL}/api/groups/${currentGroup.id}/members`, {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await fetch(`${API_BASE_URL}/api/social/groups/${currentGroup.id}/members`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                userId: userProfile.id,
-                newMemberId: userId,
-                role: 'member'
+                inviteeIds: [userId]
             })
         });
 
@@ -853,16 +890,19 @@ async function handleImageSelect(event) {
         console.log('✅ 圖片上傳成功:', data.url);
 
         // 發送圖片訊息
-        const messageResponse = await fetch(`${API_BASE_URL}/api/groups/${currentGroup.id}/messages`, {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const token = session?.access_token;
+
+        const messageResponse = await fetch(`${API_BASE_URL}/api/social/groups/${currentGroup.id}/messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-                userId: userProfile.id,
                 content: '',
-                message_type: 'image',
-                media_url: data.url
+                messageType: 'image',
+                mediaUrl: data.url
             })
         });
 

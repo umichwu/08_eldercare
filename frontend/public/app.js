@@ -1086,9 +1086,19 @@ function setupVoiceRecognition() {
   recognition.interimResults = false;
 
   recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    document.getElementById('messageInput').value = transcript;
-    speakText('已辨識您的語音，請確認後傳送');
+    let transcript = event.results[0][0].transcript;
+
+    // 過濾掉開頭的「請說話」提示音
+    // 處理可能的變體：「請說話」、「請 說話」、「請說話 」等
+    transcript = transcript.replace(/^請\s*說\s*話\s*/g, '');
+
+    // 如果過濾後為空，不填入（可能只錄到提示音）
+    if (transcript.trim()) {
+      document.getElementById('messageInput').value = transcript;
+      speakText('已辨識您的語音，請確認後傳送');
+    } else {
+      speakText('未辨識到有效語音，請再試一次');
+    }
   };
 
   recognition.onerror = (event) => {
@@ -1108,11 +1118,26 @@ function startVoiceInput() {
   }
 
   try {
-    recognition.start();
-    document.getElementById('voiceInputBtn').textContent = '🎤 聆聽中...';
-    speakText('請說話');
+    // 更新按鈕狀態
+    document.getElementById('voiceInputBtn').textContent = '🎤 準備中...';
+
+    // 如果語音提示已開啟，先播放提示音
+    if (isVoiceEnabled) {
+      speakText('請說話');
+
+      // 延遲 1.5 秒後再啟動語音辨識（等待提示音播放完畢）
+      setTimeout(() => {
+        recognition.start();
+        document.getElementById('voiceInputBtn').textContent = '🎤 聆聽中...';
+      }, 1500);
+    } else {
+      // 如果語音提示已關閉，立即啟動
+      recognition.start();
+      document.getElementById('voiceInputBtn').textContent = '🎤 聆聽中...';
+    }
   } catch (error) {
     console.error('啟動語音辨識失敗:', error);
+    document.getElementById('voiceInputBtn').textContent = '🎤 語音輸入';
   }
 }
 

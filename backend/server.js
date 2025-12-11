@@ -19,6 +19,7 @@ import settingsRouter from './routes/settingsApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 import { startDailyReminderScheduler } from './services/dailyReminderScheduler.js';
+import { apiLimiter, authLimiter, uploadLimiter, publicLimiter } from './middleware/rateLimiter.js';
 
 // 取得當前檔案的目錄（ES Module 需要）
 const __filename = fileURLToPath(import.meta.url);
@@ -92,6 +93,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// 速率限制 - 根據不同路由套用不同的限制
+// 認證相關路由（嚴格限制）
+app.use('/api/auth', authLimiter);
+app.use('/api/fcm/register', authLimiter);
+
+// 上傳相關路由（中等限制）
+app.use('/api/upload', uploadLimiter);
+app.use('/api/images', uploadLimiter);
+
+// 一般 API 路由（標準限制）
+app.use('/api', apiLimiter);
+
 // API 路由
 app.use('/api', apiRouter);
 app.use('/api', medicationRouter);
@@ -160,6 +173,7 @@ app.listen(PORT, HOST, () => {
   console.log(`🗄️  Supabase: ${process.env.SUPABASE_URL}`);
   console.log(`🤖 OpenAI: ${process.env.OPENAI_API_KEY ? '已配置' : '未配置'}`);
   console.log(`🔔 Firebase: ${process.env.FIREBASE_PROJECT_ID ? '已配置' : '未配置'}`);
+  console.log(`🛡️  API 速率限制: 已啟用`);
   console.log('');
   console.log('可用端點:');
   console.log(`   GET  /api/health                              - 健康檢查`);

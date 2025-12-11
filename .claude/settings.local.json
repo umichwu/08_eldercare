@@ -16,7 +16,12 @@
       "Bash(mkdir -p database/backup)",
       "Bash(cp database/*.sql database/backup/)",
       "Bash(cp database/migrations/*.sql database/backup/)",
-      "Bash(cp database/supabase_complete_schema_with_auth_v4.sql database/supabase_complete_schema_v5.sql)"
+      "Bash(cp database/supabase_complete_schema_with_auth_v4.sql database/supabase_complete_schema_v5.sql)",
+      "Bash(npm install express-rate-limit)",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000/api/health)",
+      "Bash(node --check server.js)",
+      "Bash(node --check middleware/rateLimiter.js)"
     ],
     "deny": [],
     "ask": []

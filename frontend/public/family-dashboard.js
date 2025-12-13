@@ -2575,3 +2575,221 @@ function escapeHtml(text) {
 }
 
 console.log('✅ family-dashboard.js (警示系統) 載入完成');
+
+// ==================== 家屬設定功能 (NEW) ====================
+
+/**
+ * 顯示設定模態框
+ */
+async function showSettings() {
+    const modal = document.getElementById('settingsModal');
+    modal.classList.add('show');
+
+    // 載入現有設定
+    await loadFamilySettings();
+}
+
+/**
+ * 關閉設定模態框
+ */
+function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    modal.classList.remove('show');
+}
+
+/**
+ * 載入家屬設定
+ */
+async function loadFamilySettings() {
+    try {
+        const familyMemberId = currentUser.id;
+
+        const response = await fetch(`${API_BASE_URL}/api/family-settings/${familyMemberId}`);
+
+        if (!response.ok) {
+            throw new Error('載入設定失敗');
+        }
+
+        const result = await response.json();
+        const settings = result.data || {};
+
+        console.log('📊 載入的設定:', settings);
+
+        // 填充表單
+        populateSettingsForm(settings);
+
+    } catch (error) {
+        console.error('載入設定失敗:', error);
+
+        // 如果沒有設定，使用預設值
+        populateSettingsForm(getDefaultSettings());
+    }
+}
+
+/**
+ * 填充設定表單
+ */
+function populateSettingsForm(settings) {
+    // 通知偏好
+    const notificationPrefs = settings.notification_preferences || {};
+    document.getElementById('emailNotification').checked = notificationPrefs.email ?? false;
+    document.getElementById('smsNotification').checked = notificationPrefs.sms ?? false;
+    document.getElementById('pushNotification').checked = notificationPrefs.push ?? true;
+    document.getElementById('lineNotification').checked = notificationPrefs.line ?? false;
+
+    // 警示閾值
+    const alertThresholds = settings.alert_thresholds || {};
+    document.getElementById('medicationDelayThreshold').value =
+        alertThresholds.medication_delay_minutes ?? 30;
+    document.getElementById('locationAlertRadius').value =
+        alertThresholds.location_alert_radius ?? 500;
+    document.getElementById('inactivityThreshold').value =
+        alertThresholds.inactivity_hours ?? 24;
+
+    // 語言與時區
+    document.getElementById('languagePreference').value =
+        settings.language_preference ?? 'zh-TW';
+    document.getElementById('timezonePreference').value =
+        settings.timezone ?? 'Asia/Taipei';
+
+    // 每日摘要
+    const dailySummaryPrefs = settings.daily_summary_preferences || {};
+    document.getElementById('dailySummary').checked = dailySummaryPrefs.enabled ?? true;
+    document.getElementById('dailySummaryTime').value =
+        dailySummaryPrefs.time ?? '20:00';
+
+    // 更新每日摘要時間輸入的顯示狀態
+    toggleDailySummaryTime();
+
+    // 隱私與資料
+    document.getElementById('dataSharing').checked = settings.data_sharing ?? false;
+    document.getElementById('analyticsEnabled').checked = settings.analytics_enabled ?? true;
+}
+
+/**
+ * 取得預設設定
+ */
+function getDefaultSettings() {
+    return {
+        notification_preferences: {
+            email: false,
+            sms: false,
+            push: true,
+            line: false
+        },
+        alert_thresholds: {
+            medication_delay_minutes: 30,
+            location_alert_radius: 500,
+            inactivity_hours: 24
+        },
+        language_preference: 'zh-TW',
+        timezone: 'Asia/Taipei',
+        daily_summary_preferences: {
+            enabled: true,
+            time: '20:00'
+        },
+        data_sharing: false,
+        analytics_enabled: true
+    };
+}
+
+/**
+ * 儲存設定
+ */
+async function saveSettings(event) {
+    event.preventDefault();
+
+    try {
+        const familyMemberId = currentUser.id;
+
+        // 收集表單資料
+        const settings = {
+            family_member_id: familyMemberId,
+            notification_preferences: {
+                email: document.getElementById('emailNotification').checked,
+                sms: document.getElementById('smsNotification').checked,
+                push: document.getElementById('pushNotification').checked,
+                line: document.getElementById('lineNotification').checked
+            },
+            alert_thresholds: {
+                medication_delay_minutes: parseInt(document.getElementById('medicationDelayThreshold').value),
+                location_alert_radius: parseInt(document.getElementById('locationAlertRadius').value),
+                inactivity_hours: parseInt(document.getElementById('inactivityThreshold').value)
+            },
+            language_preference: document.getElementById('languagePreference').value,
+            timezone: document.getElementById('timezonePreference').value,
+            daily_summary_preferences: {
+                enabled: document.getElementById('dailySummary').checked,
+                time: document.getElementById('dailySummaryTime').value
+            },
+            data_sharing: document.getElementById('dataSharing').checked,
+            analytics_enabled: document.getElementById('analyticsEnabled').checked
+        };
+
+        console.log('💾 儲存設定:', settings);
+
+        // 呼叫 API
+        const response = await fetch(`${API_BASE_URL}/api/family-settings`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        });
+
+        if (!response.ok) {
+            throw new Error('儲存設定失敗');
+        }
+
+        const result = await response.json();
+        console.log('✅ 設定已儲存:', result);
+
+        showToast('✅ 設定已儲存', 'success');
+        closeSettingsModal();
+
+        // 如果語言設定改變，可以觸發重新載入（未來實作）
+        // if (settings.language_preference !== currentLanguage) {
+        //     window.location.reload();
+        // }
+
+    } catch (error) {
+        console.error('儲存設定失敗:', error);
+        showToast('❌ 儲存失敗，請稍後再試', 'error');
+    }
+}
+
+/**
+ * 重置設定為預設值
+ */
+function resetSettings() {
+    if (!confirm('確定要重置為預設值嗎？')) {
+        return;
+    }
+
+    populateSettingsForm(getDefaultSettings());
+    showToast('✅ 已重置為預設值', 'success');
+}
+
+/**
+ * 切換每日摘要時間輸入的顯示
+ */
+function toggleDailySummaryTime() {
+    const checkbox = document.getElementById('dailySummary');
+    const timeGroup = document.getElementById('dailySummaryTimeGroup');
+
+    if (checkbox.checked) {
+        timeGroup.classList.remove('hidden');
+    } else {
+        timeGroup.classList.add('hidden');
+    }
+}
+
+// 監聽每日摘要勾選框變化
+document.addEventListener('DOMContentLoaded', () => {
+    const dailySummaryCheckbox = document.getElementById('dailySummary');
+    if (dailySummaryCheckbox) {
+        dailySummaryCheckbox.addEventListener('change', toggleDailySummaryTime);
+    }
+});
+
+console.log('✅ 家屬設定功能已載入');

@@ -1393,3 +1393,230 @@ select:focus {
         transform: translateY(0);
     }
 }
+
+
+/* ==================== 家屬設定模態框樣式 (NEW) ==================== */
+
+/* 設定區塊 */
+.setting-section {
+    background: #f9f9f9;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.setting-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.section-icon {
+    font-size: 24px;
+}
+
+/* 設定群組 */
+.setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 勾選框樣式 */
+.setting-checkbox {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.setting-checkbox:hover {
+    border-color: #4caf50;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+}
+
+.setting-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+}
+
+.label-icon {
+    font-size: 20px;
+}
+
+.label-text {
+    flex: 1;
+}
+
+.setting-checkbox input[type="checkbox"]:checked + .checkbox-label {
+    color: #4caf50;
+}
+
+.setting-checkbox input[type="checkbox"]:checked + .checkbox-label::after {
+    content: '✓';
+    margin-left: auto;
+    font-size: 20px;
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.setting-hint {
+    color: #666;
+    font-size: 13px;
+    margin-left: 30px;
+}
+
+/* 設定項目 */
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+}
+
+.setting-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #333;
+}
+
+/* 帶單位的輸入框 */
+.input-with-unit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.setting-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.setting-input:focus {
+    outline: none;
+    border-color: #4caf50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.input-unit {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+    min-width: 40px;
+}
+
+.setting-select {
+    width: 100%;
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.setting-select:focus {
+    outline: none;
+    border-color: #4caf50;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+/* 模態框內的動作按鈕 */
+.modal-actions .btn-large {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 20px;
+    font-size: 16px;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .setting-section {
+        padding: 15px;
+    }
+
+    .setting-section-title {
+        font-size: 16px;
+    }
+
+    .setting-checkbox {
+        padding: 10px;
+    }
+
+    .checkbox-label {
+        font-size: 15px;
+    }
+
+    .setting-item {
+        padding: 12px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+
+    .modal-actions .btn-large {
+        width: 100%;
+    }
+}
+
+/* 每日摘要時間設定的顯示/隱藏 */
+#dailySummaryTimeGroup {
+    transition: all 0.3s ease;
+}
+
+#dailySummaryTimeGroup.hidden {
+    display: none;
+}
+
+/* 載入狀態 */
+.setting-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    color: #666;
+    font-size: 16px;
+}
+
+.setting-loading::before {
+    content: '⏳';
+    font-size: 24px;
+    margin-right: 10px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

@@ -596,6 +596,16 @@
                     </button>
                 </div>
 
+                <!-- 藥物照片上傳 (NEW) -->
+                <div class="form-section elder-form">
+                    <h3 class="section-title">📷 藥物照片（選填）</h3>
+                    <div id="medicationImageUploader"></div>
+                    <div id="existingMedicationImages" class="existing-images-container" style="display: none;">
+                        <!-- 現有圖片會顯示在這裡 -->
+                    </div>
+                    <p class="help-text-large">💡 提示：可以拍攝藥物外觀或藥袋，方便辨識</p>
+                </div>
+
                 <!-- 進階設定 (選填，可展開) -->
                 <div class="form-section collapsible">
                     <h3 onclick="toggleSection(this)">
@@ -741,7 +751,10 @@
     <!-- 3. 裝置偵測 -->
     <script src="device-detector.js"></script>
 
-    <!-- 4. 主要功能腳本 -->
+    <!-- 4. 圖片上傳元件 -->
+    <script src="components/ImageUploader.js"></script>
+
+    <!-- 5. 主要功能腳本 -->
     <script src="medications.js"></script>
 
     <!-- Service Worker 註冊 -->

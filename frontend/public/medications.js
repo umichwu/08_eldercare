@@ -77,6 +77,9 @@ let medications = [];
 let todayLogs = [];
 let selectedDate = new Date(); // 當前選擇的日期，預設為今天
 
+// 圖片上傳相關 (NEW)
+let medicationImageUploader = null;
+
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('📱 頁面開始初始化...');
@@ -1068,6 +1071,16 @@ function showAddMedicationForm() {
         collapsibleContent.style.display = 'none';
     }
 
+    // 初始化圖片上傳元件 (NEW)
+    initMedicationImageUploader();
+
+    // 隱藏現有圖片區域（新增時沒有圖片）
+    const existingImagesContainer = document.getElementById('existingMedicationImages');
+    if (existingImagesContainer) {
+        existingImagesContainer.style.display = 'none';
+        existingImagesContainer.innerHTML = '';
+    }
+
     document.getElementById('medicationModal').classList.add('show');
 }
 
@@ -1311,6 +1324,12 @@ async function editMedication(id) {
         console.error('❌ 載入提醒設定失敗:', error);
         showToast('載入提醒設定失敗', 'error');
     }
+
+    // 初始化圖片上傳元件 (NEW)
+    initMedicationImageUploader();
+
+    // 載入現有圖片 (NEW)
+    await loadMedicationImages(id);
 
     // ✅ 顯示彈窗
     document.getElementById('medicationModal').classList.add('show');
@@ -1657,6 +1676,22 @@ async function saveMedication(event) {
                 } catch (genError) {
                     console.warn('⚠️ 重新生成今日記錄失敗:', genError);
                 }
+            }
+        }
+
+        // 上傳藥物圖片（如果有選擇圖片）(NEW)
+        if (medicationImageUploader && medicationImageUploader.getSelectedFiles().length > 0) {
+            try {
+                console.log('📸 開始上傳藥物圖片...');
+                await medicationImageUploader.uploadFiles({
+                    uploader_id: currentUser.id,
+                    image_type: 'medication',
+                    related_id: medicationId
+                });
+                console.log('✅ 藥物圖片上傳成功');
+            } catch (uploadError) {
+                console.error('❌ 圖片上傳失敗:', uploadError);
+                showToast('⚠️ 藥物已儲存，但圖片上傳失敗', 'warning');
             }
         }
 
@@ -3686,3 +3721,146 @@ function checkAndPromptAppDownload(medicationId, reminderData) {
 }
 
 console.log('✅ Android App 整合模組已載入');
+
+// ==================== 藥物圖片上傳功能 (NEW) ====================
+
+/**
+ * 初始化藥物圖片上傳元件
+ */
+function initMedicationImageUploader() {
+    // 只初始化一次
+    if (!medicationImageUploader) {
+        medicationImageUploader = new ImageUploader({
+            containerId: 'medicationImageUploader',
+            maxFiles: 3,
+            maxSizeMB: 5,
+            uploadUrl: `${API_BASE_URL}/api/images/upload`,
+            onUploadSuccess: (images) => {
+                console.log('✅ 圖片上傳成功:', images);
+                showToast(`✅ 已上傳 ${images.length} 張圖片`, 'success');
+            },
+            onUploadError: (error) => {
+                console.error('❌ 圖片上傳失敗:', error);
+                showToast('❌ 圖片上傳失敗', 'error');
+            }
+        });
+    } else {
+        // 重置現有實例
+        medicationImageUploader.reset();
+    }
+}
+
+/**
+ * 載入藥物圖片
+ */
+async function loadMedicationImages(medicationId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/images/medication/${medicationId}`);
+        if (!response.ok) {
+            throw new Error('載入圖片失敗');
+        }
+
+        const result = await response.json();
+        const images = result.data || [];
+
+        console.log(`📸 載入藥物圖片: ${images.length} 張`, images);
+
+        // 顯示現有圖片
+        displayExistingImages(images);
+
+        return images;
+    } catch (error) {
+        console.error('載入藥物圖片失敗:', error);
+        return [];
+    }
+}
+
+/**
+ * 顯示現有圖片
+ */
+function displayExistingImages(images) {
+    const container = document.getElementById('existingMedicationImages');
+    if (!container) return;
+
+    if (images.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'block';
+    container.innerHTML = `
+        <h4 style="margin-bottom: 10px; font-size: 14px; color: #666;">現有圖片</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;">
+            ${images.map(img => `
+                <div style="position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 2px solid #e0e0e0;">
+                    <img src="${img.image_url}"
+                         alt="藥物圖片"
+                         style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
+                         onclick="viewImage('${img.image_url}')">
+                    <button onclick="deleteMedicationImage(${img.id}, this)"
+                            style="position: absolute; top: 5px; right: 5px; width: 28px; height: 28px;
+                                   background: rgba(244, 67, 54, 0.9); color: white; border: none;
+                                   border-radius: 50%; cursor: pointer; font-size: 16px; display: flex;
+                                   align-items: center; justify-content: center;">
+                        ✕
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+/**
+ * 查看圖片（全螢幕）
+ */
+function viewImage(url) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.9); z-index: 10000; display: flex;
+        align-items: center; justify-content: center; cursor: pointer;
+    `;
+    modal.innerHTML = `
+        <img src="${url}" style="max-width: 90%; max-height: 90%; object-fit: contain;">
+    `;
+    modal.onclick = () => modal.remove();
+    document.body.appendChild(modal);
+}
+
+/**
+ * 刪除藥物圖片
+ */
+async function deleteMedicationImage(imageId, button) {
+    if (!confirm('確定要刪除這張圖片嗎？')) {
+        return;
+    }
+
+    try {
+        button.disabled = true;
+        button.textContent = '⏳';
+
+        const response = await fetch(`${API_BASE_URL}/api/images/${imageId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('刪除失敗');
+        }
+
+        showToast('✅ 圖片已刪除', 'success');
+
+        // 重新載入圖片列表
+        const medicationId = document.getElementById('medicationId').value;
+        if (medicationId) {
+            await loadMedicationImages(medicationId);
+        }
+    } catch (error) {
+        console.error('刪除圖片失敗:', error);
+        showToast('❌ 刪除失敗', 'error');
+        button.disabled = false;
+        button.textContent = '✕';
+    }
+}
+
+console.log('✅ 藥物圖片上傳模組已載入');

@@ -16,10 +16,13 @@ import groupChatRouter from './routes/groupChatApi.js';
 import profileRouter from './routes/profileApi.js';
 import dailyReminderRouter from './routes/dailyReminderApi.js';
 import settingsRouter from './routes/settingsApi.js';
+import testErrorRouter from './routes/testErrorApi.js';
 import './config/firebase.js'; // 初始化 Firebase Admin SDK
 import { startMedicationScheduler } from './services/medicationScheduler.js';
 import { startDailyReminderScheduler } from './services/dailyReminderScheduler.js';
 import { apiLimiter, authLimiter, uploadLimiter, publicLimiter } from './middleware/rateLimiter.js';
+import { errorHandler, notFoundHandler, requestLogger } from './middleware/errorHandler.js';
+import logger, { logInfo } from './utils/logger.js';
 
 // 取得當前檔案的目錄（ES Module 需要）
 const __filename = fileURLToPath(import.meta.url);
@@ -87,11 +90,8 @@ app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 請求日誌
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
+// 請求日誌中間件（使用 Winston）
+app.use(requestLogger);
 
 // 速率限制 - 根據不同路由套用不同的限制
 // 認證相關路由（嚴格限制）
@@ -120,6 +120,11 @@ app.use('/api/profile', profileRouter);
 app.use('/api', dailyReminderRouter);
 app.use('/api/settings', settingsRouter);
 
+// 測試路由（僅開發環境）
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/test', testErrorRouter);
+}
+
 // 根路由
 app.get('/', (req, res) => {
   res.json({
@@ -147,19 +152,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 處理
-app.use((req, res) => {
-  res.status(404).json({ error: '找不到此路徑' });
-});
+// 404 處理（必須放在所有路由之後）
+app.use(notFoundHandler);
 
-// 錯誤處理
-app.use((err, req, res, next) => {
-  console.error('伺服器錯誤:', err);
-  res.status(500).json({
-    error: '伺服器內部錯誤',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+// 集中式錯誤處理（必須放在最後）
+app.use(errorHandler);
 
 // 啟動伺服器
 app.listen(PORT, HOST, () => {
@@ -174,6 +171,7 @@ app.listen(PORT, HOST, () => {
   console.log(`🤖 OpenAI: ${process.env.OPENAI_API_KEY ? '已配置' : '未配置'}`);
   console.log(`🔔 Firebase: ${process.env.FIREBASE_PROJECT_ID ? '已配置' : '未配置'}`);
   console.log(`🛡️  API 速率限制: 已啟用`);
+  console.log(`📝 錯誤處理與日誌: 已啟用`);
   console.log('');
   console.log('可用端點:');
   console.log(`   GET  /api/health                              - 健康檢查`);
@@ -232,20 +230,31 @@ app.listen(PORT, HOST, () => {
   console.log('='.repeat(60));
   console.log('');
 
+  // 記錄伺服器啟動
+  logInfo('伺服器啟動成功', {
+    host: HOST,
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+  });
+
   // 啟動用藥提醒排程器
   try {
     startMedicationScheduler();
     console.log('✅ 用藥提醒排程器已啟動');
+    logInfo('用藥提醒排程器已啟動');
   } catch (error) {
     console.error('❌ 啟動用藥排程器失敗:', error.message);
+    logger.error('啟動用藥排程器失敗', { error: error.message });
   }
 
   // 啟動生活提醒排程器
   try {
     startDailyReminderScheduler();
     console.log('✅ 生活提醒排程器已啟動');
+    logInfo('生活提醒排程器已啟動');
   } catch (error) {
     console.error('❌ 啟動生活提醒排程器失敗:', error.message);
+    logger.error('啟動生活提醒排程器失敗', { error: error.message });
   }
 });
 

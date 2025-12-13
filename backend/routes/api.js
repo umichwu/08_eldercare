@@ -242,6 +242,17 @@ router.post('/conversations/:id/messages/save', async (req, res) => {
 
     console.log('✅ 前端消息已成功保存到數據庫');
 
+    // 檢查是否需要產生自動總結
+    const summaryCheck = await summaryService.checkAutoSummary(id, userId);
+
+    if (summaryCheck.success && summaryCheck.needsSummary) {
+      console.log('🔄 觸發自動總結機制...');
+      // 非同步產生總結（不阻塞回應）
+      summaryService.generateSummary(id, userId).catch(err => {
+        console.error('❌ 自動總結失敗:', err);
+      });
+    }
+
     res.status(201).json({
       userMessage: userMsgResult.data,
       assistantMessage: aiMsgResult.data

@@ -144,6 +144,16 @@ class MessageService {
 
       if (error) throw error;
 
+      // 更新對話的訊息計數器（用於自動總結）
+      await supabaseAdmin
+        .from('conversations')
+        .update({
+          message_count: supabaseAdmin.sql`message_count + 2`,  // user + assistant
+          messages_since_last_summary: supabaseAdmin.sql`messages_since_last_summary + 2`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', conversationId);
+
       console.log('✅ 助理訊息已儲存:', data.id);
       return { success: true, data };
     } catch (error) {

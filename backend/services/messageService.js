@@ -39,17 +39,21 @@ class MessageService {
       }
 
       // 使用 supabaseAdmin 來查詢訊息（繞過 RLS）
+      // 重要：先降序排列（新的在前）再限制數量，確保取得最新的訊息
       const { data, error } = await supabaseAdmin
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })  // 降序：新的在前
         .limit(limit);
 
       if (error) throw error;
 
-      console.log(`✅ 取得 ${data.length} 則訊息 (Conversation: ${conversationId})`);
-      return { success: true, data };
+      // 反轉陣列，讓前端顯示時舊的在前、新的在後
+      const messages = data.reverse();
+
+      console.log(`✅ 取得 ${messages.length} 則訊息 (Conversation: ${conversationId})`);
+      return { success: true, data: messages };
     } catch (error) {
       console.error('❌ 取得訊息失敗:', error.message);
       return { success: false, error: error.message };

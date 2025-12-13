@@ -145,14 +145,24 @@ class MessageService {
       if (error) throw error;
 
       // 更新對話的訊息計數器（用於自動總結）
-      await supabaseAdmin
+      // 先取得目前的計數
+      const { data: conv } = await supabaseAdmin
         .from('conversations')
-        .update({
-          message_count: supabaseAdmin.sql`message_count + 2`,  // user + assistant
-          messages_since_last_summary: supabaseAdmin.sql`messages_since_last_summary + 2`,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', conversationId);
+        .select('message_count, messages_since_last_summary')
+        .eq('id', conversationId)
+        .single();
+
+      if (conv) {
+        // 更新計數器（每對對話 +2: user + assistant）
+        await supabaseAdmin
+          .from('conversations')
+          .update({
+            message_count: (conv.message_count || 0) + 2,
+            messages_since_last_summary: (conv.messages_since_last_summary || 0) + 2,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', conversationId);
+      }
 
       console.log('✅ 助理訊息已儲存:', data.id);
       return { success: true, data };

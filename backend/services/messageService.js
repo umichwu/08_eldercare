@@ -146,19 +146,19 @@ class MessageService {
 
       // 更新對話的訊息計數器（用於自動總結）
       // 先取得目前的計數
-      const { data: conv } = await supabaseAdmin
+      const { data: convData } = await supabaseAdmin
         .from('conversations')
         .select('message_count, messages_since_last_summary')
         .eq('id', conversationId)
         .single();
 
-      if (conv) {
+      if (convData) {
         // 更新計數器（每對對話 +2: user + assistant）
         await supabaseAdmin
           .from('conversations')
           .update({
-            message_count: (conv.message_count || 0) + 2,
-            messages_since_last_summary: (conv.messages_since_last_summary || 0) + 2,
+            message_count: (convData.message_count || 0) + 2,
+            messages_since_last_summary: (convData.messages_since_last_summary || 0) + 2,
             updated_at: new Date().toISOString()
           })
           .eq('id', conversationId);
